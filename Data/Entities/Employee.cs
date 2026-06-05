@@ -16,6 +16,9 @@ namespace Data.Entities
         public string FirstName { get; set; }
 
         [Column(TypeName = "nvarchar(100)")]
+
+        public string Username { get; set; }
+        [Column(TypeName = "nvarchar(50)")]
         public string? LastName { get; set; }
 
         [Column(TypeName = "nvarchar(200)")]
@@ -30,7 +33,12 @@ namespace Data.Entities
         [Column(TypeName = "nvarchar(255)")]
         public string? Designation { get; set; }
 
+        [Column(TypeName = "nvarchar(255)")]
+        public string? Password { get; set; }
+        public Organization organization { get; set; }
+
         public DateTime? HiEmployee { get; set; } = DateTime.UtcNow;
+        public EmployeeStatus Status { get; set; } = EmployeeStatus.Available;
 
         public long OrgId { get; set; }
     }
