@@ -41,19 +41,19 @@ namespace api_authenticationservice.Controllers
             , (() => request.ClientKey.IsNotNullOrEmpty(), MessageString.ParamMissing));
         }
 
-        //[HttpPost("signup")]
-        //[Authorize]
-        //public async ValueTask<IActionResult> Signup(RegisterDto request)
-        //{
-        //    return await _logger.TryCatchBlockAsync($"{_Name}.Signup", $"request {request.ToJson()}", _apiResponse,
-        //    async () =>
-        //    {
-        //        return _apiResponse.Ok(await _service.RegisterMemberAsync(request));
-        //    }, ValidationSignup(request)
-        //   );
-        //}
+        [HttpPost("signup")]
+        [AllowAnonymous]
+        public async ValueTask<IActionResult> Signup(RegisterDto request)
+        {
+            return await _logger.TryCatchBlockAsync($"{_Name}.Signup", $"request {request.ToJson()}", _apiResponse,
+            async () =>
+            {
+                return _apiResponse.Ok(await _service.RegisterMemberAsync(request));
+            }, ValidationSignup(request)
+           );
+        }
 
-      
+
 
         [HttpPost("login")]
         [Authorize]
@@ -96,17 +96,17 @@ namespace api_authenticationservice.Controllers
         #region private methods 
 
 
-        //private (Func<bool> Condition, string Message)[] ValidationSignup(RegisterDto request)
-        //{
-        //    return [(() => request != null, MessageString.ParamMissing)
-        //    , (() => request.Password.IsNotNullOrEmpty(), "Password is Mandatory")
-        //    , (() => request.UserName.IsNotNullOrEmpty(), "UserName is Mandatory")
-        //    , (() => request.FirstName.IsNotNullOrEmpty(), "FirstName is Mandatory")
-        //    , (() => request.PhoneNumber > 0 && request.PhoneNumber.ToString().Length == 10, "PhoneNumber is Mandatory")
-        //    , (() => request.Email.IsNotNullOrEmpty(), "Email is Mandatory")
-        //    , (() => request.OrgId > 0, "Organization Id is Mandatory")
-        //               ];
-        //}
+        private (Func<bool> Condition, string Message)[] ValidationSignup(RegisterDto request)
+        {
+            return [(() => request != null, MessageString.ParamMissing)
+            , (() => request.Password.IsNotNullOrEmpty(), "Password is Mandatory")
+            , (() => request.Username.IsNotNullOrEmpty(), "UserName is Mandatory")
+            , (() => request.FirstName.IsNotNullOrEmpty(), "FirstName is Mandatory")
+            , (() => request.PhoneNumber > 0 && request.PhoneNumber.ToString().Length == 10, "PhoneNumber is Mandatory")
+            , (() => request.EmailId.IsNotNullOrEmpty(), "Email is Mandatory")
+            , (() => request.OrgId > 0, "Organization Id is Mandatory")
+                       ];
+        }
 
         #endregion
     }

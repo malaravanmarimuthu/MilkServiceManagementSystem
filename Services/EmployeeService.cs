@@ -17,12 +17,20 @@ namespace Services
             {
                 _logger.LogInformation($"Started -> request {req.ToJson()}");
 
-                var appUserDto = req.Adapt<EmployeeDto>();
-
-                var appUserEntity = appUserDto.ToMap<EmployeeDto, Employee>();
-                appUserEntity.HiEmployee = System.DateTime.Now;
-                appUserEntity.CreatedDate = System.DateTime.Now;
-                appUserEntity.CreatedBy = appUserEntity.OrgId;
+                var appUserEntity = new Employee
+                {
+                    FirstName = req.FirstName,
+                    LastName = req.LastName,
+                    Username = req.Username,
+                    EmailId = req.EmailId,
+                    Mobile = req.Mobile,
+                    Department = req.Department,
+                    Designation = req.Designation,
+                    OrganizationID = req.OrgId,
+                    HiEmployee = DateTime.Now,
+                    CreatedDate = DateTime.Now,
+                    CreatedBy = req.OrgId
+                };
 
                 await _appUserRespository.CreateAsync(appUserEntity);
 

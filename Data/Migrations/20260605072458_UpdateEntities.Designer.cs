@@ -4,6 +4,7 @@ using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    partial class AuthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260605072458_UpdateEntities")]
+    partial class UpdateEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -67,9 +70,6 @@ namespace Data.Migrations
                     b.Property<long>("OrgId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("OrganizationID")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("Password")
                         .HasColumnType("nvarchar(255)");
 
@@ -89,9 +89,12 @@ namespace Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<long>("organizationID")
+                        .HasColumnType("bigint");
+
                     b.HasKey("ID");
 
-                    b.HasIndex("OrganizationID");
+                    b.HasIndex("organizationID");
 
                     b.ToTable("Employees");
                 });
@@ -213,14 +216,14 @@ namespace Data.Migrations
 
                     b.HasKey("ID");
 
-                    b.ToTable("Organization");
+                    b.ToTable("Organizations");
                 });
 
             modelBuilder.Entity("Data.Entities.Employee", b =>
                 {
                     b.HasOne("Data.Entities.Organization", "organization")
                         .WithMany()
-                        .HasForeignKey("OrganizationID")
+                        .HasForeignKey("organizationID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

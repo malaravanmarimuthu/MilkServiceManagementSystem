@@ -42,5 +42,5 @@ namespace Data.Entities
         public bool? IsPostPaid { get; set; }
     }
 
-    
+
 }

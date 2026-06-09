@@ -1,12 +1,25 @@
-using Data;
+using Data.Context;
+using Data.Base;
+using Microsoft.EntityFrameworkCore;
+using Services.Contracts;
+using Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Database
-DataDIConfig.AddDbContext(builder.Services, builder.Configuration);
-DataDIConfig.AddDALServices(builder.Services);
+var connectionString = "server=localhost;database=anaiyaante_antechcmds;user=anaiyaante_antechCMDS;password=Anaiyaan@123";
+builder.Services.AddDbContext<AuthDbContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+);
 
-// Add services to the container.
+// Repository register
+
+builder.Services.AddScoped(typeof(IRepositary<>), typeof(Repository<>));
+
+// Services register
+builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+
+// Controllers
 builder.Services.AddControllers();
 
 // Swagger
@@ -15,10 +28,6 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
-
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -26,11 +35,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
-app.MapFallbackToFile("/index.html");
 
 app.Run();

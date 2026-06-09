@@ -35,11 +35,11 @@ namespace Data.Entities
 
         [Column(TypeName = "nvarchar(255)")]
         public string? Password { get; set; }
-        public Organization organization { get; set; }
-
         public DateTime? HiEmployee { get; set; } = DateTime.UtcNow;
         public EmployeeStatus Status { get; set; } = EmployeeStatus.Available;
-
         public long OrgId { get; set; }
+        public long OrganizationID { get; set; }
+        [ForeignKey("OrganizationID")]
+        public Organization? organization { get; set; }
     }
 }

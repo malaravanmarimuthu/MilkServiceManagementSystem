@@ -34,6 +34,7 @@ namespace Services
             services.AddScoped<IRestAPIClient, RestAPIClient>();
 
             services.AddScoped<IEmployeeService, EmployeeService>();
+            services.AddScoped<IAuthService, AuthService>();
             services.AddScoped(typeof(IApiMessage<>), typeof(ApiMessage<>));
             
         }
