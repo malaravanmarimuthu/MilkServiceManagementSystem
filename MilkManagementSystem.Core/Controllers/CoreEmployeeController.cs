@@ -6,18 +6,16 @@ using Services.Contracts;
 
 namespace API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/CoreEmployee")]
     [ApiController]
-    public class EmployeeController : ControllerBase
+    public class CoreEmployeeController : ControllerBase
     {
         private readonly IEmployeeService _employeeService;
-        private readonly ILogger<EmployeeController> _logger;
-        private readonly string _Name = nameof(EmployeeController);
-
-
-        public EmployeeController(
+        private readonly ILogger<CoreEmployeeController> _logger;
+        private readonly string _Name = nameof(CoreEmployeeController);
+        public CoreEmployeeController(
             IEmployeeService service,
-            ILogger<EmployeeController> logger)
+            ILogger<CoreEmployeeController> logger)
         {
             _employeeService = service;
             _logger = logger;
@@ -61,16 +59,16 @@ namespace API.Controllers
         }
 
         [HttpPost("Create")]
-        public async Task<IActionResult> Create (RegisterDto dto)
+        public async Task<IActionResult> Create(RegisterDto dto)
         {
             try
             {
-               var id = await _employeeService.CreateAppUserAsync( dto);
+                var result = await _employeeService.CreateAppUserAsync(dto);
 
-                if (id)
+                if (!result)
                     return BadRequest("Employee creation failed.");
 
-                return Ok(id);
+                return Ok(result);
             }
             catch (Exception ex)
             {
@@ -78,8 +76,7 @@ namespace API.Controllers
                 return StatusCode(500, "An internal server error occurred.");
             }
         }
-
-        // UPDATE
+      
         [HttpPut]
         public async Task<IActionResult> Update(EmployeeDto dto)
         {
