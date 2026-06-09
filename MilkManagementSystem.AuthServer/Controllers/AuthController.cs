@@ -43,7 +43,7 @@ namespace api_authenticationservice.Controllers
 
         [HttpPost("signup")]
         [AllowAnonymous]
-        public async ValueTask<IActionResult> Signup(RegisterDto request)
+        public async ValueTask<IActionResult> Signup([FromBody] RegisterDto request)
         {
             return await _logger.TryCatchBlockAsync($"{_Name}.Signup", $"request {request.ToJson()}", _apiResponse,
             async () =>
@@ -102,7 +102,6 @@ namespace api_authenticationservice.Controllers
             , (() => request.Password.IsNotNullOrEmpty(), "Password is Mandatory")
             , (() => request.Username.IsNotNullOrEmpty(), "UserName is Mandatory")
             , (() => request.FirstName.IsNotNullOrEmpty(), "FirstName is Mandatory")
-            , (() => request.PhoneNumber > 0 && request.PhoneNumber.ToString().Length == 10, "PhoneNumber is Mandatory")
             , (() => request.EmailId.IsNotNullOrEmpty(), "Email is Mandatory")
             , (() => request.OrgId > 0, "Organization Id is Mandatory")
                        ];

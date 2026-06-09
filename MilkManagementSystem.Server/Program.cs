@@ -1,8 +1,11 @@
-using Data.Context;
+using Common.Settings;
 using Data.Base;
+using Data.Context;
 using Microsoft.EntityFrameworkCore;
-using Services.Contracts;
+using Microsoft.Extensions.Options;
 using Services;
+using Services.Contracts;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,11 +16,10 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
 );
 
 // Repository register
-
 builder.Services.AddScoped(typeof(IRepositary<>), typeof(Repository<>));
 
 // Services register
-builder.Services.AddScoped<IEmployeeService, EmployeeService>();
+ServicesDIConfig.AddBLServices(builder.Services);
 
 // Controllers
 builder.Services.AddControllers();
@@ -25,6 +27,12 @@ builder.Services.AddControllers();
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.Configure<AuthSettings>(
+    builder.Configuration.GetSection("AuthAPI:AuthSettings"));
+
+builder.Services.AddSingleton<IAuthSettings>(sp =>
+    sp.GetRequiredService<IOptions<AuthSettings>>().Value);
 
 var app = builder.Build();
 
