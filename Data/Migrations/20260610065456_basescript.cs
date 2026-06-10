@@ -7,41 +7,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Data.Migrations
 {
     /// <inheritdoc />
-    public partial class Test : Migration
+    public partial class basescript : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterDatabase()
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "Employees",
-                columns: table => new
-                {
-                    ID = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    FirstName = table.Column<string>(type: "nvarchar(100)", nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(100)", nullable: true),
-                    EmailId = table.Column<string>(type: "nvarchar(200)", nullable: true),
-                    Mobile = table.Column<string>(type: "nvarchar(25)", nullable: true),
-                    Department = table.Column<string>(type: "nvarchar(255)", nullable: true),
-                    Designation = table.Column<string>(type: "nvarchar(255)", nullable: true),
-                    HiEmployee = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    OrgId = table.Column<long>(type: "bigint", nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    CreatedBy = table.Column<long>(type: "bigint", nullable: false),
-                    UpdatedDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    UpdatedBy = table.Column<long>(type: "bigint", nullable: true),
-                    DeletedDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    DeletedBy = table.Column<long>(type: "bigint", nullable: true),
-                    RegionCode = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Employees", x => x.ID);
-                })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
@@ -113,6 +84,50 @@ namespace Data.Migrations
                     table.PrimaryKey("PK_Organizations", x => x.ID);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "Employees",
+                columns: table => new
+                {
+                    ID = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    FirstName = table.Column<string>(type: "nvarchar(100)", nullable: false),
+                    Username = table.Column<string>(type: "nvarchar(100)", nullable: false),
+                    LastName = table.Column<string>(type: "nvarchar(50)", nullable: true),
+                    EmailId = table.Column<string>(type: "nvarchar(200)", nullable: true),
+                    Mobile = table.Column<string>(type: "nvarchar(25)", nullable: true),
+                    Department = table.Column<string>(type: "nvarchar(255)", nullable: true),
+                    Designation = table.Column<string>(type: "nvarchar(255)", nullable: true),
+                    Password = table.Column<string>(type: "nvarchar(255)", nullable: true),
+                    HiEmployee = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    OrgId = table.Column<long>(type: "bigint", nullable: false),
+                    OrganizationID = table.Column<long>(type: "bigint", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    CreatedBy = table.Column<long>(type: "bigint", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    UpdatedBy = table.Column<long>(type: "bigint", nullable: true),
+                    DeletedDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    DeletedBy = table.Column<long>(type: "bigint", nullable: true),
+                    RegionCode = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Employees", x => x.ID);
+                    table.ForeignKey(
+                        name: "FK_Employees_Organizations_OrganizationID",
+                        column: x => x.OrganizationID,
+                        principalTable: "Organizations",
+                        principalColumn: "ID",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Employees_OrganizationID",
+                table: "Employees",
+                column: "OrganizationID");
         }
 
         /// <inheritdoc />

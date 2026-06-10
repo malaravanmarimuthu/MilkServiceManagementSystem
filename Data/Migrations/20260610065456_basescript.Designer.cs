@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    [Migration("20260604065629_Test")]
-    partial class Test
+    [Migration("20260610065456_basescript")]
+    partial class basescript
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -62,7 +62,7 @@ namespace Data.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("LastName")
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Mobile")
                         .HasColumnType("nvarchar(25)");
@@ -70,8 +70,17 @@ namespace Data.Migrations
                     b.Property<long>("OrgId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("OrganizationID")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Password")
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<string>("RegionCode")
                         .HasColumnType("longtext");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
@@ -79,7 +88,13 @@ namespace Data.Migrations
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
+
                     b.HasKey("ID");
+
+                    b.HasIndex("OrganizationID");
 
                     b.ToTable("Employees");
                 });
@@ -202,6 +217,17 @@ namespace Data.Migrations
                     b.HasKey("ID");
 
                     b.ToTable("Organizations");
+                });
+
+            modelBuilder.Entity("Data.Entities.Employee", b =>
+                {
+                    b.HasOne("Data.Entities.Organization", "organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("organization");
                 });
 #pragma warning restore 612, 618
         }

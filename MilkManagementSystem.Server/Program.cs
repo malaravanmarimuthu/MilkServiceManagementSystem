@@ -10,7 +10,7 @@ using Services.Contracts;
 var builder = WebApplication.CreateBuilder(args);
 
 // Database
-var connectionString = "server=localhost;database=anaiyaante_antechcmds;user=anaiyaante_antechCMDS;password=Anaiyaan@123";
+var connectionString = "server=anaiyaantechnologies.com; port=3306; database=anaiyaante_antechCMDS; user=anaiyaante_antechCMDS; password=Anaiyaan@123; Persist Security Info=False; Connect Timeout=300";
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );

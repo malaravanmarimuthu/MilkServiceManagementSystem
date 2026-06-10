@@ -7,7 +7,7 @@ namespace Data.Context
     {
         public AuthDbContext CreateDbContext(string[] args)
         {
-            var connectionString = "server=localhost;database=anaiyaante_antechcmds;user=anaiyaante_antechCMDS;password=Anaiyaan@123";
+            var connectionString = "server=anaiyaantechnologies.com; port=3306; database=anaiyaante_antechCMDS; user=anaiyaante_antechCMDS; password=Anaiyaan@123; Persist Security Info=False; Connect Timeout=300";
 
             var optionsBuilder = new DbContextOptionsBuilder<AuthDbContext>();
             optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
