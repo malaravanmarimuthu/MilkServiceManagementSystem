@@ -56,7 +56,7 @@ namespace api_authenticationservice.Controllers
 
 
         [HttpPost("login")]
-        [Authorize]
+        [AllowAnonymous]
         public async ValueTask<IActionResult> Login(LoginDto request)
         {
             return await _logger.TryCatchBlockAsync($"{_Name}.CreateAppTokenAsync", $"request {request.ToJson()}", _apiResponse,
@@ -103,7 +103,7 @@ namespace api_authenticationservice.Controllers
             , (() => request.Username.IsNotNullOrEmpty(), "UserName is Mandatory")
             , (() => request.FirstName.IsNotNullOrEmpty(), "FirstName is Mandatory")
             , (() => request.EmailId.IsNotNullOrEmpty(), "Email is Mandatory")
-            , (() => request.OrgId > 0, "Organization Id is Mandatory")
+            //, (() => request.OrgId > 0, "Organization Id is Mandatory")
                        ];
         }
 

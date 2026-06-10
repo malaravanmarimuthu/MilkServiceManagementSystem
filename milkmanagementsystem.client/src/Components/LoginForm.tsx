@@ -46,7 +46,7 @@ export default function LoginForm({
 
       const response = await axiosInstance.post(
 
-        "/Auth/Login",
+        "/Auth/login",
 
         {
 
@@ -58,13 +58,9 @@ export default function LoginForm({
 
       );
 
-      localStorage.setItem(
+        localStorage.setItem("token", response.data.data.JwtToken);
+        localStorage.setItem("refreshToken", response.data.data.refreshToken);
 
-        "token",
-
-        response.data.token
-
-      );
 
       setMessage("Login Successful");
 

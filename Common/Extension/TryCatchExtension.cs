@@ -82,7 +82,7 @@ namespace Common.Extension
         //    catch (Exception ex)
         //    {
         //        logger.LogError("{Name} - Error occurred, Exception: {Exp}", methodName, ex.Message);
-        //        return await ValueTask.FromResult(new T() { IsSuccess = false, Message = MessageString.ServerError ,StatusCode = HttpStatusCode.InternalServerError });
+        //        return await ValueTask.FromResult(new T() { IsSuccess = false, Message = MessageString.ServerError, StatusCode = HttpStatusCode.InternalServerError });
         //    }
         //    finally
         //    {
