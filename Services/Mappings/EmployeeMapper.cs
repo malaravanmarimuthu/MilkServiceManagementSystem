@@ -12,9 +12,6 @@ namespace Services.Mappings
     .Map(dest => dest.LastName, src => src.LastName)
     .Map(dest => dest.Mobile, src => src.Mobile)
     .Map(dest => dest.EmailId, src => src.EmailId)
-    .Map(dest => dest.Department, src => src.Department)
-    .Map(dest => dest.Designation, src => src.Designation)
-    .Map(dest => dest.OrgId, src => src.OrgId)
     .Ignore(dest => dest.ID);
 
             config.NewConfig<Employee, EmployeeDto>();

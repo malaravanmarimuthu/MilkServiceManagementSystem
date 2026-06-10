@@ -170,7 +170,7 @@ namespace Services.Authentication
                 var claims = new List<Claim>
         {
             new Claim("userid", user.ID.ToString()),
-            new Claim("orgid", user.OrgId.ToString()),
+            new Claim("orgid", "0"),
             new Claim("username", user.Username ?? string.Empty),
             new Claim("firstname", user.FirstName ?? string.Empty),
             new Claim("type", "user")
