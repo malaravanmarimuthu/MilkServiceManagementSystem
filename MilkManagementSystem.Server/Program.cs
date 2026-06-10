@@ -10,16 +10,16 @@ using Services.Contracts;
 var builder = WebApplication.CreateBuilder(args);
 
 // Database
-var connectionString = "server=localhost;database=anaiyaante_antechcmds;user=anaiyaante_antechCMDS;password=Anaiyaan@123";
+var connectionString = builder.Configuration.GetConnectionString("DB_Sql");
 builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 );
 
-// Repository register
-builder.Services.AddScoped(typeof(IRepositary<>), typeof(Repository<>));
+//// Repository register
+//builder.Services.AddScoped(typeof(IRepositary<>), typeof(Repository<>));
 
-// Services register
-ServicesDIConfig.AddBLServices(builder.Services);
+//// Services register
+//ServicesDIConfig.AddBLServices(builder.Services);
 
 // Controllers
 builder.Services.AddControllers();
