@@ -36,15 +36,13 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error -> {_Name}.Create : {ex.Message}");
-                return BadRequest(ex.Message);
+                return BadRequest(ex.InnerException?.Message ?? ex.Message);
             }
             finally
             {
                 _logger.LogInformation($"Completed -> {_Name}.Create Request : {dto.ToJson()}");
             }
         }
-
         // READ ALL
         [HttpGet]
         public async Task<IActionResult> GetALL()

@@ -11,10 +11,10 @@ using System.Security.Claims;
 using System.Text;
 namespace Services.Authentication
 {
-    public  class AuthService(ILogger<AuthService> logger
-        ,IAuthSettings authsettings
-        ,IAppAuthHelper helper
-        ,IEmployeeService applicationUserService)
+    public class AuthService(ILogger<AuthService> logger
+        , IAuthSettings authsettings
+        , IAppAuthHelper helper
+        , IEmployeeService applicationUserService):IAuthService
     {
         private readonly string _Name = nameof(AuthService);
         private readonly ILogger<AuthService> _logger = logger;
@@ -114,7 +114,8 @@ namespace Services.Authentication
                     _logger.LogError("{Name} - Error occurred, Exception: {Exp}", _Name, "Invalid User id or OrgId");
                     throw new InvalidDataException("Invalid Token. Kindly provide a refresh token");
                 }
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 _logger.LogError("{Name} - Error occurred, Exception: {Exp}", _Name, ex.Message);
                 throw ex;
@@ -152,8 +153,51 @@ namespace Services.Authentication
             }
         }
 
+        public async ValueTask<UserTokenResponseDto> CreateUserTokenAsync(LoginDto req)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> request {req.ToJson()}");
 
-        public async ValueTask<string> GenerateUserAccessToken(List<Claim> claims,string token)
+                var user = await _applicationUserService.IsValidAppUserAsync(req);
+
+                if (user == null || user.ID == 0)
+                {
+                    _logger.LogError("{Name} - Error occurred, Exception: {Exp}", _Name, "Invalid credentials");
+                    throw new InvalidDataException("Invalid username or password");
+                }
+
+                var claims = new List<Claim>
+        {
+            new Claim("userid", user.ID.ToString()),
+            new Claim("orgid", user.OrgId.ToString()),
+            new Claim("username", user.Username ?? string.Empty),
+            new Claim("firstname", user.FirstName ?? string.Empty),
+            new Claim("type", "user")
+        };
+
+                var accessToken = await GenerateUserAccessToken(claims, _helper.GetAuthToken());
+                var refreshToken = await GenerateRefreshToken(claims);
+
+                return new UserTokenResponseDto
+                {
+                    JwtToken = accessToken,
+                    RefreshToken = refreshToken
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("{Name} - Error occurred, Exception: {Exp}", _Name, ex.Message);
+                throw;
+            }
+            finally
+            {
+                _logger.LogInformation($"Completed -> request {req.ToJson()}");
+            }
+        }
+
+
+        public async ValueTask<string> GenerateUserAccessToken(List<Claim> claims, string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = string.Empty;
@@ -187,7 +231,8 @@ namespace Services.Authentication
                 key = _authSettings.ClientSecrets.FirstOrDefault(x => x.Key.Equals(userTokenPayload.Client, StringComparison.CurrentCultureIgnoreCase)).Secret;
                 userClaims.Add(new Claim("client", userTokenPayload.Client));
                 userClaims.Add(new Claim("type", "user"));
-            }else
+            }
+            else
             {
                 throw new SecurityTokenException("Invalid token type");
             }
@@ -207,7 +252,7 @@ namespace Services.Authentication
 
         public async ValueTask<string> GenerateAccessToken(List<Claim> claims, string secret = null)
         {
-            var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret??_authSettings.Secret));
+            var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret ?? _authSettings.Secret));
             var signinCredentials = new SigningCredentials(secretKey, SecurityAlgorithms.HmacSha256);
             var tokeOptions = new JwtSecurityToken(
                 issuer: _authSettings.Issuer,

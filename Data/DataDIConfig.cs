@@ -25,6 +25,7 @@ namespace Data
         public static void AddDALServices(IServiceCollection services)
         {
             services.AddScoped(typeof(IRepositary<>), typeof(Repository<>));
+
         }
     }
 }

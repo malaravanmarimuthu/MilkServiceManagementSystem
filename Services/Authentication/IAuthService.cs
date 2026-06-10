@@ -9,6 +9,7 @@ namespace Services.Authentication
         ValueTask<ClientTokenResponseDto> CreateAppTokenAsync(ClientTokenRequestDto req);
         ValueTask<UserTokenResponseDto> CreateUserTokenAsync(LoginDto req);
         ValueTask<RefreshTokenDto> RefreshTokenAsync(string refreshToken);
+
         ValueTask<SuccessDto> RegisterMemberAsync(RegisterDto registerDto);
         ValueTask<string> GenerateAccessToken(List<Claim> claims,string secret);
         ValueTask<string>  GenerateRefreshToken(List<Claim> claims);
