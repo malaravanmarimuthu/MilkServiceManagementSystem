@@ -24,11 +24,7 @@ namespace Services
                     Username = req.Username,
                     EmailId = req.EmailId,
                     Mobile = req.Mobile,
-                    Department = req.Department,
-                    Designation = req.Designation,
-                    OrganizationID = req.OrgId,
-                    HiEmployee = DateTime.Now,
-                    CreatedDate = DateTime.Now,
+                    CreatedDate = DateTime.UtcNow,
                     CreatedBy = req.OrgId
                 };
 
@@ -53,14 +49,13 @@ namespace Services
             {
                 _logger.LogInformation($"Started -> request {req.ToJson()}");
 
-                var applicationuser = await _appUserRespository.FindByCondition(x => x.Username == req.Username && x.Status != null && x.Status != Common.Enums.EmployeeStatus.Deleted).Include(y => y.organization).FirstOrDefaultAsync();
+                var applicationuser = await _appUserRespository.FindByCondition(x => x.Username == req.Username && x.Status != null && x.Status != Common.Enums.EmployeeStatus.Deleted).FirstOrDefaultAsync();
                 var appuserDto = new EmployeeDto();
                 if (applicationuser != null)
                 {
                     if (applicationuser.Password.Equals(req.Password, StringComparison.Ordinal))
                     {
                         appuserDto = applicationuser.ToMap<Employee, EmployeeDto>();
-                        appuserDto.IsPostPaid = applicationuser.organization?.IsPostPaid;
                     }
                 }
                 return appuserDto;
@@ -83,7 +78,7 @@ namespace Services
                 _logger.LogInformation($"Started -> request {userId} {orgId}");
 
                 var applicationuser = await _appUserRespository
-                    .FindByCondition(x => x.ID == userId && x.OrgId == orgId)
+                    .FindByCondition(x => x.ID == userId )
                     .FirstOrDefaultAsync();
 
                 if (applicationuser != null)
@@ -112,17 +107,6 @@ namespace Services
 
                 var emp = await _appUserRespository
                     .FindAll()
-                    .Select(x => new Employee
-                    {
-                        ID = x.ID,
-                        FirstName = x.FirstName,
-                        LastName = x.LastName,
-                        EmailId = x.EmailId,
-                        Mobile = x.Mobile,
-                        Department = x.Department,
-                        Designation = x.Designation,
-                        OrgId = x.OrgId
-                    })
                     .ToListAsync();
 
                 return emp;
@@ -178,9 +162,6 @@ namespace Services
                 emp.LastName = dto.LastName;
                 emp.EmailId = dto.EmailId;
                 emp.Mobile = dto.Mobile;
-                emp.Department = dto.Department;
-                emp.Designation = dto.Designation;
-
                 await _appUserRespository.UpdateAsync(emp);
 
                 return true;

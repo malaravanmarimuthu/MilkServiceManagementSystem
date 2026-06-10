@@ -42,12 +42,6 @@ namespace Data.Migrations
                     b.Property<DateTime?>("DeletedDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("Department")
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("Designation")
-                        .HasColumnType("nvarchar(255)");
-
                     b.Property<string>("EmailId")
                         .HasColumnType("nvarchar(200)");
 
@@ -55,23 +49,14 @@ namespace Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<DateTime?>("HiEmployee")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<string>("LastName")
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Mobile")
                         .HasColumnType("nvarchar(25)");
 
-                    b.Property<long>("OrgId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("OrganizationID")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("Password")
-                        .HasColumnType("nvarchar(255)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("RegionCode")
                         .HasColumnType("longtext");
@@ -90,8 +75,6 @@ namespace Data.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("ID");
-
-                    b.HasIndex("OrganizationID");
 
                     b.ToTable("Employees");
                 });
@@ -214,17 +197,6 @@ namespace Data.Migrations
                     b.HasKey("ID");
 
                     b.ToTable("Organizations");
-                });
-
-            modelBuilder.Entity("Data.Entities.Employee", b =>
-                {
-                    b.HasOne("Data.Entities.Organization", "organization")
-                        .WithMany()
-                        .HasForeignKey("OrganizationID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("organization");
                 });
 #pragma warning restore 612, 618
         }

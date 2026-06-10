@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    [Migration("20260604065629_Test")]
-    partial class Test
+    [Migration("20260610072643_employee-table-chnages")]
+    partial class employeetablechnages
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -45,12 +45,6 @@ namespace Data.Migrations
                     b.Property<DateTime?>("DeletedDate")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("Department")
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("Designation")
-                        .HasColumnType("nvarchar(255)");
-
                     b.Property<string>("EmailId")
                         .HasColumnType("nvarchar(200)");
 
@@ -58,26 +52,30 @@ namespace Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<DateTime?>("HiEmployee")
-                        .HasColumnType("datetime(6)");
-
                     b.Property<string>("LastName")
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Mobile")
                         .HasColumnType("nvarchar(25)");
 
-                    b.Property<long>("OrgId")
-                        .HasColumnType("bigint");
+                    b.Property<string>("Password")
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("RegionCode")
                         .HasColumnType("longtext");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<long?>("UpdatedBy")
                         .HasColumnType("bigint");
 
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("ID");
 

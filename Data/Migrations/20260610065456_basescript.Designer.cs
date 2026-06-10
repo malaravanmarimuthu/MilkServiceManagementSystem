@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    [Migration("20260605072458_UpdateEntities")]
-    partial class UpdateEntities
+    [Migration("20260610065456_basescript")]
+    partial class basescript
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -70,6 +70,9 @@ namespace Data.Migrations
                     b.Property<long>("OrgId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("OrganizationID")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Password")
                         .HasColumnType("nvarchar(255)");
 
@@ -89,12 +92,9 @@ namespace Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<long>("organizationID")
-                        .HasColumnType("bigint");
-
                     b.HasKey("ID");
 
-                    b.HasIndex("organizationID");
+                    b.HasIndex("OrganizationID");
 
                     b.ToTable("Employees");
                 });
@@ -223,7 +223,7 @@ namespace Data.Migrations
                 {
                     b.HasOne("Data.Entities.Organization", "organization")
                         .WithMany()
-                        .HasForeignKey("organizationID")
+                        .HasForeignKey("OrganizationID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

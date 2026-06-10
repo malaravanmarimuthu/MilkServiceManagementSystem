@@ -1,4 +1,5 @@
 ﻿using Common.BaseDto;
+using Common.Enums;
 
 namespace Models.Dto
 {
@@ -11,10 +12,7 @@ namespace Models.Dto
         public string? Username { get; set; }
         public string? EmailId { get; set; }
         public string? Mobile { get; set; }
-        public string? Department { get; set; }
-        public string? Designation { get; set; }
-        public long OrgId { get; set; }
-        public bool? IsPostPaid { get; set; }
+        public EmployeeStatus Status { get; set; } = EmployeeStatus.Available;
     }
 }
 
