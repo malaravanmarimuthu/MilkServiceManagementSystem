@@ -4,7 +4,6 @@ using System.Net.Mime;
 using System.Net;
 using System.Text;
 using Microsoft.AspNetCore.Http;
-using Azure.Messaging;
 using Common.Constants;
 using Common.Base;
 using Common.Extension;
