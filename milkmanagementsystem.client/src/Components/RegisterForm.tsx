@@ -1,190 +1,153 @@
 import { useState } from "react";
-
 import axiosInstance from "../Interceptors/axiosInstance";
+import config from "../config";
 
 type Props = {
-
-  setIsRegister: (value: boolean) => void;
-
+    setIsRegister: (value: boolean) => void;
 };
 
 export default function RegisterForm({
-
-  setIsRegister
-
+    setIsRegister
 }: Props) {
 
-  const [username, setUsername] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [emailId, setEmailId] = useState("");
+    const [mobile, setMobile] = useState("");
+    const [OrgId, setOrgId] = useState("");
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [message, setMessage] = useState("");
+    const [messageType, setMessageType] = useState("");
 
-  const [password, setPassword] = useState("");
+    const handleRegister = async () => {
 
-  const [showPassword, setShowPassword] = useState(false);
-
-  const [message, setMessage] = useState("");
-
-  const [messageType, setMessageType] = useState("");
-
-  const handleRegister = async () => {
-
-    if (!username || !password) {
-
-      setMessage("Username and Password required");
-
-      setMessageType("danger");
-
-      return;
-    }
-
-    try {
-
-      await axiosInstance.post(
-
-        "/Auth/Register",
-
-        {
-
-          username,
-
-          password
-
+        if (!firstName || !username || !password || !emailId || !mobile) {
+            setMessage("All fields are required");
+            setMessageType("danger");
+            return;
         }
 
-      );
+        try {
+            await axiosInstance.post(config.AUTH_URL +  "/Auth/signup", {
+                firstName,
+                lastName,
+                username,
+                password,
+                emailId,
+                mobile,
+                OrgId
+            });
 
-      setMessage("Registration Successful");
+            setMessage("Registration Successful");
+            setMessageType("success");
 
-      setMessageType("success");
+            setFirstName("");
+            setLastName("");
+            setEmailId("");
+            setMobile("");
+            setUsername("");
+            setPassword("");
+            setOrgId("");
 
-      setUsername("");
+            setTimeout(() => {
+                setIsRegister(false);
+            }, 1500);
 
-      setPassword("");
-
-      setTimeout(() => {
-
-        setIsRegister(false);
-
-      }, 1500);
-
-    }
-
-    catch {
-
-      setMessage("Registration Failed");
-
-      setMessageType("danger");
-
-    }
-
-  };
-
-  return (
-
-    <>
-
-      <h1>Register</h1>
-
-      {
-
-        message &&
-
-        <div className={`alert alert-${messageType}`}>
-
-          {message}
-
-        </div>
-      }
-      <input
-
-        type="text"
-
-        placeholder="Username"
-
-        className="form-control mb-3"
-
-        value={username}
-
-        onChange={(e) =>
-
-          setUsername(e.target.value)
-
+        } catch {
+            setMessage("Registration Failed");
+            setMessageType("danger");
         }
-      />
-      <div className="password-box">
+    };
 
-        <input
+    return (
+        <>
+            <h1>Register</h1>
 
-          type={
-
-            showPassword
-
-            ? "text"
-
-            : "password"
-          }
-
-          placeholder="Password"
-
-          className="form-control"
-
-          value={password}
-
-          onChange={(e) =>
-
-            setPassword(e.target.value)
-          }
-        />
-        <span
-
-          className="eye-icon"
-
-          onClick={() =>
-
-            setShowPassword(!showPassword)
-          }
-        >
-          <i
-
-            className={
-
-              showPassword
-
-              ? "bi bi-eye-slash-fill"
-
-              : "bi bi-eye-fill"
-
+            {message &&
+                <div className={`alert alert-${messageType}`}>
+                    {message}
+                </div>
             }
 
-          />
+            <input
+                type="text"
+                placeholder="First Name"
+                className="form-control mb-3"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+            />
 
-        </span>
+            <input
+                type="text"
+                placeholder="Last Name"
+                className="form-control mb-3"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+            />
 
-      </div>
+            <input
+                type="email"
+                placeholder="Email"
+                className="form-control mb-3"
+                value={emailId}
+                onChange={(e) => setEmailId(e.target.value)}
+            />
 
-      <button
+            <input
+                type="text"
+                placeholder="Mobile"
+                className="form-control mb-3"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+            />
 
-        className="btn btn-success w-100 mt-3"
+            <input
+                type="text"
+                placeholder="OrgId"
+                className="form-control mb-3"
+                value={OrgId}
+                onChange={(e) => setOrgId(e.target.value)}
+            />
 
-        onClick={handleRegister}
+            <input
+                type="text"
+                placeholder="Username"
+                className="form-control mb-3"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+            />
 
-      >
-        Register
+            <div className="password-box mb-3">
+                <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    className="form-control"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                />
+                <span
+                    className="eye-icon"
+                    onClick={() => setShowPassword(!showPassword)}
+                >
+                    <i className={showPassword ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"} />
+                </span>
+            </div>
 
-      </button>
+            <button
+                className="btn btn-success w-100 mt-3"
+                onClick={handleRegister}
+            >
+                Register
+            </button>
 
-      <button
-
-        className="btn btn-danger w-100 mt-2"
-
-        onClick={() =>
-
-          setIsRegister(false)
-
-        }
-
-      >
-        Cancel
-
-      </button>
-    </>
-  );
+            <button
+                className="btn btn-danger w-100 mt-2"
+                onClick={() => setIsRegister(false)}
+            >
+                Cancel
+            </button>
+        </>
+    );
 }

@@ -41,6 +41,7 @@ namespace api_authenticationservice.Controllers
             , (() => request.ClientKey.IsNotNullOrEmpty(), MessageString.ParamMissing));
         }
 
+
         [HttpPost("signup")]
         [AllowAnonymous]
         public async ValueTask<IActionResult> Signup([FromBody] RegisterDto request)

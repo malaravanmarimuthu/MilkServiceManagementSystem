@@ -1,7 +1,4 @@
 using Common.Settings;
-using Data.Base;
-using Data.Context;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Services;
 using Services.Contracts;
@@ -21,6 +18,17 @@ ServicesDIConfig.AddDbContext(builder.Services, builder.Configuration);
 //ServicesDIConfig.AddMapster(builder.Services);
 ServicesDIConfig.AddBLServices(builder.Services);
 ServicesDIConfig.AddDALServices(builder.Services);
+
+//CORS
+builder.Services.AddCors(Options =>
+{
+    Options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader();
+    });
+});
 
 // Controllers
 builder.Services.AddControllers();
@@ -44,7 +52,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
-
 app.Run();
