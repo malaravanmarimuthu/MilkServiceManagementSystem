@@ -14,6 +14,11 @@ export default function RegisterForm({
 
 }: Props) {
 
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [emailId, setEmailId] = useState("");
+    const [mobile, setMobile] = useState("");
+    const [OrgId, setOrgId] = useState("");
     const [username, setUsername] = useState("");
 
     const [password, setPassword] = useState("");
