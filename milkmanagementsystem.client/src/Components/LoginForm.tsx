@@ -61,7 +61,6 @@ export default function LoginForm({
         localStorage.setItem("token", response.data.data.JwtToken);
         localStorage.setItem("refreshToken", response.data.data.refreshToken);
 
-
       setMessage("Login Successful");
 
       setMessageType("success");

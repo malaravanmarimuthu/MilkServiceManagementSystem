@@ -7,7 +7,6 @@ from "../Pages/Home";
 import Login
 from "../Pages/Login";
 
-
 function AppRoutes() {
 
   return (
@@ -22,7 +21,7 @@ function AppRoutes() {
       <Route
         path="/login"
         element={<Login />}
-      />
+          />
 
     </Routes>
 
