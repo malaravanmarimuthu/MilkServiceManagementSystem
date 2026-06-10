@@ -22,6 +22,7 @@ namespace Services
                     FirstName = req.FirstName,
                     LastName = req.LastName,
                     Username = req.Username,
+                    Password = req.Password,
                     EmailId = req.EmailId,
                     Mobile = req.Mobile,
                     CreatedDate = DateTime.UtcNow,
@@ -53,7 +54,8 @@ namespace Services
                 var appuserDto = new EmployeeDto();
                 if (applicationuser != null)
                 {
-                    if (applicationuser.Password.Equals(req.Password, StringComparison.Ordinal))
+                    if (!string.IsNullOrEmpty(applicationuser.Password) &&
+                           applicationuser.Password.Equals(req.Password, StringComparison.Ordinal))
                     {
                         appuserDto = applicationuser.ToMap<Employee, EmployeeDto>();
                     }

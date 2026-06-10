@@ -1,5 +1,6 @@
 const config = {
-    API_URL: "https://localhost:44387/api",
+    API_URL: "https://localhost:44343/api",
+    AUTH_URL: "https://localhost:44343",
 };
 
 export default config;
