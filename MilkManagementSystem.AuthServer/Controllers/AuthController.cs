@@ -57,7 +57,7 @@ namespace api_authenticationservice.Controllers
 
 
         [HttpPost("login")]
-        [Authorize]
+        [AllowAnonymous]
         public async ValueTask<IActionResult> Login(LoginDto request)
         {
             return await _logger.TryCatchBlockAsync($"{_Name}.CreateAppTokenAsync", $"request {request.ToJson()}", _apiResponse,

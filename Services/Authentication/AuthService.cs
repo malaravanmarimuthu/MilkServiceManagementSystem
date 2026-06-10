@@ -168,15 +168,21 @@ namespace Services.Authentication
                 }
 
                 var claims = new List<Claim>
-        {
-            new Claim("userid", user.ID.ToString()),
-            new Claim("orgid", "0"),
-            new Claim("username", user.Username ?? string.Empty),
-            new Claim("firstname", user.FirstName ?? string.Empty),
-            new Claim("type", "user")
-        };
+{
+    new Claim("userid", user.ID.ToString()),
+    new Claim("orgid", "0"),
+    new Claim("username", user.Username ?? string.Empty),
+    new Claim("firstname", user.FirstName ?? string.Empty),
+    new Claim("client", "web"),
+    new Claim("type", "user")
+};
 
-                var accessToken = await GenerateUserAccessToken(claims, _helper.GetAuthToken());
+
+                var accessToken = await GenerateAccessToken(claims,
+                    _authSettings.ClientSecrets
+                        .FirstOrDefault(x => x.Key == "web")?.Secret
+                        ?? _authSettings.Secret);
+
                 var refreshToken = await GenerateRefreshToken(claims);
 
                 return new UserTokenResponseDto
@@ -269,7 +275,9 @@ namespace Services.Authentication
         {
             var refreshClaims = new List<Claim>();
             refreshClaims.AddRange(claims);
-            refreshClaims.Add(new Claim("client", _helper.GetClient()));
+
+            var clientClaim = claims.FirstOrDefault(x => x.Type == "client")?.Value ?? "web";
+            refreshClaims.Add(new Claim("client", clientClaim));
             refreshClaims.Add(new Claim("type", "refresh"));
 
             var secretKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_authSettings.Secret));
