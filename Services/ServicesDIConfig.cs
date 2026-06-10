@@ -13,18 +13,18 @@ namespace Services
 {
     public static class ServicesDIConfig
     {
-        public static void AddDbContext(IServiceCollection services, IConfiguration configuration)
+        public static void AddDbContext(this IServiceCollection services, IConfiguration configuration)
         {
             DataDIConfig.AddDbContext(services, configuration);
         }
 
-        public static void AddMapster(IServiceCollection services)
+        public static void AddMapster(this IServiceCollection services)
         {
             services.AddMapster();
             RegisterMapper.RegisterMapsterConfiguration();
         }
 
-        public static void AddBLServices(IServiceCollection services)
+        public static void AddBLServices(this IServiceCollection services)
         {
             // configure other Service DI
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
@@ -39,7 +39,7 @@ namespace Services
             
         }
 
-        public static void AddDALServices(IServiceCollection services)
+        public static void AddDALServices(this IServiceCollection services)
         {
             DataDIConfig.AddDALServices(services);
         }

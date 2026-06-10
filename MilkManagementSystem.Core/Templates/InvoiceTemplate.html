@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Invoice of trip {{TripId}}</title>
+    <style>
+        body {
+            font-family: Helvetica;
+            margin: 40px;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-top: 50px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .totals {
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+
+    <div  class="section">
+        <div style="text-align:center">
+            <h1> {{TruckTrace}}</h1>
+            <h4> {{Invoice}}</h4>
+        </div>
+
+    </div>
+
+    <div class="section">
+        <table>
+            <tbody>
+                <tr>
+                    <td>
+                        <p><strong>Customer:</strong>  {{CustomerName}}</p>
+                        <p><strong>Address:</strong>  {{AddressInfo}}</p>
+                        <p><strong>Phone:</strong> {{PhoneNo}}</p>
+                    </td>
+                    <td>
+                        <p><strong>Invoice No:</strong>  {{InvoiceNo}}</p>
+                        <p><strong>Date:</strong>  {{InvoiceDate}}</p>
+                        <p><strong>Trip Id:</strong>  {{TripId}}</p>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+    <div class="section">
+        <table  id="invoiceTable">
+            <thead>
+                <tr>
+                    <th>S.No</th>
+                    <th>Description</th>
+                    <th>Unit Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                {{PurchasedItems}}
+            </tbody>
+        </table>
+        <div class="totals">
+            <p><strong>Subtotal:</strong> {{@cur}} {{Subtotal}}</p>
+            <p><strong>Tax :</strong> {{@cur}} {{SalesTax}}</p>
+            <p><strong>Ground Total:</strong> {{@cur}} {{TotalAmountDue}}</p>
+            {{PaidAmount}}
+        <p><strong>{{InvoiceType}}:</strong> {{@cur}} {{AmountToPay}}</p>
+        </div>
+
+    </div>
+</body>
+</html>

@@ -39,7 +39,8 @@ public static class MiddlewareExtensions
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
-                var style = @".auth-container input{width:100%!important;}.swagger-ui .topbar{background-color:#193972}.swagger-ui .info{margin:5px 0}.swagger-ui .scheme-container{padding:3px 0}";
+                var style = @".auth-container input{width:100%!important;}.swagger-ui .topbar{background-color:#193972}.swagger-ui .info{margin:5px 0}.swagger-ui .scheme-container{padding:3px 0} table {
+  border-collapse: collapse;} table, td, th {  border: 1px solid;  padding: 10px;} table {overflow-x: auto; text-align:justify}";
                 var builder = new StringBuilder(c.HeadContent);
                 builder.AppendLine($"<style type='text/css'>{style}</style>");
                 c.HeadContent = builder.ToString();
@@ -65,7 +66,7 @@ public static class MiddlewareExtensions
             {
                 appError.Run(async context =>
                 {
-                    context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                     context.Response.ContentType = "application/json";
                     var contextFeature = context.Features.Get<IExceptionHandlerFeature>();
                     if (contextFeature != null)
@@ -128,7 +129,7 @@ public static class MiddlewareExtensions
 
                     var result = new BadRequestObjectResult(new CollectionDto<object>()
                     {
-                        StatusCode = HttpStatusCode.InternalServerError,
+                        StatusCode = HttpStatusCode.BadRequest,
                         IsSuccess = false,
                         Message = $"{MessageString.BadRequest} : {errorMsg}",
                     });
@@ -140,7 +141,7 @@ public static class MiddlewareExtensions
                 {
                     var result = new BadRequestObjectResult(new CollectionDto<object>()
                     {
-                        StatusCode = HttpStatusCode.InternalServerError,
+                        StatusCode = HttpStatusCode.BadRequest,
                         IsSuccess = false,
                         Message = $"{MessageString.BadRequest}",
                     });

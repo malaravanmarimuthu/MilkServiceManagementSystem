@@ -10,8 +10,8 @@ namespace Data
     {
         public static DbContextOptionsBuilder ExtDbContextOptions(this DbContextOptionsBuilder options,IConfiguration configuration)
         {
-            return options.UseMySql(configuration.GetConnectionString("DB_Sql"),
-                ServerVersion.AutoDetect(configuration.GetConnectionString("DB_Sql")));
+            return options.UseMySql(configuration.GetConnectionString("DefaultConnection"),
+                ServerVersion.AutoDetect(configuration.GetConnectionString("DefaultConnection")));
         }
 
         public static void AddDbContext(IServiceCollection services, IConfiguration configuration)

@@ -12,9 +12,9 @@ public static class SerilogConfigExtensions
         var appInsightsConnectionString = config["AuthAPI:Serilog:AppInsights_Connection"];
         var loggerConfiguration = new LoggerConfiguration().ReadFrom.Configuration(config);
 
-        var telemetryConfiguration = TelemetryConfiguration.CreateDefault();
-        telemetryConfiguration.ConnectionString = appInsightsConnectionString;
-        loggerConfiguration.WriteTo.ApplicationInsights(telemetryConfiguration, TelemetryConverter.Traces);
+       // var telemetryConfiguration = TelemetryConfiguration.CreateDefault();
+       // telemetryConfiguration.ConnectionString = appInsightsConnectionString;
+       // loggerConfiguration.WriteTo.ApplicationInsights(telemetryConfiguration, TelemetryConverter.Traces);
 
         loggerConfiguration = loggerConfiguration
            .Enrich.WithMachineName()

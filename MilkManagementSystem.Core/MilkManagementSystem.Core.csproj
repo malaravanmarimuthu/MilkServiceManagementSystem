@@ -1,0 +1,75 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+	  
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+	  
+	  
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>api_truckcompanyservice</RootNamespace>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Controllers\NotificationController.cs" />
+
+    <Compile Remove="Controllers\NotificationDetailsController.cs" />
+    <Compile Remove="Controllers\OrganizationRolesController.cs" />
+    <Compile Remove="Controllers\RolesController.cs" />
+    <Compile Remove="Controllers\SignUpController.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="FCMCertificates\trucktrace-318ef-firebase-adminsdk-fbsvc-e95df0eddb.json" />
+    <Content Remove="FCMCertificates\trucktrace-prod-firebase-adminsdk.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Templates\EmailTemplate.html" />
+    <None Remove="Templates\InvoiceTemplate.html" />
+    <None Remove="Templates\InvoiceTemplate.pdf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Templates\EmailTemplate.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Templates\InvoiceTemplate.pdf">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+ 
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.105.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\Models\Models.csproj" />
+    <ProjectReference Include="..\Services\Services.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Templates\InvoiceTemplate.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

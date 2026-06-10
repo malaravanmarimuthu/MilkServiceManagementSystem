@@ -9,18 +9,19 @@ using Services.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Database
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");// "server =anaiyaantechnologies.com; port=3306; database=anaiyaante_antechCMDS; user=anaiyaante_antechCMDS; password=Anaiyaan@123; Persist Security Info=False; Connect Timeout=300";
-builder.Services.AddDbContext<AuthDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
-);
+//// Database
+//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");// "server =anaiyaantechnologies.com; port=3306; database=anaiyaante_antechCMDS; user=anaiyaante_antechCMDS; password=Anaiyaan@123; Persist Security Info=False; Connect Timeout=300";
+//builder.Services.AddDbContext<AuthDbContext>(options =>
+//    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+//);
 
-//// Repository register
-//builder.Services.AddScoped(typeof(IRepositary<>), typeof(Repository<>));
 
+ServicesDIConfig.AddDbContext(builder.Services, builder.Configuration);
 // Services register
+//ServicesDIConfig.AddMapster(builder.Services);
 ServicesDIConfig.AddBLServices(builder.Services);
 ServicesDIConfig.AddDALServices(builder.Services);
+
 // Controllers
 builder.Services.AddControllers();
 
