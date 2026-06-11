@@ -26,7 +26,6 @@ namespace Services
                     EmailId = req.EmailId,
                     Mobile = req.Mobile,
                     CreatedDate = DateTime.UtcNow,
-                    CreatedBy = req.OrgId
                 };
 
                 await _appUserRespository.CreateAsync(appUserEntity);

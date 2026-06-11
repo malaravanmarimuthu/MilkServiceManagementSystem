@@ -1,218 +1,140 @@
-import { useState } from "react";
-
-import { useNavigate } from "react-router-dom";
-
+import { useState, useRef } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import axiosInstance from "../Interceptors/axiosInstance";
-
-import {Link} from "react-router-dom";
+import config from "../config";
+import { validateLoginForm } from "../Helpers/Validation";
+import type { LoginErrors } from "../Helpers/Validation";
 
 type Props = {
-
-  setIsRegister: (value: boolean) => void;
-
+    setIsRegister: (value: boolean) => void;
 };
 
-export default function LoginForm({
+export default function LoginForm({ setIsRegister }: Props) {
 
-  setIsRegister
+    const navigate = useNavigate();
 
-}: Props) {
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [message, setMessage] = useState("");
+    const [messageType, setMessageType] = useState("");
+    const [errors, setErrors] = useState<LoginErrors>({});
+    const [loading, setLoading] = useState(false);
 
-  const navigate = useNavigate();
+    const usernameRef = useRef<HTMLInputElement>(null);
+    const passwordRef = useRef<HTMLInputElement>(null);
 
-  const [username, setUsername] = useState("");
+    const handleLogin = async () => {
 
-  const [password, setPassword] = useState("");
+        const validationErrors = validateLoginForm({ username, password });
+        setErrors(validationErrors);
 
-  const [showPassword, setShowPassword] = useState(false);
-
-  const [message, setMessage] = useState("");
-
-  const [messageType, setMessageType] = useState("");
-
-  const handleLogin = async () => {
-
-    if (!username || !password) {
-
-      setMessage("Enter username and password");
-
-      setMessageType("danger");
-
-      return;
-
-    }
-
-    try {
-
-      const response = await axiosInstance.post(
-
-        "/Auth/login",
-
-        {
-
-          username,
-
-          password
-
+        if (Object.keys(validationErrors).length > 0) {
+            if (validationErrors.username) usernameRef.current?.focus();
+            else if (validationErrors.password) passwordRef.current?.focus();
+            return;
         }
 
-      );
+        setLoading(true);
 
-        localStorage.setItem("token", response.data.data.JwtToken);
-        localStorage.setItem("refreshToken", response.data.data.refreshToken);
+        try {
+            const response = await axiosInstance.post(
+                config.AUTH_URL + "/Auth/login",
+                { username, password }
+            );
 
-      setMessage("Login Successful");
+            localStorage.setItem("token", response.data.data.JwtToken);
+            localStorage.setItem("refreshToken", response.data.data.refreshToken);
 
-      setMessageType("success");
+            setMessage("Login Successful");
+            setMessageType("success");
 
-      setTimeout(() => {
+            setTimeout(() => navigate("/patients"), 1500);
 
-        navigate("/patients");
-
-      }, 1500);
-
-    }
-
-    catch {
-
-      setMessage(
-
-        "Invalid Username or Password"
-
-      );
-
-      setMessageType("danger");
-
-    }
-
-  };
-
-  return (
-
-    <>
-
-      <h1>Login</h1>
-
-      {
-
-        message &&
-
-        <div className={`alert alert-${messageType}`}>
-
-          {message}
-
-        </div>
-
-      }
-
-      <input
-
-        type="text"
-
-        placeholder="Username"
-
-        className="form-control mb-3"
-
-        value={username}
-
-        onChange={(e) =>
-
-          setUsername(e.target.value)
-
+        } catch {
+            setMessage("Invalid Username or Password");
+            setMessageType("danger");
+        } finally {
+            setLoading(false);
         }
+    };
 
-      />
+    return (
+        <>
+            <h1>Login</h1>
 
-      <div className="password-box">
-
-        <input
-
-          type={
-
-            showPassword
-
-            ? "text"
-
-            : "password"
-
-          }
-
-          placeholder="Password"
-
-          className="form-control"
-
-          value={password}
-
-          onChange={(e) =>
-
-            setPassword(e.target.value)
-
-          }
-
-        />
-
-        <span
-
-          className="eye-icon"
-
-          onClick={() =>
-
-            setShowPassword(!showPassword)
-
-          }
-
-        >
-
-          <i
-
-            className={
-
-              showPassword
-
-              ? "bi bi-eye-slash-fill"
-
-              : "bi bi-eye-fill"
-
+            {message &&
+                <div className={`alert alert-${messageType}`}>
+                    {message}
+                </div>
             }
 
-          />
+            {/* Username */}
+            <input
+                ref={usernameRef}
+                type="text"
+                placeholder="Username"
+                className={`form-control mb-1 ${errors.username ? "is-invalid" : ""}`}
+                value={username}
+                onChange={(e) => {
+                    setUsername(e.target.value);
+                    setErrors(prev => ({ ...prev, username: undefined }));
+                }}
+            />
+            {errors.username &&
+                <span className="text-danger small mb-2 d-block">{errors.username}</span>
+            }
 
-        </span>
+            {/* Password */}
+            <div className="password-box mb-1">
+                <input
+                    ref={passwordRef}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    className={`form-control ${errors.password ? "is-invalid" : ""}`}
+                    value={password}
+                    onChange={(e) => {
+                        setPassword(e.target.value);
+                        setErrors(prev => ({ ...prev, password: undefined }));
+                    }}
+                />
+                {password && (
+                    <span
+                        className="eye-icon"
+                        onClick={() => setShowPassword(!showPassword)}
+                    >
+                        <i className={showPassword ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"} />
+                    </span>
+                )}
+            </div>
+            {errors.password &&
+                <span className="text-danger small mb-2 d-block">{errors.password}</span>
+            }
 
-      </div>
+            <button
+                className="btn btn-primary w-100 mt-3"
+                onClick={handleLogin}
+                disabled={loading}
+            >
+                {loading
+                    ? <><span className="spinner-border spinner-border-sm me-2" />Logging in...</>
+                    : "Login"
+                }
+            </button>
 
-      <button
+            <Link to="/" className="btn btn-outline-secondary w-100 mt-3">
+                Cancel
+            </Link>
 
-        className="btn btn-primary w-100 mt-3"
+            <p className="mt-4 text-center">Don't have an account?</p>
 
-        onClick={handleLogin}
-      >
-        Login
-
-      </button>
-
-      <Link to = "/" className="btn btn-outline-secondary w-100 mt-3">  Cancel  </Link>
-
-      <p className="mt-4 text-center">
-
-        Don't have an account?
-
-      </p>
-
-      <button
-
-        className="btn btn-outline-secondary w-100"
-
-        onClick={() =>
-
-          setIsRegister(true)
-
-        }
-      >
-        Register
-
-      </button>
-
-    </>
-  );
+            <button
+                className="btn btn-outline-secondary w-100"
+                onClick={() => setIsRegister(true)}
+                disabled={loading}
+            >
+                Register
+            </button>
+        </>
+    );
 }
