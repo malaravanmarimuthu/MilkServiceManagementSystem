@@ -104,7 +104,7 @@ namespace api_authenticationservice.Controllers
             , (() => request.Username.IsNotNullOrEmpty(), "UserName is Mandatory")
             , (() => request.FirstName.IsNotNullOrEmpty(), "FirstName is Mandatory")
             , (() => request.EmailId.IsNotNullOrEmpty(), "Email is Mandatory")
-            , (() => request.OrgId > 0, "Organization Id is Mandatory")
+            
                        ];
         }
 

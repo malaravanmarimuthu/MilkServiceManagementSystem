@@ -1,58 +1,73 @@
-export const validatePatient = (
-  name: string,
-  age: string,
-  type: string,
-  oldPatient?:{
-    name: string,
-  age: string,
-  type: string,
-  }
-) => {
+export interface RegisterErrors {
+    firstName?: string;
+    lastName?: string;
+    emailId?: string;
+    mobile?: string;
+    username?: string;
+    password?: string;
+    confirmPassword?: string; 
+}
 
-  const errors = {
+export interface RegisterFormData {
+    firstName: string;
+    lastName: string;
+    emailId: string;
+    mobile: string;
+    username: string;
+    password: string;
+    confirmPassword: string; 
+}
 
-    name: "",
+export const validateRegisterForm = (data: RegisterFormData): RegisterErrors => {
+    const errors: RegisterErrors = {};
 
-    age: "",
+    if (!data.firstName)
+        errors.firstName = "First Name is required";
 
-    type: "",
+    if (!data.emailId)
+        errors.emailId = "Email is required";
+    else if (!/\S+@\S+\.\S+/.test(data.emailId))
+        errors.emailId = "Email is invalid";
 
-    info: "",
-  };
+    if (!data.mobile)
+        errors.mobile = "Mobile is required";
+    else if (!/^\d{10}$/.test(data.mobile))
+        errors.mobile = "Mobile must be 10 digits";
 
-  let valid = true;
+    if (!data.username)
+        errors.username = "Username is required";
 
-  // NAME
+    if (!data.password)
+        errors.password = "Password is required";
+    else if (data.password.length < 6)
+        errors.password = "Password must be at least 6 characters";
 
-  if (!name.trim()) {
+    if (!data.confirmPassword)
+        errors.confirmPassword = "Confirm Password is required";
+    else if (data.password !== data.confirmPassword)
+        errors.confirmPassword = "Passwords do not match";
 
-    errors.name = "Name is required";
+    return errors;
+};
 
-    valid = false;
-  }
+export interface LoginErrors {
+    username?: string;
+    password?: string;
+}
 
-  // AGE
+export interface LoginFormData {
+    username: string;
+    password: string;
+}
 
-  if (!age.trim()) {
+export const validateLoginForm = (data: LoginFormData): LoginErrors => {
+    const errors: LoginErrors = {};
 
-    errors.age = "Age is required";
+    if (!data.username)
+        errors.username = "Username is required";
 
-    valid = false;
-  }
+    if (!data.password)
+        errors.password = "Password is required";
 
-  // TYPE
-
-  if (!type.trim()) {
-
-    errors.type = "Type is required";
-
-    valid = false;
-  }
-
-  return {
-
-    errors,
-
-    valid,
-  };
+    return errors;
 };
