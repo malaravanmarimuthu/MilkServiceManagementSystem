@@ -24,6 +24,9 @@ export const validateRegisterForm = (data: RegisterFormData): RegisterErrors => 
     if (!data.firstName)
         errors.firstName = "First Name is required";
 
+    if (!data.lastName)
+        errors.lastName = "Last Name is required";
+
     if (!data.emailId)
         errors.emailId = "Email is required";
     else if (!/\S+@\S+\.\S+/.test(data.emailId))
