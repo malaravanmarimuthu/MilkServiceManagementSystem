@@ -43,13 +43,13 @@ export default function LoginForm({ setIsRegister }: Props) {
                 { username, password }
             );
 
-            localStorage.setItem("token", response.data.data.JwtToken);
+            localStorage.setItem("token", response.data.data.jwtToken);
             localStorage.setItem("refreshToken", response.data.data.refreshToken);
 
             setMessage("Login Successful");
             setMessageType("success");
 
-            setTimeout(() => navigate("/patients"), 1500);
+            setTimeout(() => navigate("/dashboard"), 1500);
 
         } catch {
             setMessage("Invalid Username or Password");

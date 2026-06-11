@@ -17,6 +17,7 @@
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
     "class": "^0.1.4",
+    "jwt-decode": "^4.0.0",
     "mui-datatables": "^4.3.0",
     "react": "^19.2.6",
     "react-data-table-component": "^8.2.0",
