@@ -18,5 +18,7 @@ namespace Data.Context
 
         public DbSet<Employee> Employees { get; set; }
         public DbSet<Organization> Organizations { get; set; }
+        public DbSet<Role> Roles { get; set; }
+        public DbSet<Location> Locations { get; set; }
     }
 }

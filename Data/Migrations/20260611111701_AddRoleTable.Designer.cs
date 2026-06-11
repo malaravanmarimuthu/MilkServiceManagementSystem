@@ -4,6 +4,7 @@ using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    partial class AuthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260611111701_AddRoleTable")]
+    partial class AddRoleTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -77,31 +80,6 @@ namespace Data.Migrations
                     b.HasKey("ID");
 
                     b.ToTable("Employees");
-                });
-
-            modelBuilder.Entity("Data.Entities.Location", b =>
-                {
-                    b.Property<long>("LocationID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("LocationID"));
-
-                    b.Property<string>("LocationName")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("PinCode")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Street")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("LocationID");
-
-                    b.ToTable("Locations");
                 });
 
             modelBuilder.Entity("Data.Entities.Organization", b =>
