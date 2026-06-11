@@ -25,6 +25,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
     const [loading, setLoading] = useState(false);
 
     const firstNameRef = useRef<HTMLInputElement>(null);
+    const lastNameRef = useRef<HTMLInputElement>(null);
     const emailRef = useRef<HTMLInputElement>(null);
     const mobileRef = useRef<HTMLInputElement>(null);
     const usernameRef = useRef<HTMLInputElement>(null);
@@ -41,6 +42,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
 
         if (Object.keys(validationErrors).length > 0) {
             if (validationErrors.firstName) firstNameRef.current?.focus();
+            else if (validationErrors.lastName) lastNameRef.current?.focus();
             else if (validationErrors.emailId) emailRef.current?.focus();
             else if (validationErrors.mobile) mobileRef.current?.focus();
             else if (validationErrors.username) usernameRef.current?.focus();
@@ -101,12 +103,19 @@ export default function RegisterForm({ setIsRegister }: Props) {
 
             {/* Last Name */}
             <input
+                ref={lastNameRef}
                 type="text"
                 placeholder="Last Name"
-                className="form-control mb-3"
+                className={`form-control mb-1 ${errors.lastName ? "is-invalid" : ""}`}
                 value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                onChange={(e) => {
+                    setLastName(e.target.value);
+                    setErrors(prev => ({ ...prev, lastName: undefined }));
+                }}
             />
+            {errors.lastName &&
+                <span className="text-danger small mb-2 d-block">{errors.lastName}</span>
+            }
 
             {/* Email */}
             <input
