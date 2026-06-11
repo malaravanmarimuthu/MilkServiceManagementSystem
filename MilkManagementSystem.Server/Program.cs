@@ -1,8 +1,6 @@
 using Common.Settings;
 using Microsoft.Extensions.Options;
 using Services;
-using Services.Contracts;
-
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,11 +43,11 @@ builder.Services.AddSingleton<IAuthSettings>(sp =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
+//if (app.Environment.IsDevelopment())
+//{
     app.UseSwagger();
     app.UseSwaggerUI();
-}
+//}
 
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
