@@ -21,6 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Remove="appsettings.Development.json" />
+    <Content Remove="appsettings.json" />
     <Content Remove="FCMCertificates\trucktrace-318ef-firebase-adminsdk-fbsvc-e95df0eddb.json" />
     <Content Remove="FCMCertificates\trucktrace-prod-firebase-adminsdk.json" />
   </ItemGroup>
