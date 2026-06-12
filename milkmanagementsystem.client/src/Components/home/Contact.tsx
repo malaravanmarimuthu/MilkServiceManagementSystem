@@ -78,7 +78,7 @@ function Contact() {
 
             <p>
 
-              medinova@gmail.com
+              4kfresh@gmail.com
 
             </p>
 

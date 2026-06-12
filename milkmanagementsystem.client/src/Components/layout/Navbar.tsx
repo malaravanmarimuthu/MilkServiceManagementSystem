@@ -24,7 +24,7 @@ function Navbar() {
           className="navbar-brand fw-bold text-info fs-2"
         >
 
-          MEDINOVA
+          4K FRESH
 
         </NavLink>
 

@@ -10,6 +10,7 @@ export const handleApiError = (error: unknown): string => {
         const status = err.response?.status;
         const serverMessage = err.response?.data?.message;
 
+        console.log(serverMessage);
         if (serverMessage) return serverMessage;
 
         switch (status) {
@@ -19,7 +20,7 @@ export const handleApiError = (error: unknown): string => {
             case 404: return "Requested resource not found.";
             case 409: return "This record already exists.";
             case 500: return "Server error. Please try again later.";
-            default: return "Something went wrong. Please try again.";
+            
         }
     }
     if (error instanceof Error) return error.message;
