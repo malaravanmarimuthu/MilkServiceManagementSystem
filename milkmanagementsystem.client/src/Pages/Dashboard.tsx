@@ -55,11 +55,11 @@ function Dashboard() {
                         background: "white"
                     }}
                 >
-                    <p>Customers</p>
-                    <p>Location</p>
-                    <p>Milk Entry</p>
-                    <p>Role</p>
-                    <p>Reports</p>
+                    <p style={{ cursor: "pointer" }} onClick={() => navigate("/customers")}>Customers</p>
+                    <p style={{ cursor: "pointer" }} onClick={() => navigate("/location")}>Location</p>
+                    <p style={{ cursor: "pointer" }} onClick={() => navigate("/milk-entry")}>Milk Entry</p>
+                    <p style={{ cursor: "pointer" }} onClick={() => navigate("/role")}>Role</p>
+                    <p style={{ cursor: "pointer" }} onClick={() => navigate("/reports")}>Reports</p>
 
                     <p
                         onClick={() => setShowLogoutModal(true)}
