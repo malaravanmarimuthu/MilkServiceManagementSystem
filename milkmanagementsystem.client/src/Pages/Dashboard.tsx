@@ -1,6 +1,6 @@
 ﻿import { useState } from "react";
 import { jwtDecode } from "jwt-decode";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 import ConfirmModal from "../Components/layout/ConfirmModal";
 
 interface JwtPayload {
@@ -58,7 +58,21 @@ function Dashboard() {
                     <p>Customers</p>
                     <p>Location</p>
                     <p>Milk Entry</p>
-                    <p>Role</p>
+
+                    <NavLink
+                        to="/role"
+                        style={({ isActive }) => ({
+                            display: "block",
+                            margin: "8px 0",
+                            textDecoration: "none",
+                            color: isActive ? "#0d6efd" : "#212529",
+                            fontWeight: isActive ? "bold" : "normal",
+                            cursor: "pointer"
+                        })}
+                    >
+                        Role
+                    </NavLink>
+
                     <p>Reports</p>
 
                     <p
@@ -72,7 +86,9 @@ function Dashboard() {
 
             {showLogoutModal && (
                 <ConfirmModal
+                    title="Confirm Logout"
                     message="Are you sure you want to logout?"
+                    confirmText="Logout"
                     onClose={() => setShowLogoutModal(false)}
                     onConfirm={handleLogout}
                 />
