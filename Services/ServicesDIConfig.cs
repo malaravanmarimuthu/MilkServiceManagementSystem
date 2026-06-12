@@ -35,6 +35,8 @@ namespace Services
 
             services.AddScoped<IEmployeeService, EmployeeService>();
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IRoleService, RoleService>();
+            services.AddScoped<ILocationService, LocationService>();
             services.AddScoped(typeof(IApiMessage<>), typeof(ApiMessage<>));
             
         }

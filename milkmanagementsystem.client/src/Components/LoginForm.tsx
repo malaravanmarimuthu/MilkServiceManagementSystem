@@ -4,6 +4,8 @@ import axiosInstance from "../Interceptors/axiosInstance";
 import config from "../config";
 import { validateLoginForm } from "../Helpers/Validation";
 import type { LoginErrors } from "../Helpers/Validation";
+import { handleApiError } from "../Helpers/errorHandler";
+import ErrorModal from "./ErrorModal";
 
 type Props = {
     setIsRegister: (value: boolean) => void;
@@ -20,6 +22,7 @@ export default function LoginForm({ setIsRegister }: Props) {
     const [messageType, setMessageType] = useState("");
     const [errors, setErrors] = useState<LoginErrors>({});
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
 
     const usernameRef = useRef<HTMLInputElement>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
@@ -51,9 +54,8 @@ export default function LoginForm({ setIsRegister }: Props) {
 
             setTimeout(() => navigate("/dashboard"), 1500);
 
-        } catch {
-            setMessage("Invalid Username or Password");
-            setMessageType("danger");
+        } catch (err) {
+            setErrorMsg(handleApiError(err));
         } finally {
             setLoading(false);
         }
@@ -61,6 +63,11 @@ export default function LoginForm({ setIsRegister }: Props) {
 
     return (
         <>
+            <ErrorModal
+                message={errorMsg}
+                onClose={() => setErrorMsg("")}
+            />
+
             <h1>Login</h1>
 
             {message &&
@@ -69,7 +76,6 @@ export default function LoginForm({ setIsRegister }: Props) {
                 </div>
             }
 
-            {/* Username */}
             <input
                 ref={usernameRef}
                 type="text"
@@ -85,7 +91,6 @@ export default function LoginForm({ setIsRegister }: Props) {
                 <span className="text-danger small mb-2 d-block">{errors.username}</span>
             }
 
-            {/* Password */}
             <div className="password-box mb-1">
                 <input
                     ref={passwordRef}

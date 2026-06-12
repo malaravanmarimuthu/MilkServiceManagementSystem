@@ -3,6 +3,8 @@ import axiosInstance from "../Interceptors/axiosInstance";
 import config from "../config";
 import { validateRegisterForm } from "../Helpers/Validation";
 import type { RegisterErrors } from "../Helpers/Validation";
+import { handleApiError } from "../Helpers/errorHandler";
+import ErrorModal from "./ErrorModal";
 
 type Props = {
     setIsRegister: (value: boolean) => void;
@@ -23,6 +25,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
     const [messageType, setMessageType] = useState("");
     const [errors, setErrors] = useState<RegisterErrors>({});
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
 
     const firstNameRef = useRef<HTMLInputElement>(null);
     const lastNameRef = useRef<HTMLInputElement>(null);
@@ -67,9 +70,8 @@ export default function RegisterForm({ setIsRegister }: Props) {
 
             setTimeout(() => setIsRegister(false), 1500);
 
-        } catch {
-            setMessage("Registration Failed");
-            setMessageType("danger");
+        } catch (err) {
+            setErrorMsg(handleApiError(err));
         } finally {
             setLoading(false);
         }
@@ -77,6 +79,11 @@ export default function RegisterForm({ setIsRegister }: Props) {
 
     return (
         <>
+            <ErrorModal
+                message={errorMsg}
+                onClose={() => setErrorMsg("")}
+            />
+
             <h1>Register</h1>
 
             {message &&
@@ -85,7 +92,6 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 </div>
             }
 
-            {/* First Name */}
             <input
                 ref={firstNameRef}
                 type="text"
@@ -101,7 +107,6 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 <span className="text-danger small mb-2 d-block">{errors.firstName}</span>
             }
 
-            {/* Last Name */}
             <input
                 ref={lastNameRef}
                 type="text"
@@ -117,7 +122,6 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 <span className="text-danger small mb-2 d-block">{errors.lastName}</span>
             }
 
-            {/* Email */}
             <input
                 ref={emailRef}
                 type="email"
@@ -133,7 +137,6 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 <span className="text-danger small mb-2 d-block">{errors.emailId}</span>
             }
 
-            {/* Mobile */}
             <input
                 ref={mobileRef}
                 type="text"
@@ -149,7 +152,6 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 <span className="text-danger small mb-2 d-block">{errors.mobile}</span>
             }
 
-            {/* Username */}
             <input
                 ref={usernameRef}
                 type="text"
@@ -165,7 +167,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 <span className="text-danger small mb-2 d-block">{errors.username}</span>
             }
 
-            {/* Password */}
+            
             <div className="password-box mb-1">
                 <input
                     ref={passwordRef}
@@ -190,8 +192,6 @@ export default function RegisterForm({ setIsRegister }: Props) {
             {errors.password &&
                 <span className="text-danger small mb-2 d-block">{errors.password}</span>
             }
-
-            {/* Confirm Password */}
             <div className="password-box mb-1">
                 <input
                     ref={confirmPasswordRef}
