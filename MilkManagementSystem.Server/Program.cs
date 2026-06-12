@@ -1,4 +1,5 @@
 using Common.Settings;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using Microsoft.Extensions.Options;
 using Services;
 
@@ -43,6 +44,12 @@ builder.Services.AddSingleton<IAuthSettings>(sp =>
 
 var app = builder.Build();
 
+// Order matters!
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.UseRouting();
+
 //if (app.Environment.IsDevelopment())
 //{
     app.UseSwagger();
@@ -53,4 +60,5 @@ app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
+app.MapFallbackToFile("/index.html");
 app.Run();
