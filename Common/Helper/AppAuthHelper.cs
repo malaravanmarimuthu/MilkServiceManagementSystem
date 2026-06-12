@@ -91,7 +91,14 @@ namespace Common.Helper
 
         public string GetAuthToken()
         {
-            return Convert.ToString(_owinContextResolver.GetOwinEnvironment().Request.Headers[AuthorizationHeader]).Replace("Bearer ", "");
+            var authHeader = Convert.ToString(
+                _owinContextResolver.GetOwinEnvironment()
+                ?.Request?.Headers[AuthorizationHeader]);
+
+            if (string.IsNullOrEmpty(authHeader))
+                return string.Empty;
+
+            return authHeader.Replace("Bearer ", "");
         }
 
         public string GetClient()

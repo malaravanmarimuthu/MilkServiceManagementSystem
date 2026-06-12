@@ -1,23 +1,13 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  useLocation,
-} from "react-router-dom";
-
+import {BrowserRouter,Routes,Route,useLocation,} from "react-router-dom";
 import Navbar from "./Components/layout/Navbar";
-
 import Home from "./Pages/Home";
-
 import About from "./Components/home/About";
-
 import Service from "./Components/home/Service";
-
 import Pricing from "./Components/home/Pricing";
-
 import Contact from "./Components/home/Contact";
-
 import Login from "./Pages/Login";
+import Dashboard from "./Pages/Dashboard";
+import ProtectedRoute from "./Routing/ProtectedRoute";
 
 function AppContent() {
 
@@ -26,7 +16,8 @@ function AppContent() {
   // LOGIN PAGE CHECK
 
   const hideNavbar =
-    location.pathname === "/login";
+      location.pathname === "/login" ||
+      location.pathname === "/dashboard";
 
   return (
 
@@ -72,6 +63,14 @@ function AppContent() {
         <Route
           path="/login"
           element={<Login />}
+        />
+        <Route
+             path="/dashboard"
+             element={
+                       <ProtectedRoute>
+                         <Dashboard />
+                       </ProtectedRoute>
+                     }
         />
 
 

@@ -202,7 +202,6 @@ namespace Services.Authentication
             }
         }
 
-
         public async ValueTask<string> GenerateUserAccessToken(List<Claim> claims, string token)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -218,7 +217,7 @@ namespace Services.Authentication
             {
                 // Deserialize the JSON string to your custom object
                 var clientTokenPayload = JsonConvert.DeserializeObject<ClientToken>(payloadJson);
-                key = _authSettings.ClientSecrets.FirstOrDefault(x => x.Key.Equals(clientTokenPayload.Client, StringComparison.CurrentCultureIgnoreCase)).Secret;
+                //key = _authSettings.ClientSecrets.FirstOrDefault(x => x.Key.Equals(clientTokenPayload.Client, StringComparison.CurrentCultureIgnoreCase)).Secret;
                 userClaims.Add(new Claim("client", clientTokenPayload.Client));
                 userClaims.Add(new Claim("type", "user"));
             }
@@ -292,7 +291,6 @@ namespace Services.Authentication
             var tokenString = new JwtSecurityTokenHandler().WriteToken(tokeOptions);
             return await ValueTask.FromResult(tokenString);
         }
-
         public async ValueTask<ClaimsPrincipal> GetPrincipalFromExpiredToken(string token)
         {
             var tokenValidationParameters = new TokenValidationParameters
