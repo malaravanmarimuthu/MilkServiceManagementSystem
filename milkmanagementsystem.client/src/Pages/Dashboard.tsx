@@ -1,5 +1,7 @@
 ﻿import { useState } from "react";
 import { jwtDecode } from "jwt-decode";
+import { useNavigate } from "react-router-dom";
+import ConfirmModal from "../Components/layout/ConfirmModal";
 
 interface JwtPayload {
     username: string;
@@ -10,14 +12,20 @@ interface JwtPayload {
 function Dashboard() {
     const token = localStorage.getItem("token");
     const [open, setOpen] = useState(false);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+        navigate("/login");
+    };
 
     let username = "";
 
     if (token) {
         const decoded = jwtDecode<JwtPayload>(token);
-
-        console.log("DECODED", decoded);
-
         username = decoded.username;
     }
 
@@ -47,14 +55,27 @@ function Dashboard() {
                         background: "white"
                     }}
                 >
-                    <p>Dashboard</p>
                     <p>Customers</p>
-                    <p>Locations</p>
+                    <p>Location</p>
                     <p>Milk Entry</p>
-                    <p>Bills</p>
+                    <p>Role</p>
                     <p>Reports</p>
-                    <p>Logout</p>
+
+                    <p
+                        onClick={() => setShowLogoutModal(true)}
+                        style={{ cursor: "pointer" }}
+                    >
+                        Logout
+                    </p>
                 </div>
+            )}
+
+            {showLogoutModal && (
+                <ConfirmModal
+                    message="Are you sure you want to logout?"
+                    onClose={() => setShowLogoutModal(false)}
+                    onConfirm={handleLogout}
+                />
             )}
         </div>
     );
