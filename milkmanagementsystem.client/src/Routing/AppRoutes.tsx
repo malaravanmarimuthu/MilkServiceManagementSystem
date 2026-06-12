@@ -2,35 +2,57 @@ import { Routes, Route } from "react-router-dom";
 import Home from "../Pages/Home";
 import Login from "../Pages/Login";
 import Dashboard from "../Pages/Dashboard";
+import About from "../Components/home/About";
+import Service from "../Components/home/Service";
+import Pricing from "../Components/home/Pricing";
+import Contact from "../Components/home/Contact";
 import ProtectedRoute from "./ProtectedRoute";
 
 function AppRoutes() {
+    return (
+        <Routes>
 
-  return (
+            <Route
+                path="/"
+                element={<Home />}
+            />
 
-    <Routes>
+            <Route
+                path="/about"
+                element={<About />}
+            />
 
-      <Route
-        path="/"
-        element={<Home />}
-      />
+            <Route
+                path="/service"
+                element={<Service />}
+            />
 
-      <Route
-        path="/login"
-        element={<Login />}
-          />
-          <Route
-              path="/dashboard"
-              element={
-                  <ProtectedRoute>
-                      <Dashboard />
-                  </ProtectedRoute>
-              }
-              />
+            <Route
+                path="/pricing"
+                element={<Pricing />}
+            />
 
-    </Routes>
+            <Route
+                path="/contact"
+                element={<Contact />}
+            />
 
-  );
+            <Route
+                path="/login"
+                element={<Login />}
+            />
+
+            <Route
+                path="/dashboard"
+                element={
+                    <ProtectedRoute>
+                        <Dashboard />
+                    </ProtectedRoute>
+                }
+            />
+
+        </Routes>
+    );
 }
 
 export default AppRoutes;

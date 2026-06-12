@@ -1,11 +1,15 @@
 type Props = {
+    title?: string;
     message: string;
+    confirmText?: string;
     onConfirm: () => void;
     onClose: () => void;
 };
 
 export default function ConfirmModal({
+    title = "Confirm Action",
     message,
+    confirmText = "Confirm",
     onConfirm,
     onClose,
 }: Props) {
@@ -28,7 +32,7 @@ export default function ConfirmModal({
 
                         <div className="modal-header border-0 px-4 pt-4 pb-0">
                             <h5 className="modal-title fw-bold text-warning">
-                                Confirm Logout
+                                {title}
                             </h5>
                         </div>
 
@@ -49,7 +53,7 @@ export default function ConfirmModal({
                                 className="btn btn-danger rounded-pill px-4"
                                 onClick={onConfirm}
                             >
-                                Logout
+                                {confirmText}
                             </button>
 
                         </div>
