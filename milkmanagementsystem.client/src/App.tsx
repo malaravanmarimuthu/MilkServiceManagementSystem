@@ -7,6 +7,7 @@ import Pricing from "./Components/home/Pricing";
 import Contact from "./Components/home/Contact";
 import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
+import Location from "./Pages/Location";
 import ProtectedRoute from "./Routing/ProtectedRoute";
 import Role from "./Pages/Role";
 
@@ -15,6 +16,13 @@ function AppContent() {
   const location = useLocation();
 
   // LOGIN PAGE CHECK
+
+    const hideNavbar =
+        location.pathname === "/login" ||
+        location.pathname === "/dashboard" ||
+        location.pathname === "/location";
+       
+      
 
   const hideNavbar =
       location.pathname === "/login" ||
@@ -82,6 +90,15 @@ function AppContent() {
                       </ProtectedRoute>
                   }
                   />
+              />
+              <Route
+                  path="/location"
+                  element={
+                      <ProtectedRoute>
+                          <Location />
+                      </ProtectedRoute>
+                  }
+              />
 
 
       </Routes>

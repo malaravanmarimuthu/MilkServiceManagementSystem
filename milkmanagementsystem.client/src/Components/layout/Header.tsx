@@ -17,7 +17,7 @@ function Header() {
       <div className="container d-flex justify-content-between">
 
         <span>
-          Welcome to Professional Health Care
+          Welcome to 4K FRESH
         </span>
 
         <span>

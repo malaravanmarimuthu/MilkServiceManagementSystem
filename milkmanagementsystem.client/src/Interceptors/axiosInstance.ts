@@ -2,7 +2,7 @@ import axios from "axios";
 import config from "../config";
 
 const axiosInstance = axios.create({
-    baseURL: config.API_URL,
+    baseURL: config.AUTH_URL,
     headers: {
         "Content-Type": "application/json",
     },
@@ -33,13 +33,13 @@ axiosInstance.interceptors.response.use(
     (error) => {
         console.log("Response Error");
 
-        if (
-            error.response?.status === 401 &&
-            localStorage.getItem("token")
-        ) {
-            localStorage.removeItem("token");
-            window.location.href = "/login";
-        }
+        //if (
+        //    error.response?.status === 401 &&
+        //    localStorage.getItem("token")
+        //) {
+        //    localStorage.removeItem("token");
+        //    window.location.href = "/login";
+        //}
 
         return Promise.reject(error);
     }

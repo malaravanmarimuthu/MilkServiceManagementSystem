@@ -35,7 +35,7 @@ function Hero() {
 
             <h5 className="text-info fw-bold mb-3">
 
-              WELCOME TO MEDINOVA
+              WELCOME TO 4K FRESH
 
             </h5>
 
@@ -46,33 +46,17 @@ function Hero() {
               }}
             >
 
-              Best Healthcare Solution
+              FRESH MILK 
               <br />
               In Your City
 
-            </h1>
-
-            <div className="d-flex gap-3">
-
-              <button className="btn btn-light btn-lg rounded-pill px-4">
-
-                Find Doctor
-
-              </button>
-
-              <button className="btn btn-outline-light btn-lg rounded-pill px-4">
-
-                Appointment
-
-              </button>
+            </h1>        
 
             </div>
 
           </div>
 
         </div>
-
-      </div>
 
     </section>
 

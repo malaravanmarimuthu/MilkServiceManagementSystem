@@ -14,7 +14,7 @@ function Footer() {
 
             <h3 className="text-info mb-4">
 
-              MEDINOVA
+              4K Fresh
 
             </h3>
 
@@ -75,7 +75,7 @@ function Footer() {
 
             <p>
 
-              ✉ medinova@gmail.com
+              ✉ 4kfreshgmail.com
 
             </p>
 
@@ -89,7 +89,7 @@ function Footer() {
 
           <p className="mb-0">
 
-            © 2026 MEDINOVA.
+            © 2026 4K FRESH.
             All Rights Reserved.
 
           </p>

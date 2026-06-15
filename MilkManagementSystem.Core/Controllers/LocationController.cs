@@ -78,6 +78,8 @@ namespace API.Controllers
         {
             try
             {
+                Console.WriteLine($"UPDATE HIT => {id}");
+
                 var result = await _locationService.Update(id, dto);
 
                 if (!result)
@@ -87,8 +89,8 @@ namespace API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred while updating location with ID {LocationId}", id);
-                return StatusCode(500, "An internal server error occurred.");
+                Console.WriteLine(ex.ToString());
+                throw;
             }
         }
 
@@ -97,17 +99,19 @@ namespace API.Controllers
         {
             try
             {
+                Console.WriteLine($"DELETE HIT => {id}");
+
                 var result = await _locationService.Delete(id);
 
                 if (!result)
-                    return NotFound($"Location with ID {id} not found.");
+                    return NotFound();
 
                 return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred while deleting location with ID {LocationId}", id);
-                return StatusCode(500, "An internal server error occurred.");
+                Console.WriteLine(ex.ToString());
+                throw;
             }
         }
     }
