@@ -5,7 +5,7 @@ import config from "../config";
 import { validateLoginForm } from "../Helpers/Validation";
 import type { LoginErrors } from "../Helpers/Validation";
 import { handleApiError } from "../Helpers/errorHandler";
-import ErrorModal from "./ErrorModal";
+import ErrorModal from "./Common/ErrorModal";
 
 type Props = {
     setIsRegister: (value: boolean) => void;
@@ -63,6 +63,7 @@ export default function LoginForm({ setIsRegister }: Props) {
 
     return (
         <>
+
             <ErrorModal
                 message={errorMsg}
                 onClose={() => setErrorMsg("")}
@@ -70,11 +71,11 @@ export default function LoginForm({ setIsRegister }: Props) {
 
             <h1>Login</h1>
 
-            {message &&
+            {message && (
                 <div className={`alert alert-${messageType}`}>
                     {message}
                 </div>
-            }
+            )}
 
             <input
                 ref={usernameRef}
@@ -87,9 +88,12 @@ export default function LoginForm({ setIsRegister }: Props) {
                     setErrors(prev => ({ ...prev, username: undefined }));
                 }}
             />
-            {errors.username &&
-                <span className="text-danger small mb-2 d-block">{errors.username}</span>
-            }
+
+            {errors.username && (
+                <span className="text-danger small mb-2 d-block">
+                    {errors.username}
+                </span>
+            )}
 
             <div className="password-box mb-1">
                 <input
@@ -103,35 +107,54 @@ export default function LoginForm({ setIsRegister }: Props) {
                         setErrors(prev => ({ ...prev, password: undefined }));
                     }}
                 />
+
                 {password && (
                     <span
                         className="eye-icon"
                         onClick={() => setShowPassword(!showPassword)}
                     >
-                        <i className={showPassword ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"} />
+                        <i
+                            className={
+                                showPassword
+                                    ? "bi bi-eye-slash-fill"
+                                    : "bi bi-eye-fill"
+                            }
+                        />
                     </span>
                 )}
             </div>
-            {errors.password &&
-                <span className="text-danger small mb-2 d-block">{errors.password}</span>
-            }
+
+            {errors.password && (
+                <span className="text-danger small mb-2 d-block">
+                    {errors.password}
+                </span>
+            )}
 
             <button
                 className="btn btn-primary w-100 mt-3"
                 onClick={handleLogin}
                 disabled={loading}
             >
-                {loading
-                    ? <><span className="spinner-border spinner-border-sm me-2" />Logging in...</>
-                    : "Login"
-                }
+                {loading ? (
+                    <>
+                        <span className="spinner-border spinner-border-sm me-2"></span>
+                        Logging in...
+                    </>
+                ) : (
+                    "Login"
+                )}
             </button>
 
-            <Link to="/" className="btn btn-outline-secondary w-100 mt-3">
+            <Link
+                to="/"
+                className="btn btn-outline-secondary w-100 mt-3"
+            >
                 Cancel
             </Link>
 
-            <p className="mt-4 text-center">Don't have an account?</p>
+            <p className="mt-4 text-center">
+                Don't have an account?
+            </p>
 
             <button
                 className="btn btn-outline-secondary w-100"

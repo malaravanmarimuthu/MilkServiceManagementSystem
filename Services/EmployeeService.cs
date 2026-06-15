@@ -17,6 +17,25 @@ namespace Services
             {
                 _logger.LogInformation($"Started -> request {req.ToJson()}");
 
+                var existingUser = await _appUserRespository
+               .FindByCondition(x =>
+                              x.Username == req.Username ||
+                              x.EmailId == req.EmailId ||
+                              x.Mobile == req.Mobile)
+               .FirstOrDefaultAsync();
+
+                if (existingUser != null)
+                {
+                    if (existingUser.Username == req.Username)
+                        throw new Exception("Username already taken");
+
+                    if (existingUser.EmailId == req.EmailId)
+                        throw new Exception("Email already registered");
+
+                    if (existingUser.Mobile == req.Mobile)
+                        throw new Exception("Mobile number already registered");
+                }
+
                 var appUserEntity = new Employee
                 {
                     FirstName = req.FirstName,
