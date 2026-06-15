@@ -1,7 +1,7 @@
 ﻿import { useState } from "react";
 import { jwtDecode } from "jwt-decode";
-import { useNavigate } from "react-router-dom";
-import ConfirmModal from "../Components/layout/ConfirmModal";
+import { useNavigate, NavLink } from "react-router-dom";
+import ConfirmModal from "../Components/Common/ConfirmModal";
 
 interface JwtPayload {
     username: string;
@@ -55,11 +55,25 @@ function Dashboard() {
                         background: "white"
                     }}
                 >
-                    <p style={{ cursor: "pointer" }} onClick={() => navigate("/customers")}>Customers</p>
-                    <p style={{ cursor: "pointer" }} onClick={() => navigate("/location")}>Location</p>
-                    <p style={{ cursor: "pointer" }} onClick={() => navigate("/milk-entry")}>Milk Entry</p>
-                    <p style={{ cursor: "pointer" }} onClick={() => navigate("/role")}>Role</p>
-                    <p style={{ cursor: "pointer" }} onClick={() => navigate("/reports")}>Reports</p>
+                    <p>Customers</p>
+                    <p>Location</p>
+                    <p>Milk Entry</p>
+
+                    <NavLink
+                        to="/role"
+                        style={({ isActive }) => ({
+                            display: "block",
+                            margin: "8px 0",
+                            textDecoration: "none",
+                            color: isActive ? "#0d6efd" : "#212529",
+                            fontWeight: isActive ? "bold" : "normal",
+                            cursor: "pointer"
+                        })}
+                    >
+                        Role
+                    </NavLink>
+
+                    <p>Reports</p>
 
                     <p
                         onClick={() => setShowLogoutModal(true)}
@@ -72,7 +86,9 @@ function Dashboard() {
 
             {showLogoutModal && (
                 <ConfirmModal
+                    title="Confirm Logout"
                     message="Are you sure you want to logout?"
+                    confirmText="Logout"
                     onClose={() => setShowLogoutModal(false)}
                     onConfirm={handleLogout}
                 />

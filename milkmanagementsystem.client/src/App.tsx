@@ -9,6 +9,7 @@ import Login from "./Pages/Login";
 import Dashboard from "./Pages/Dashboard";
 import Location from "./Pages/Location";
 import ProtectedRoute from "./Routing/ProtectedRoute";
+import Role from "./Pages/Role";
 
 function AppContent() {
 
@@ -22,6 +23,11 @@ function AppContent() {
         location.pathname === "/location";
        
       
+
+  const hideNavbar =
+      location.pathname === "/login" ||
+      location.pathname === "/dashboard" ||
+      location.pathname === "/role";
 
   return (
 
@@ -75,6 +81,15 @@ function AppContent() {
                          <Dashboard />
                        </ProtectedRoute>
                      }
+        />
+              <Route
+                  path="/role"
+                  element={
+                      <ProtectedRoute>
+                          <Role />
+                      </ProtectedRoute>
+                  }
+                  />
               />
               <Route
                   path="/location"
