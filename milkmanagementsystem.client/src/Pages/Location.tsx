@@ -26,31 +26,6 @@ function Location() {
     const [showFormModal, setShowFormModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-    //  Fixed: useEffect with cleanup to avoid setState after unmount
-    useEffect(() => {
-        let isMounted = true;
-
-        const fetchLocations = async () => {
-            try {
-                const data = await getLocations();
-                if (isMounted) {
-                    setLocations(Array.isArray(data) ? data : []);
-                }
-            } catch (error) {
-                if (isMounted) {
-                    setErrorMessage(handleApiError(error));
-                }
-            }
-        };
-
-        fetchLocations();
-
-        return () => {
-            isMounted = false;
-        };
-    }, []);
-
-    // For manual refresh after CRUD
     const loadLocations = async () => {
         try {
             const data = await getLocations();
@@ -59,6 +34,11 @@ function Location() {
             setErrorMessage(handleApiError(error));
         }
     };
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        loadLocations();
+    }, []);
 
     const clearForm = () => {
         setLocationName("");
@@ -73,7 +53,8 @@ function Location() {
     };
 
     const openEditModal = (location: LocationType) => {
-        setEditId(location.locationId);
+        console.log(location);
+        setEditId(location.locationID);
         setLocationName(location.locationName);
         setStreet(location.street);
         setPinCode(location.pinCode);
@@ -87,14 +68,20 @@ function Location() {
 
     const handleSubmit = async () => {
         if (!locationName.trim() || !street.trim() || !pinCode.trim()) {
+            closeFormModal();
             setErrorMessage("All fields are required.");
             return;
         }
 
-        setLoading(true);
-        try {
-            const locationData = { locationName, street, pinCode };
+        const locationData = {
+            locationName,
+            street,
+            pinCode,
+        };
 
+        setLoading(true);
+
+        try {
             if (editId === null) {
                 await createLocation(locationData);
             } else {
@@ -104,6 +91,7 @@ function Location() {
             closeFormModal();
             await loadLocations();
         } catch (error) {
+            closeFormModal();
             setErrorMessage(handleApiError(error));
         } finally {
             setLoading(false);
@@ -121,14 +109,16 @@ function Location() {
     };
 
     const confirmDelete = async () => {
-        if (deleteTarget === null) return;
+        if (!deleteTarget) return;
 
         setLoading(true);
+
         try {
-            await deleteLocation(deleteTarget.locationId);
+            await deleteLocation(deleteTarget.locationID);
             closeDeleteModal();
             await loadLocations();
         } catch (error) {
+            closeDeleteModal();
             setErrorMessage(handleApiError(error));
         } finally {
             setLoading(false);
@@ -137,7 +127,6 @@ function Location() {
 
     return (
         <div className="container mt-4">
-
             <ErrorModal
                 message={errorMessage}
                 onClose={() => setErrorMessage("")}
@@ -145,7 +134,11 @@ function Location() {
 
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h2>Location Management</h2>
-                <button className="btn btn-success" onClick={openAddModal}>
+
+                <button
+                    className="btn btn-success"
+                    onClick={openAddModal}
+                >
                     Add Location
                 </button>
             </div>
@@ -159,6 +152,7 @@ function Location() {
                         <th>Action</th>
                     </tr>
                 </thead>
+
                 <tbody>
                     {locations.length === 0 ? (
                         <tr>
@@ -167,8 +161,8 @@ function Location() {
                             </td>
                         </tr>
                     ) : (
-                        locations.map((location) => (
-                            <tr key={location.locationId}>
+                        locations.map((location, index) => (
+                            <tr key={location.locationID || index}>
                                 <td>{location.locationName}</td>
                                 <td>{location.street}</td>
                                 <td>{location.pinCode}</td>
@@ -179,6 +173,7 @@ function Location() {
                                     >
                                         Edit
                                     </button>
+
                                     <button
                                         className="btn btn-danger btn-sm"
                                         onClick={() => openDeleteModal(location)}
@@ -192,7 +187,6 @@ function Location() {
                 </tbody>
             </table>
 
-            {/* Add / Edit Modal */}
             {showFormModal && (
                 <div
                     className="modal d-block"
@@ -206,6 +200,7 @@ function Location() {
                                 <h5 className="modal-title">
                                     {editId === null ? "Add Location" : "Edit Location"}
                                 </h5>
+
                                 <button
                                     type="button"
                                     className="btn-close"
@@ -220,25 +215,33 @@ function Location() {
                                         type="text"
                                         className="form-control"
                                         value={locationName}
-                                        onChange={(e) => setLocationName(e.target.value)}
+                                        onChange={(e) =>
+                                            setLocationName(e.target.value)
+                                        }
                                     />
                                 </div>
+
                                 <div className="mb-3">
                                     <label className="form-label">Street</label>
                                     <input
                                         type="text"
                                         className="form-control"
                                         value={street}
-                                        onChange={(e) => setStreet(e.target.value)}
+                                        onChange={(e) =>
+                                            setStreet(e.target.value)
+                                        }
                                     />
                                 </div>
+
                                 <div className="mb-3">
                                     <label className="form-label">Pincode</label>
                                     <input
                                         type="text"
                                         className="form-control"
                                         value={pinCode}
-                                        onChange={(e) => setPinCode(e.target.value)}
+                                        onChange={(e) =>
+                                            setPinCode(e.target.value)
+                                        }
                                     />
                                 </div>
                             </div>
@@ -251,6 +254,7 @@ function Location() {
                                 >
                                     Cancel
                                 </button>
+
                                 <button
                                     className="btn btn-success"
                                     onClick={handleSubmit}
@@ -269,7 +273,6 @@ function Location() {
                 </div>
             )}
 
-            {/* Delete Confirmation Modal */}
             {showDeleteModal && (
                 <div
                     className="modal d-block"
@@ -281,6 +284,7 @@ function Location() {
 
                             <div className="modal-header">
                                 <h5 className="modal-title">Delete Location</h5>
+
                                 <button
                                     type="button"
                                     className="btn-close"
@@ -301,6 +305,7 @@ function Location() {
                                 >
                                     Cancel
                                 </button>
+
                                 <button
                                     className="btn btn-danger"
                                     onClick={confirmDelete}
@@ -314,7 +319,6 @@ function Location() {
                     </div>
                 </div>
             )}
-
         </div>
     );
 }
