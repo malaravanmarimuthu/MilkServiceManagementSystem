@@ -56,7 +56,19 @@ function Dashboard() {
                     }}
                 >
                     <p>Customers</p>
-                    <p>Location</p>
+                    <NavLink
+                        to="/location"
+                        style={({ isActive }) => ({
+                            display: "block",
+                            margin: "8px 0",
+                            textDecoration: "none",
+                            color: isActive ? "#0d6efd" : "#212529",
+                            fontWeight: isActive ? "bold" : "normal",
+                            cursor: "pointer"
+                        })}
+                    >
+                        Location
+                    </NavLink>
                     <p>Milk Entry</p>
 
                     <NavLink

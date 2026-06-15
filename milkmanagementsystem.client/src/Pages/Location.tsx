@@ -9,7 +9,7 @@ import {
 } from "../Services/LocationService";
 
 import { handleApiError } from "../Helpers/errorHandler";
-import ErrorModal from "../Components/ErrorModal";
+import ErrorModal from "../Components/Common/ErrorModal";
 
 function Location() {
     const [locations, setLocations] = useState<LocationType[]>([]);

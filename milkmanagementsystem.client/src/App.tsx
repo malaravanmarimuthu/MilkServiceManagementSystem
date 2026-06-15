@@ -20,14 +20,9 @@ function AppContent() {
     const hideNavbar =
         location.pathname === "/login" ||
         location.pathname === "/dashboard" ||
-        location.pathname === "/location";
-       
+        location.pathname === "/location" ||
+        location.pathname === "/role";
       
-
-  const hideNavbar =
-      location.pathname === "/login" ||
-      location.pathname === "/dashboard" ||
-      location.pathname === "/role";
 
   return (
 
@@ -90,7 +85,6 @@ function AppContent() {
                       </ProtectedRoute>
                   }
                   />
-              />
               <Route
                   path="/location"
                   element={
