@@ -4,6 +4,7 @@ type Props = {
     confirmText?: string;
     onConfirm: () => void;
     onClose: () => void;
+    isLoading?: boolean;
 };
 
 export default function ConfirmModal({
@@ -12,6 +13,7 @@ export default function ConfirmModal({
     confirmText = "Confirm",
     onConfirm,
     onClose,
+    isLoading= false
 }: Props) {
     if (!message) return null;
 
@@ -52,6 +54,7 @@ export default function ConfirmModal({
                             <button
                                 className="btn btn-danger rounded-pill px-4"
                                 onClick={onConfirm}
+                                disabled={isLoading}
                             >
                                 {confirmText}
                             </button>

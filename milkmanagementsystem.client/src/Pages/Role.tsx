@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import RoleService from "../Services/RoleService";
 import type { Role as RoleType } from "../Services/RoleService";
-import ConfirmModal from "../Components/layout/ConfirmModal";
+import ConfirmModal from "../Components/Common/ConfirmModal";
+import ErrorModal from "../Components/Common/ErrorModal";
+import Loader from "../Components/Common/Loader";
 import { useNavigate } from "react-router-dom";
 
 const Role: React.FC = () => {
@@ -14,6 +16,8 @@ const Role: React.FC = () => {
     const [showConfirm, setShowConfirm] = useState(false);
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const navigate = useNavigate()
+    const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     useEffect(() => {
         fetchRoles();
@@ -56,17 +60,27 @@ const Role: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (saving) return;
+
+        setSaving(true);
+
         try {
-            if (editingRole && (editingRole as any).roleID) {
-                await RoleService.update((editingRole as any).roleID, formData);
+            if (editingRole) {
+                await RoleService.update(
+                    (editingRole as any).roleID,
+                    formData
+                );
             } else {
                 await RoleService.create(formData);
             }
+
             setShowModal(false);
             fetchRoles();
         } catch (err) {
-            console.error(err);
             setError("Failed to save role");
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -77,6 +91,9 @@ const Role: React.FC = () => {
 
     const handleDelete = async () => {
         if (deleteId === null) return;
+
+        setDeleting(true);
+
         try {
             await RoleService.delete(deleteId);
             fetchRoles();
@@ -84,42 +101,42 @@ const Role: React.FC = () => {
             console.error(err);
             setError("Failed to delete role");
         } finally {
+            setDeleting(false);
             setShowConfirm(false);
             setDeleteId(null);
         }
     };
 
     return (
-        <div className="container mt-4">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-            <h2>Role Management</h2>
+        <>
+            {loading && <Loader />}
 
-            <div>
-                <button
-                    className="btn btn-secondary me-2"
-                    onClick={() => navigate("/dashboard")}
-                >
-                    Cancel
-                </button>
+            <ErrorModal
+                message={error}
+                onClose={() => setError("")}
+            />
 
-                <button
-                    className="btn btn-primary"
-                    onClick={openAddModal}
-                >
-                    + Add Role
-                </button>
+            <div className="container mt-4">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h2>Role Management</h2>
+
+                    <div>
+                        <button
+                            className="btn btn-secondary me-2"
+                            onClick={() => navigate("/dashboard")}
+                        >
+                            Cancel
+                        </button>
+
+                        <button
+                            className="btn btn-primary"
+                            onClick={openAddModal}
+                        >
+                            + Add Role
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            {error && (
-                <div className="alert alert-danger" role="alert">
-                    {error}
-                </div>
-            )}
-
-            {loading ? (
-                <p>Loading...</p>
-            ) : (
                 <table className="table table-bordered">
                     <thead>
                         <tr>
@@ -127,6 +144,7 @@ const Role: React.FC = () => {
                             <th>Actions</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         {roles.length === 0 ? (
                             <tr>
@@ -135,94 +153,112 @@ const Role: React.FC = () => {
                                 </td>
                             </tr>
                         ) : (
-                                    roles.map((role: any) => (
-                                            <tr key ={role.roleID}>
-                                            <td>{role.roleName ?? role.RoleName}</td>
-                                            <td>
-                                                <button
-                                                    className="btn btn-sm btn-warning me-2"
-                                                    onClick={() => openEditModal(role)}
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    className="btn btn-sm btn-danger"
-                                                    onClick={() => confirmDelete(role.roleID)}
-                                                >
-                                                    Delete
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))
+                            roles.map((role: any) => (
+                                <tr key={role.roleID}>
+                                    <td>{role.roleName ?? role.RoleName}</td>
+
+                                    <td>
+                                        <button
+                                            className="btn btn-sm btn-warning me-2"
+                                            onClick={() => openEditModal(role)}
+                                        >
+                                            Edit
+                                        </button>
+
+                                        <button
+                                            className="btn btn-sm btn-danger"
+                                            onClick={() => confirmDelete(role.roleID)}
+                                        >
+                                            Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
                         )}
                     </tbody>
                 </table>
-            )}
 
-            {/* Add/Edit Modal */}
-            {showModal && (
-                <>
-                    <div
-                        className="modal-backdrop fade show"
-                        style={{
-                            backdropFilter: "blur(4px)",
-                            backgroundColor: "rgba(0,0,0,0.6)",
-                        }}
-                        onClick={() => setShowModal(false)}
-                    />
-                    <div className="modal fade show d-block" tabIndex={-1}>
-                        <div className="modal-dialog modal-dialog-centered">
-                            <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                                <div className="modal-header border-0 px-4 pt-4 pb-0">
-                                    <h5 className="modal-title fw-bold">
-                                        {editingRole ? "Edit Role" : "Add Role"}
-                                    </h5>
-                                </div>
-                                <div className="modal-body">
-             
-                                    <form onSubmit={handleSubmit}>
-                                        <div className="mb-3">
-                                            <label className="form-label">Role Name</label>
-                                            <input
-                                                type="text"
-                                                name="roleName"
-                                                className="form-control"
-                                                value={formData.roleName}
-                                                onChange={handleChange}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="modal-footer border-0 justify-content-center pb-4 px-0">
-                                            <button
-                                                type="button"
-                                                className="btn btn-secondary rounded-pill px-4"
-                                                onClick={() => setShowModal(false)}
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button type="submit" className="btn btn-primary rounded-pill px-4">
-                                                Save
-                                            </button>
-                                        </div>
-                                    </form>
+                {showModal && (
+                    <>
+                        <div
+                            className="modal-backdrop fade show"
+                            style={{
+                                backdropFilter: "blur(4px)",
+                                backgroundColor: "rgba(0,0,0,0.6)",
+                            }}
+                            onClick={() => setShowModal(false)}
+                        />
+
+                        <div className="modal fade show d-block" tabIndex={-1}>
+                            <div className="modal-dialog modal-dialog-centered">
+                                <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                                    <div className="modal-header border-0 px-4 pt-4 pb-0">
+                                        <h5 className="modal-title fw-bold">
+                                            {editingRole ? "Edit Role" : "Add Role"}
+                                        </h5>
+                                    </div>
+
+                                    <div className="modal-body">
+                                        <form onSubmit={handleSubmit}>
+                                            <div className="mb-3">
+                                                <label className="form-label">
+                                                    Role Name
+                                                </label>
+
+                                                <input
+                                                    type="text"
+                                                    name="roleName"
+                                                    className="form-control"
+                                                    value={formData.roleName}
+                                                    onChange={handleChange}
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div className="modal-footer border-0 justify-content-center pb-4 px-0">
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-secondary rounded-pill px-4"
+                                                    onClick={() => setShowModal(false)}
+                                                >
+                                                    Cancel
+                                                </button>
+
+                                                <button
+                                                    type="submit"
+                                                    className="btn btn-primary rounded-pill px-4"
+                                                    disabled={saving}
+                                                >
+                                                    {saving ? (
+                                                        <>
+                                                            <span className="spinner-border spinner-border-sm me-2"></span>
+                                                            {editingRole ? "Updating..." : "Saving..."}
+                                                        </>
+                                                    ) : (
+                                                        editingRole ? "Update" : "Save"
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </>
-            )}
+                    </>
+                )}
 
-            {/* Confirm Delete */}
-            {showConfirm && (
-                <ConfirmModal
-                    title="Confirm Delete"
-                    message="Are you sure you want to delete this role?"
-                    confirmText="Delete"
-                    onConfirm={handleDelete}
-                    onClose={() => setShowConfirm(false)}
-                />
-            )}
-        </div>
+                {showConfirm && (
+                    <ConfirmModal
+                        title="Confirm Delete"
+                        message="Are you sure you want to delete this role?"
+                        confirmText={deleting ? "Deleting..." : "Delete"}
+                        isLoading={deleting}
+                        onConfirm={handleDelete}
+                        onClose={() => setShowConfirm(false)}
+                    />
+                )}
+            </div>
+        </>
     );
 };
 

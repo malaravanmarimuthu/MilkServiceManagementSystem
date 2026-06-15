@@ -1,7 +1,7 @@
 ﻿import { useState } from "react";
 import { jwtDecode } from "jwt-decode";
 import { useNavigate, NavLink } from "react-router-dom";
-import ConfirmModal from "../Components/layout/ConfirmModal";
+import ConfirmModal from "../Components/Common/ConfirmModal";
 
 interface JwtPayload {
     username: string;

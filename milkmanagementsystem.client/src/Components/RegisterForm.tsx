@@ -4,7 +4,8 @@ import config from "../config";
 import { validateRegisterForm } from "../Helpers/Validation";
 import type { RegisterErrors } from "../Helpers/Validation";
 import { handleApiError } from "../Helpers/errorHandler";
-import ErrorModal from "./ErrorModal";
+import ErrorModal from "./Common/ErrorModal";
+import Loader from "../Components/Common/Loader";
 
 type Props = {
     setIsRegister: (value: boolean) => void;
@@ -79,6 +80,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
 
     return (
         <>
+
             <ErrorModal
                 message={errorMsg}
                 onClose={() => setErrorMsg("")}
@@ -86,11 +88,11 @@ export default function RegisterForm({ setIsRegister }: Props) {
 
             <h1>Register</h1>
 
-            {message &&
+            {message && (
                 <div className={`alert alert-${messageType}`}>
                     {message}
                 </div>
-            }
+            )}
 
             <input
                 ref={firstNameRef}
@@ -222,10 +224,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 onClick={handleRegister}
                 disabled={loading}
             >
-                {loading
-                    ? <><span className="spinner-border spinner-border-sm me-2" />Registering...</>
-                    : "Register"
-                }
+                {loading ? <Loader text="Registering..." /> : "Register"}
             </button>
 
             <button
@@ -235,6 +234,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
             >
                 Cancel
             </button>
+
         </>
     );
 }
