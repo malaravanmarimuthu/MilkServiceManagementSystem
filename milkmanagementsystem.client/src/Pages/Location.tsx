@@ -47,7 +47,7 @@ function Location() {
         try {
             setLoading(true);
             const data = await getLocations();
-            setLocations(Array.isArray(data) ? data : []);
+            setLocations(Array.isArray(data) ? [...data].reverse() : []);
         } catch (error) {
             setErrorMessage(handleApiError(error));
         } finally {
@@ -122,6 +122,46 @@ function Location() {
             pinCode === oldPinCode
         ) {
             setFormError("Please update at least one field.");
+            return;
+        }
+        // Location Name Duplicate
+        const isLocationNameDuplicate = locations.some(
+            (x) =>
+                x.locationName.toLowerCase().trim() ===
+                locationName.toLowerCase().trim() &&
+                x.locationID !== editId
+        );
+
+        if (isLocationNameDuplicate) {
+            closeFormModal();
+            setErrorMessage("Location name already exists.");
+            return;
+        }
+
+        // Street Duplicate
+        const isStreetDuplicate = locations.some(
+            (x) =>
+                x.street.toLowerCase().trim() ===
+                street.toLowerCase().trim() &&
+                x.locationID !== editId
+        );
+
+        if (isStreetDuplicate) {
+            closeFormModal();
+            setErrorMessage("Street already exists.");
+            return;
+        }
+
+        // Pincode Duplicate
+        const isPinCodeDuplicate = locations.some(
+            (x) =>
+                x.pinCode.trim() === pinCode.trim() &&
+                x.locationID !== editId
+        );
+
+        if (isPinCodeDuplicate) {
+            closeFormModal();
+            setErrorMessage("Pincode already exists.");
             return;
         }
 
@@ -204,7 +244,7 @@ function Location() {
                     Cancel
                 </button>
                 <button
-                    className="btn btn-success"
+                    className="btn btn-primary"
                     onClick={openAddModal}
                 >
                     Add Location
@@ -241,7 +281,7 @@ function Location() {
                                 <td>{location.pinCode}</td>
                                 <td>
                                     <button
-                                        className="btn btn-primary btn-sm me-2"
+                                        className="btn btn-warning btn-sm me-2"
                                         onClick={() => openEditModal(location)}
                                     >
                                         Edit
