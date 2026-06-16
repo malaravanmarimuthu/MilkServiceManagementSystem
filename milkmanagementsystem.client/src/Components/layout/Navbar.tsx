@@ -1,13 +1,12 @@
-import {NavLink,useLocation,} from "react-router-dom";
+import {NavLink, useLocation} from "react-router-dom";
 
 function Navbar() {
 
-  const location = useLocation();
+    const location = useLocation();
+    const token = localStorage.getItem("token");
+    const isLoggedIn = !!token;
 
-  // PATIENT PAGE CHECK
 
-  const isPatientPage =
-    location.pathname.includes("patient");
 
   return (
 
@@ -48,97 +47,75 @@ function Navbar() {
           id="navbarNav"
         >
 
-          <ul className="navbar-nav ms-auto align-items-center">
+                  <ul className="navbar-nav ms-auto align-items-center">
 
-            <li className="nav-item">
+                      {!isLoggedIn ? (
+                          <>
+                              <li className="nav-item">
+                                  <NavLink to="/" className="nav-link">Home</NavLink>
+                              </li>
 
-              <NavLink
-                to="/"
-                className="nav-link"
-              >
+                              <li className="nav-item">
+                                  <NavLink to="/about" className="nav-link">About</NavLink>
+                              </li>
 
-                Home
+                              <li className="nav-item">
+                                  <NavLink to="/service" className="nav-link">Service</NavLink>
+                              </li>
 
-              </NavLink>
+                              <li className="nav-item">
+                                  <NavLink to="/pricing" className="nav-link">Pricing</NavLink>
+                              </li>
 
-            </li>
+                              <li className="nav-item">
+                                  <NavLink to="/contact" className="nav-link">Contact</NavLink>
+                              </li>
 
-            <li className="nav-item">
+                              <li className="nav-item ms-3">
+                                  <NavLink
+                                      to="/login"
+                                      className="btn btn-info text-white rounded-pill px-4"
+                                  >
+                                      Login
+                                  </NavLink>
+                              </li>
+                          </>
+                      ) : (
+                          <>
+                              <li className="nav-item">
+                                  <NavLink to="/location" className="nav-link">
+                                      Location
+                                  </NavLink>
+                              </li>
 
-              <NavLink
-                to="/about"
-                className="nav-link"
-              >
+                              <li className="nav-item">
+                                  <NavLink to="/role" className="nav-link">
+                                      Role
+                                  </NavLink>
+                              </li>
 
-                About
+                              <li className="nav-item">
+                                  <NavLink to="/reports" className="nav-link">
+                                      Reports
+                                  </NavLink>
+                              </li>
 
-              </NavLink>
+                              <li className="nav-item ms-3">
+                                  <button
+                                      className="btn btn-danger rounded-pill px-4"
+                                      onClick={() => {
+                                          localStorage.removeItem("token");
+                                          localStorage.removeItem("refreshToken");
+                                          window.location.href = "/";
+                                      }}
+                                  >
+                                      Logout
+                                  </button>
+                              </li>
+                          </>
+                      )}
 
-            </li>
-
-            <li className="nav-item">
-
-              <NavLink
-                to="/service"
-                className="nav-link"
-              >
-
-                Service
-
-              </NavLink>
-
-            </li>
-
-            <li className="nav-item">
-
-              <NavLink
-                to="/pricing"
-                className="nav-link"
-              >
-
-                Pricing
-
-              </NavLink>
-
-            </li>
-
-            <li className="nav-item">
-
-              <NavLink
-                to="/contact"
-                className="nav-link"
-              >
-
-                Contact
-
-              </NavLink>
-
-            </li>
-
-            {/* LOGIN BUTTON */}
-
-            {
-
-              !isPatientPage && (
-
-                <li className="nav-item ms-3">
-
-                  <NavLink
-                    to="/login"
-                    className="btn btn-info text-white rounded-pill px-4"
-                  >
-
-                    Login
-
-                  </NavLink>
-
-                </li>
-
-              )
-
-            }
-
-          </ul>
+                  </ul>
 
         </div>
 

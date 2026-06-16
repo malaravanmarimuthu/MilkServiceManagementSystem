@@ -1,6 +1,6 @@
 function Service() {
 
-  return (
+    return (
 
     <div className="container py-5">
 
@@ -154,7 +154,7 @@ function Service() {
 
       </div>
 
-    </div>
+            </div>
 
   );
 }

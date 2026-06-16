@@ -3,9 +3,7 @@ import Hero from "../Components/home/Hero";
 function Home() {
 
   return (
-    <>
-      <Hero />
-    </>
+          <Hero />
   );
 }
 

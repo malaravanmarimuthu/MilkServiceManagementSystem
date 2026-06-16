@@ -1,8 +1,7 @@
 import aboutImg from "../../assets/images/about-bg.jpg";
-
 function About() {
 
-  return (
+    return (
 
     <div className="container py-5">
 
@@ -94,7 +93,7 @@ function About() {
 
       </div>
 
-    </div>
+            </div>
 
   );
 }

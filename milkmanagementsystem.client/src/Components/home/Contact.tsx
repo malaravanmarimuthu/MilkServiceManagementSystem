@@ -1,6 +1,6 @@
 function Contact() {
 
-  return (
+    return (
 
     <div className="container py-5">
 
@@ -160,7 +160,7 @@ function Contact() {
 
       </div>
 
-    </div>
+            </div>
 
   );
 }
