@@ -3,8 +3,12 @@ import RoleService from "../Services/RoleService";
 import type { Role as RoleType } from "../Services/RoleService";
 import ConfirmModal from "../Components/Common/ConfirmModal";
 import ErrorModal from "../Components/Common/ErrorModal";
+import SuccessModal from "../Components/Common/SuccessModal";
 import Loader from "../Components/Common/Loader";
+import Pagination from "../Components/Common/Pagination";
 import { useNavigate } from "react-router-dom";
+
+const ITEMS_PER_PAGE = 5;
 
 const Role: React.FC = () => {
     const [roles, setRoles] = useState<RoleType[]>([]);
@@ -16,14 +20,15 @@ const Role: React.FC = () => {
     const [formError, setFormError] = useState("");
     const [showConfirm, setShowConfirm] = useState(false);
     const [deleteId, setDeleteId] = useState<number | null>(null);
-    const navigate = useNavigate()
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
- 
+    const [successMessage, setSuccessMessage] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const [search, setSearch] = useState("");
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchRoles();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchRoles = async () => {
@@ -31,8 +36,11 @@ const Role: React.FC = () => {
         try {
             const res = await RoleService.getAll();
             const data: any = res.data;
-            const rolesArray = Array.isArray(data) ? data : data?.$values ?? data?.data ?? [];
-            setRoles(rolesArray);
+            const rolesArray = Array.isArray(data)
+                ? data
+                : data?.$values ?? data?.data ?? [];
+            setRoles([...rolesArray].reverse()); // newest first
+            setCurrentPage(1);
         } catch (err) {
             console.error(err);
             setError("Failed to load roles");
@@ -41,18 +49,33 @@ const Role: React.FC = () => {
         }
     };
 
+    // Search only - no sort
+    const filteredRoles = roles.filter((r: any) =>
+        (r.roleName ?? r.RoleName ?? "")
+            .toLowerCase()
+            .includes(search.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredRoles.length / ITEMS_PER_PAGE);
+    const paginatedRoles = filteredRoles.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
+
     const openAddModal = () => {
         setEditingRole(null);
         setFormData({ roleName: "" });
+        setFormError("");
         setShowModal(true);
     };
 
     const openEditModal = (role: any) => {
         setEditingRole(role);
         setFormData({
-            roleID: role.roleID,
-            roleName: role.roleName,
+            roleID: role.roleID ?? role.RoleID,
+            roleName: role.roleName ?? role.RoleName,
         });
+        setFormError("");
         setShowModal(true);
     };
 
@@ -63,29 +86,54 @@ const Role: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
         if (saving) return;
+
+        const isDuplicate = roles.some((r: any) => {
+            const existingName = (r.roleName ?? r.RoleName ?? "").trim().toLowerCase();
+            const newName = formData.roleName.trim().toLowerCase();
+            const existingId = r.roleID ?? r.RoleID;
+            const editingId =
+                (editingRole as any)?.roleID ?? (editingRole as any)?.RoleID;
+            return existingName === newName && existingId !== editingId;
+        });
+
+        if (isDuplicate) {
+            setFormError("This role name already exists!");
+            return;
+        }
 
         if (
             editingRole &&
-            formData.roleName.trim() === editingRole.roleName.trim()
+            formData.roleName.trim() ===
+            (
+                (editingRole as any).roleName ??
+                (editingRole as any).RoleName ??
+                ""
+            ).trim()
         ) {
-            setFormError("No changes detected. Please modify the role before updating.");
+            setFormError(
+                "No changes detected. Please modify the role before updating."
+            );
             return;
         }
 
         setSaving(true);
-
         try {
             if (editingRole) {
-                await RoleService.update(
-                    (editingRole as any).roleID,
-                    formData
-                );
+                const id =
+                    (editingRole as any).roleID ?? (editingRole as any).RoleID;
+                await RoleService.update(id, {
+                    roleID: id,
+                    roleName: formData.roleName.trim(),
+                });
+                setSuccessMessage("Role updated successfully!");
             } else {
-                await RoleService.create(formData);
+                await RoleService.create({
+                    roleID: 0,
+                    roleName: formData.roleName.trim(),
+                });
+                setSuccessMessage("Role created successfully!");
             }
-
             setShowModal(false);
             fetchRoles();
         } catch (err) {
@@ -102,11 +150,10 @@ const Role: React.FC = () => {
 
     const handleDelete = async () => {
         if (deleteId === null) return;
-
         setDeleting(true);
-
         try {
             await RoleService.delete(deleteId);
+            setSuccessMessage("Role deleted successfully!");
             fetchRoles();
         } catch (err) {
             console.error(err);
@@ -120,17 +167,16 @@ const Role: React.FC = () => {
 
     return (
         <>
-            {loading && <Loader />}
-
-            <ErrorModal
-                message={error}
-                onClose={() => setError("")}
+            <ErrorModal message={error} onClose={() => setError("")} />
+            <SuccessModal
+                message={successMessage}
+                onClose={() => setSuccessMessage("")}
             />
 
             <div className="container mt-4">
+                {/* Header */}
                 <div className="d-flex justify-content-between align-items-center mb-3">
                     <h2>Role Management</h2>
-
                     <div>
                         <button
                             className="btn btn-secondary me-2"
@@ -138,7 +184,6 @@ const Role: React.FC = () => {
                         >
                             Cancel
                         </button>
-
                         <button
                             className="btn btn-primary"
                             onClick={openAddModal}
@@ -148,132 +193,188 @@ const Role: React.FC = () => {
                     </div>
                 </div>
 
-                <table className="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Role Name</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
+                {/* Search only */}
+                <div className="d-flex gap-2 mb-3">
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search role..."
+                        value={search}
+                        onChange={(e) => {
+                            setSearch(e.target.value);
+                            setCurrentPage(1);
+                        }}
+                        style={{ maxWidth: "300px" }}
+                    />
+                </div>
 
-                    <tbody>
-                        {roles.length === 0 ? (
-                            <tr>
-                                <td colSpan={2} className="text-center">
-                                    No roles found
-                                </td>
-                            </tr>
-                        ) : (
-                            roles.map((role: any) => (
-                                <tr key={role.roleID}>
-                                    <td>{role.roleName ?? role.RoleName}</td>
-
-                                    <td>
-                                        <button
-                                            className="btn btn-sm btn-warning me-2"
-                                            onClick={() => openEditModal(role)}
-                                        >
-                                            Edit
-                                        </button>
-
-                                        <button
-                                            className="btn btn-sm btn-danger"
-                                            onClick={() => confirmDelete(role.roleID)}
-                                        >
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
-
-                {showModal && (
+                {/* Loader OR Table */}
+                {loading ? (
+                    <Loader />
+                ) : (
                     <>
-                        <div
-                            className="modal-backdrop fade show"
-                            style={{
-                                backdropFilter: "blur(4px)",
-                                backgroundColor: "rgba(0,0,0,0.6)",
-                            }}
-                            onClick={() => setShowModal(false)}
-                        />
+                        <table className="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Role Name</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginatedRoles.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan={2}
+                                            className="text-center"
+                                        >
+                                            No roles found
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    paginatedRoles.map(
+                                        (role: any, index: number) => {
+                                            const id =
+                                                role.roleID ??
+                                                role.RoleID ??
+                                                index;
+                                            return (
+                                                <tr key={`role-${id}-${index}`}>
+                                                    <td>
+                                                        {role.roleName ??
+                                                            role.RoleName}
+                                                    </td>
+                                                    <td>
+                                                        <button
+                                                            className="btn btn-sm btn-warning me-2"
+                                                            onClick={() =>
+                                                                openEditModal(
+                                                                    role
+                                                                )
+                                                            }
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-sm btn-danger"
+                                                            onClick={() =>
+                                                                confirmDelete(id)
+                                                            }
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        }
+                                    )
+                                )}
+                            </tbody>
+                        </table>
 
-                        <div className="modal fade show d-block" tabIndex={-1}>
-                            <div className="modal-dialog modal-dialog-centered">
-                                <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-                                    <div className="modal-header border-0 px-4 pt-4 pb-0">
-                                        <h5 className="modal-title fw-bold">
-                                            {editingRole ? "Edit Role" : "Add Role"}
-                                        </h5>
-                                    </div>
+                        {totalPages > 1 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalPages={totalPages}
+                                onPageChange={(page) => {
+                                    setCurrentPage(page);
+                                    window.scrollTo({
+                                        top: 0,
+                                        behavior: "smooth",
+                                    });
+                                }}
+                            />
+                        )}
+                    </>
+                )}
+            </div>
 
-                                    <div className="modal-body">
-                                        <form onSubmit={handleSubmit}>
-                                            <div className="mb-3">
-                                                <label className="form-label">
-                                                    Role Name
-                                                </label>
-
-                                                <input
-                                                    type="text"
-                                                    name="roleName"
-                                                    className="form-control"
-                                                    value={formData.roleName}
-                                                    onChange={handleChange}
-                                                    required
-                                                />
-                                                {formError && (
-                                                    <div className="text-danger mt-2">
-                                                        {formError}
-                                                    </div>
+            {/* Add / Edit Modal */}
+            {showModal && (
+                <>
+                    <div
+                        className="modal-backdrop fade show"
+                        style={{
+                            backdropFilter: "blur(4px)",
+                            backgroundColor: "rgba(0,0,0,0.6)",
+                        }}
+                        onClick={() => setShowModal(false)}
+                    />
+                    <div className="modal fade show d-block" tabIndex={-1}>
+                        <div className="modal-dialog modal-dialog-centered">
+                            <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+                                <div className="modal-header border-0 px-4 pt-4 pb-0">
+                                    <h5 className="modal-title fw-bold">
+                                        {editingRole ? "Edit Role" : "Add Role"}
+                                    </h5>
+                                </div>
+                                <div className="modal-body">
+                                    <form onSubmit={handleSubmit}>
+                                        <div className="mb-3">
+                                            <label className="form-label">
+                                                Role Name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="roleName"
+                                                className="form-control"
+                                                value={formData.roleName}
+                                                onChange={handleChange}
+                                                required
+                                            />
+                                            {formError && (
+                                                <div className="text-danger mt-2">
+                                                    {formError}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="modal-footer border-0 justify-content-center pb-4 px-0">
+                                            <button
+                                                type="button"
+                                                className="btn btn-secondary rounded-pill px-4"
+                                                onClick={() =>
+                                                    setShowModal(false)
+                                                }
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="btn btn-primary rounded-pill px-4"
+                                                disabled={saving}
+                                            >
+                                                {saving ? (
+                                                    <>
+                                                        <span className="spinner-border spinner-border-sm me-2" />
+                                                        {editingRole
+                                                            ? "Updating..."
+                                                            : "Saving..."}
+                                                    </>
+                                                ) : editingRole ? (
+                                                    "Update"
+                                                ) : (
+                                                    "Save"
                                                 )}
-                                            </div>
-
-                                            <div className="modal-footer border-0 justify-content-center pb-4 px-0">
-                                                <button
-                                                    type="button"
-                                                    className="btn btn-secondary rounded-pill px-4"
-                                                    onClick={() => setShowModal(false)}
-                                                >
-                                                    Cancel
-                                                </button>
-
-                                                <button
-                                                    type="submit"
-                                                    className="btn btn-primary rounded-pill px-4"
-                                                    disabled={saving}
-                                                >
-                                                    {saving ? (
-                                                        <>
-                                                            <span className="spinner-border spinner-border-sm me-2"></span>
-                                                            {editingRole ? "Updating..." : "Saving..."}
-                                                        </>
-                                                    ) : (
-                                                        editingRole ? "Update" : "Save"
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
-                    </>
-                )}
+                    </div>
+                </>
+            )}
 
-                {showConfirm && (
-                    <ConfirmModal
-                        title="Confirm Delete"
-                        message="Are you sure you want to delete this role?"
-                        confirmText={deleting ? "Deleting..." : "Delete"}
-                        isLoading={deleting}
-                        onConfirm={handleDelete}
-                        onClose={() => setShowConfirm(false)}
-                    />
-                )}
-            </div>
+            {/* Confirm Delete */}
+            {showConfirm && (
+                <ConfirmModal
+                    title="Confirm Delete"
+                    message="Are you sure you want to delete this role?"
+                    confirmText={deleting ? "Deleting..." : "Delete"}
+                    isLoading={deleting}
+                    onConfirm={handleDelete}
+                    onClose={() => setShowConfirm(false)}
+                />
+            )}
         </>
     );
 };
