@@ -1,6 +1,6 @@
 function Pricing() {
 
-  return (
+    return (
 
     <div className="container py-5">
 
@@ -160,7 +160,7 @@ function Pricing() {
 
       </div>
 
-    </div>
+            </div>
 
   );
 }
