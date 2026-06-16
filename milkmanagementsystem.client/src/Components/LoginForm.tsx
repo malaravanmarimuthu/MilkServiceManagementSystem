@@ -27,7 +27,8 @@ export default function LoginForm({ setIsRegister }: Props) {
     const usernameRef = useRef<HTMLInputElement>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
 
-    const handleLogin = async () => {
+    const handleLogin = async (e?: React.FormEvent) => {
+        e?.preventDefault();
 
         const validationErrors = validateLoginForm({ username, password });
         setErrors(validationErrors);
@@ -70,6 +71,7 @@ export default function LoginForm({ setIsRegister }: Props) {
             />
 
             <h1>Login</h1>
+            <form onSubmit={handleLogin}>
 
             {message && (
                 <div className={`alert alert-${messageType}`}>
@@ -130,9 +132,9 @@ export default function LoginForm({ setIsRegister }: Props) {
                 </span>
             )}
 
-            <button
+                <button
+                type="submit"
                 className="btn btn-primary w-100 mt-3"
-                onClick={handleLogin}
                 disabled={loading}
             >
                 {loading ? (
@@ -162,7 +164,8 @@ export default function LoginForm({ setIsRegister }: Props) {
                 disabled={loading}
             >
                 Register
-            </button>
+                </button>
+            </form>
         </>
     );
 }
