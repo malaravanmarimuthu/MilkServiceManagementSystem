@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import {
     getLocations,
@@ -10,11 +11,17 @@ import {
 
 import { handleApiError } from "../Helpers/errorHandler";
 import ErrorModal from "../Components/Common/ErrorModal";
+import SuccessModal from "../Components/Common/SuccessModal";
+import { handleApiSuccess } from "../Helpers/successHandler";
+import Loader from "../Components/Common/Loader"; 
+//import { Navigate } from "react-router-dom";
 
 function Location() {
     const [locations, setLocations] = useState<LocationType[]>([]);
     const [errorMessage, setErrorMessage] = useState("");
+    const [successMessage, setsuccessMessage] = useState("");
     const [loading, setLoading] = useState(false);
+    const Navigate = useNavigate();
 
     const [locationName, setLocationName] = useState("");
     const [street, setStreet] = useState("");
@@ -25,13 +32,20 @@ function Location() {
 
     const [showFormModal, setShowFormModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [formError, setFormError] = useState("");
+    const [oldLocationName, setOldLocationName] = useState("");
+    const [oldStreet, setOldStreet] = useState("");
+    const [oldPinCode, setOldPinCode] = useState("");
 
     const loadLocations = async () => {
         try {
+            setLoading(true);
             const data = await getLocations();
             setLocations(Array.isArray(data) ? data : []);
         } catch (error) {
             setErrorMessage(handleApiError(error));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -58,6 +72,10 @@ function Location() {
         setLocationName(location.locationName);
         setStreet(location.street);
         setPinCode(location.pinCode);
+        setOldLocationName(location.locationName);
+        setOldStreet(location.street);
+        setOldPinCode(location.pinCode);
+        setFormError("");
         setShowFormModal(true);
     };
 
@@ -72,6 +90,20 @@ function Location() {
             setErrorMessage("All fields are required.");
             return;
         }
+        if (!/^\d{6}$/.test(pinCode)) {
+            closeFormModal();
+            setErrorMessage("Pincode must be 6 digits.");
+            return;
+        }
+        if (
+            editId !== null &&
+            locationName === oldLocationName &&
+            street === oldStreet &&
+            pinCode === oldPinCode
+        ) {
+            setFormError("Please update at least one field.");
+            return;
+        }
 
         const locationData = {
             locationName,
@@ -84,8 +116,10 @@ function Location() {
         try {
             if (editId === null) {
                 await createLocation(locationData);
+                handleApiSuccess("Location Created Successfully", setsuccessMessage);
             } else {
                 await updateLocation(editId, locationData);
+                handleApiSuccess("Location Updated Successfully", setsuccessMessage);
             }
 
             closeFormModal();
@@ -115,6 +149,7 @@ function Location() {
 
         try {
             await deleteLocation(deleteTarget.locationID);
+            handleApiSuccess("Location Deleted Successfully", setsuccessMessage);
             closeDeleteModal();
             await loadLocations();
         } catch (error) {
@@ -132,16 +167,30 @@ function Location() {
                 onClose={() => setErrorMessage("")}
             />
 
+            <SuccessModal
+                message={successMessage}
+                onClose={() => setsuccessMessage("")}
+            />
+            
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h2>Location Management</h2>
+                <div className="d-flex gap-2">
 
+                <button
+                    className="btn btn-danger me-2"
+                    onClick={() => Navigate("/dashboard")}
+                >
+                    Cancel
+                </button>
                 <button
                     className="btn btn-success"
                     onClick={openAddModal}
                 >
                     Add Location
                 </button>
+                </div>
             </div>
+            {loading ? (<Loader text= " Loading Loacation..."/> ): (
 
             <table className="table table-bordered table-striped">
                 <thead>
@@ -186,6 +235,7 @@ function Location() {
                     )}
                 </tbody>
             </table>
+            )}
 
             {showFormModal && (
                 <div
@@ -209,14 +259,21 @@ function Location() {
                             </div>
 
                             <div className="modal-body">
+                                {formError && (
+                                    <div className="alert alert-danger mb-3">
+                                        {formError}
+                                    </div>
+                                )}
                                 <div className="mb-3">
                                     <label className="form-label">Location Name</label>
                                     <input
                                         type="text"
                                         className="form-control"
                                         value={locationName}
-                                        onChange={(e) =>
-                                            setLocationName(e.target.value)
+                                        onChange={(e) => {
+                                            setLocationName(e.target.value);
+                                            setFormError("");
+                                        }
                                         }
                                     />
                                 </div>
@@ -227,8 +284,10 @@ function Location() {
                                         type="text"
                                         className="form-control"
                                         value={street}
-                                        onChange={(e) =>
-                                            setStreet(e.target.value)
+                                        onChange={(e) => {
+                                            setStreet(e.target.value);
+                                            setFormError("");
+                                        }
                                         }
                                     />
                                 </div>
@@ -239,8 +298,10 @@ function Location() {
                                         type="text"
                                         className="form-control"
                                         value={pinCode}
-                                        onChange={(e) =>
-                                            setPinCode(e.target.value)
+                                        onChange={(e) => {
+                                            setPinCode(e.target.value);
+                                            setFormError("");
+                                        }
                                         }
                                     />
                                 </div>
