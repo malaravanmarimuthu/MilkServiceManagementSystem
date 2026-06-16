@@ -2,7 +2,7 @@ import slider1 from "../../assets/images/news-image.jpg";
 
 function Hero() {
 
-  return (
+    return (
 
     <section
       id="home"
@@ -58,7 +58,7 @@ function Hero() {
 
         </div>
 
-    </section>
+            </section>
 
   );
 }

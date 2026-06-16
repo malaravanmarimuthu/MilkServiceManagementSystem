@@ -10,6 +10,7 @@ import Dashboard from "./Pages/Dashboard";
 import Location from "./Pages/Location";
 import ProtectedRoute from "./Routing/ProtectedRoute";
 import Role from "./Pages/Role";
+import Footer from "./Components/Common/Footer";
 
 function AppContent() {
 
@@ -18,88 +19,41 @@ function AppContent() {
   // LOGIN PAGE CHECK
 
     const hideNavbar =
+        location.pathname === "/login";
+
+    const hideFooter =
         location.pathname === "/login" ||
-        location.pathname === "/dashboard" ||
-        location.pathname === "/location" ||
-        location.pathname === "/role";
+        location.pathname === "/register";
       
 
-  return (
+    return (
+        <>
+            {!hideNavbar && <Navbar />}
 
-    <>
+            <div className="d-flex flex-column min-vh-100">
 
-      {/* NAVBAR */}
+            <div className="flex-grow-1">
 
-      {
+            <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/service" element={<Service />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/role" element={<ProtectedRoute><Role /></ProtectedRoute>} />
+                <Route path="/location" element={<ProtectedRoute><Location /></ProtectedRoute>} />
+                </Routes>
+            </div>
 
-        !hideNavbar && <Navbar />
+                {!hideFooter && <Footer /> }
 
-      }
+            </div>
 
-      {/* ROUTES */}
+            </>
 
-      <Routes>
-
-        <Route
-          path="/"
-          element={<Home />}
-        />
-
-        <Route
-          path="/about"
-          element={<About />}
-        />
-
-        <Route
-          path="/service"
-          element={<Service />}
-        />
-
-        <Route
-          path="/pricing"
-          element={<Pricing />}
-        />
-
-        <Route
-          path="/contact"
-          element={<Contact />}
-        />
-
-        <Route
-          path="/login"
-          element={<Login />}
-        />
-        <Route
-             path="/dashboard"
-             element={
-                       <ProtectedRoute>
-                         <Dashboard />
-                       </ProtectedRoute>
-                     }
-        />
-              <Route
-                  path="/role"
-                  element={
-                      <ProtectedRoute>
-                          <Role />
-                      </ProtectedRoute>
-                  }
-                  />
-              <Route
-                  path="/location"
-                  element={
-                      <ProtectedRoute>
-                          <Location />
-                      </ProtectedRoute>
-                  }
-              />
-
-
-      </Routes>
-
-    </>
-
-  );
+    );
 
 }
 

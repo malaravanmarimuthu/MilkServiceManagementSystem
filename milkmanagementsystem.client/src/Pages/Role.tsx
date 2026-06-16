@@ -13,11 +13,13 @@ const Role: React.FC = () => {
     const [editingRole, setEditingRole] = useState<RoleType | null>(null);
     const [formData, setFormData] = useState<RoleType>({ roleName: "" });
     const [error, setError] = useState("");
+    const [formError, setFormError] = useState("");
     const [showConfirm, setShowConfirm] = useState(false);
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const navigate = useNavigate()
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
+ 
 
     useEffect(() => {
         fetchRoles();
@@ -55,6 +57,7 @@ const Role: React.FC = () => {
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setFormError("");
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
@@ -62,6 +65,14 @@ const Role: React.FC = () => {
         e.preventDefault();
 
         if (saving) return;
+
+        if (
+            editingRole &&
+            formData.roleName.trim() === editingRole.roleName.trim()
+        ) {
+            setFormError("No changes detected. Please modify the role before updating.");
+            return;
+        }
 
         setSaving(true);
 
@@ -213,6 +224,11 @@ const Role: React.FC = () => {
                                                     onChange={handleChange}
                                                     required
                                                 />
+                                                {formError && (
+                                                    <div className="text-danger mt-2">
+                                                        {formError}
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="modal-footer border-0 justify-content-center pb-4 px-0">
