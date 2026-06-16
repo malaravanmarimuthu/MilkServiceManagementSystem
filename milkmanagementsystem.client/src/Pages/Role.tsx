@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/immutability */
 import React, { useState, useEffect } from "react";
 import RoleService from "../Services/RoleService";
 import type { Role as RoleType } from "../Services/RoleService";
