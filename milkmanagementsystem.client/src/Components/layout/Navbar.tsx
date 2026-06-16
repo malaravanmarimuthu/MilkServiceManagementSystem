@@ -1,130 +1,140 @@
-import {NavLink, useLocation} from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
+import { useState } from "react";
+import ConfirmModal from "../Common/ConfirmModal";
 
 function Navbar() {
 
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
     const location = useLocation();
     const token = localStorage.getItem("token");
     const isLoggedIn = !!token;
 
+    return (
+        <>
 
-
-  return (
-
-    <nav
-      className="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top"
-    >
-
-      <div className="container">
-
-        {/* LOGO */}
-
-        <NavLink
-          to="/"
-          className="navbar-brand fw-bold text-info fs-2"
+        <nav
+            className="navbar navbar-expand-lg navbar-light bg-white shadow-sm sticky-top"
         >
 
-          4K FRESH
+            <div className="container">
 
-        </NavLink>
+                {/* LOGO */}
 
-        {/* MOBILE BUTTON */}
+                <NavLink
+                    to="/"
+                    className="navbar-brand fw-bold text-info fs-2"
+                >
 
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-        >
+                    4K FRESH
 
-          <span className="navbar-toggler-icon"></span>
+                </NavLink>
 
-        </button>
+                {/* MOBILE BUTTON */}
 
-        {/* MENU */}
+                <button
+                    className="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav"
+                >
 
-        <div
-          className="collapse navbar-collapse"
-          id="navbarNav"
-        >
+                    <span className="navbar-toggler-icon"></span>
 
-                  <ul className="navbar-nav ms-auto align-items-center">
+                </button>
 
-                      {!isLoggedIn ? (
-                          <>
-                              <li className="nav-item">
-                                  <NavLink to="/" className="nav-link">Home</NavLink>
-                              </li>
+                {/* MENU */}
 
-                              <li className="nav-item">
-                                  <NavLink to="/about" className="nav-link">About</NavLink>
-                              </li>
+                <div
+                    className="collapse navbar-collapse"
+                    id="navbarNav"
+                >
 
-                              <li className="nav-item">
-                                  <NavLink to="/service" className="nav-link">Service</NavLink>
-                              </li>
+                    <ul className="navbar-nav ms-auto align-items-center">
 
-                              <li className="nav-item">
-                                  <NavLink to="/pricing" className="nav-link">Pricing</NavLink>
-                              </li>
+                        {!isLoggedIn ? (
+                            <>
+                                <li className="nav-item">
+                                    <NavLink to="/" className="nav-link">Home</NavLink>
+                                </li>
 
-                              <li className="nav-item">
-                                  <NavLink to="/contact" className="nav-link">Contact</NavLink>
-                              </li>
+                                <li className="nav-item">
+                                    <NavLink to="/about" className="nav-link">About</NavLink>
+                                </li>
 
-                              <li className="nav-item ms-3">
-                                  <NavLink
-                                      to="/login"
-                                      className="btn btn-info text-white rounded-pill px-4"
-                                  >
-                                      Login
-                                  </NavLink>
-                              </li>
-                          </>
-                      ) : (
-                          <>
-                              <li className="nav-item">
-                                  <NavLink to="/location" className="nav-link">
-                                      Location
-                                  </NavLink>
-                              </li>
+                                <li className="nav-item">
+                                    <NavLink to="/service" className="nav-link">Service</NavLink>
+                                </li>
 
-                              <li className="nav-item">
-                                  <NavLink to="/role" className="nav-link">
-                                      Role
-                                  </NavLink>
-                              </li>
+                                <li className="nav-item">
+                                    <NavLink to="/pricing" className="nav-link">Pricing</NavLink>
+                                </li>
 
-                              <li className="nav-item">
-                                  <NavLink to="/reports" className="nav-link">
-                                      Reports
-                                  </NavLink>
-                              </li>
+                                <li className="nav-item">
+                                    <NavLink to="/contact" className="nav-link">Contact</NavLink>
+                                </li>
 
-                              <li className="nav-item ms-3">
-                                  <button
-                                      className="btn btn-danger rounded-pill px-4"
-                                      onClick={() => {
-                                          localStorage.removeItem("token");
-                                          localStorage.removeItem("refreshToken");
-                                          window.location.href = "/";
-                                      }}
-                                  >
-                                      Logout
-                                  </button>
-                              </li>
-                          </>
-                      )}
+                                <li className="nav-item ms-3">
+                                    <NavLink
+                                        to="/login"
+                                        className="btn btn-info text-white rounded-pill px-4"
+                                    >
+                                        Login
+                                    </NavLink>
+                                </li>
+                            </>
+                        ) : (
+                            <>
+                                <li className="nav-item">
+                                    <NavLink to="/location" className="nav-link">
+                                        Location
+                                    </NavLink>
+                                </li>
 
-                  </ul>
+                                <li className="nav-item">
+                                    <NavLink to="/role" className="nav-link">
+                                        Role
+                                    </NavLink>
+                                </li>
 
-        </div>
+                                <li className="nav-item">
+                                    <NavLink to="/reports" className="nav-link">
+                                        Reports
+                                    </NavLink>
+                                </li>
 
-      </div>
+                                <li className="nav-item ms-3">
+                                    <button
+                                        className="btn btn-danger rounded-pill px-4"
+                                        onClick={() => setShowLogoutModal(true)}
+                                    >
+                                        Logout
+                                    </button>
+                                </li>
+                            </>
+                        )}
 
-    </nav>
+                    </ul>
 
-  );
+                </div>
 
+            </div>
+
+        </nav>
+            {showLogoutModal && (
+                <ConfirmModal
+                    title="Confirm Logout"
+                    message="Are you sure you want to logout?"
+                    confirmText="Logout"
+                    onClose={() => setShowLogoutModal(false)}
+                    onConfirm={() => {
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("refreshToken");
+                        window.location.href = "/";
+                    }}
+                />
+            )}
+        </>
+    );
 }
 
 export default Navbar;
