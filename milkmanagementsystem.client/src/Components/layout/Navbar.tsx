@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NavLink, useLocation } from "react-router-dom";
 import { useState } from "react";
 import ConfirmModal from "../Common/ConfirmModal";
