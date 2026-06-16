@@ -14,6 +14,7 @@ import ErrorModal from "../Components/Common/ErrorModal";
 import SuccessModal from "../Components/Common/SuccessModal";
 import { handleApiSuccess } from "../Helpers/successHandler";
 import Loader from "../Components/Common/Loader"; 
+import Pagination from "../Components/Common/Pagination";
 //import { Navigate } from "react-router-dom";
 
 function Location() {
@@ -33,9 +34,14 @@ function Location() {
     const [showFormModal, setShowFormModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [formError, setFormError] = useState("");
+
     const [oldLocationName, setOldLocationName] = useState("");
     const [oldStreet, setOldStreet] = useState("");
     const [oldPinCode, setOldPinCode] = useState("");
+
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [searchTerm, setSearchTerm] = useState("");
+    const recordsPerPage = 10;
 
     const loadLocations = async () => {
         try {
@@ -54,6 +60,20 @@ function Location() {
         loadLocations();
     }, []);
 
+    const filteredLocations = locations.filter((location) =>
+        location.locationName
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(
+        filteredLocations.length / recordsPerPage
+    );
+
+    const currentLocations = filteredLocations.slice(
+        (currentPage - 1) * recordsPerPage,
+        currentPage * recordsPerPage
+    );
     const clearForm = () => {
         setLocationName("");
         setStreet("");
@@ -159,6 +179,7 @@ function Location() {
             setLoading(false);
         }
     };
+    
 
     return (
         <div className="container mt-4">
@@ -190,7 +211,10 @@ function Location() {
                 </button>
                 </div>
             </div>
-            {loading ? (<Loader text= " Loading Loacation..."/> ): (
+            {loading ? (
+                <Loader text="Loading Loacation..." />
+            ) : (
+                <>
 
             <table className="table table-bordered table-striped">
                 <thead>
@@ -209,8 +233,8 @@ function Location() {
                                 No locations found.
                             </td>
                         </tr>
-                    ) : (
-                        locations.map((location, index) => (
+                        ) : (
+                            currentLocations.map((location, index) => (
                             <tr key={location.locationID || index}>
                                 <td>{location.locationName}</td>
                                 <td>{location.street}</td>
@@ -234,7 +258,15 @@ function Location() {
                         ))
                     )}
                 </tbody>
-            </table>
+                        </table>
+                        <Pagination
+                            searchTerm={searchTerm}
+                            onSearchChange={setSearchTerm}
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </>
             )}
 
             {showFormModal && (
