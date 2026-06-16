@@ -13,7 +13,7 @@ import { handleApiError } from "../Helpers/errorHandler";
 import ErrorModal from "../Components/Common/ErrorModal";
 import SuccessModal from "../Components/Common/SuccessModal";
 import { handleApiSuccess } from "../Helpers/successHandler";
-import Loader from "../Components/Common/Loader"; 
+import Loader from "../Components/Common/Loader";
 import Pagination from "../Components/Common/Pagination";
 //import { Navigate } from "react-router-dom";
 
@@ -74,6 +74,7 @@ function Location() {
         (currentPage - 1) * recordsPerPage,
         currentPage * recordsPerPage
     );
+
     const clearForm = () => {
         setLocationName("");
         setStreet("");
@@ -219,7 +220,7 @@ function Location() {
             setLoading(false);
         }
     };
-    
+
 
     return (
         <div className="container mt-4">
@@ -232,81 +233,93 @@ function Location() {
                 message={successMessage}
                 onClose={() => setsuccessMessage("")}
             />
-            
+
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h2>Location Management</h2>
                 <div className="d-flex gap-2">
 
-                <button
-                    className="btn btn-danger me-2"
-                    onClick={() => Navigate("/dashboard")}
-                >
-                    Cancel
-                </button>
-                <button
-                    className="btn btn-primary"
-                    onClick={openAddModal}
-                >
-                    Add Location
-                </button>
+                    <button
+                        className="btn btn-danger me-2"
+                        onClick={() => Navigate("/dashboard")}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        className="btn btn-primary"
+                        onClick={openAddModal}
+                    >
+                        Add Location
+                    </button>
                 </div>
             </div>
+
+            <div className="mb-3" style={{ maxWidth: "400px" }}>
+                <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Search location..."
+                    value={searchTerm}
+                    onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                    }}
+                />
+            </div>
+
             {loading ? (
                 <Loader text="Loading Loacation..." />
             ) : (
                 <>
 
-            <table className="table table-bordered table-striped">
-                <thead>
-                    <tr>
-                        <th>Location Name</th>
-                        <th>Street</th>
-                        <th>Pincode</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {locations.length === 0 ? (
-                        <tr>
-                            <td colSpan={4} className="text-center">
-                                No locations found.
-                            </td>
-                        </tr>
-                        ) : (
-                            currentLocations.map((location, index) => (
-                            <tr key={location.locationID || index}>
-                                <td>{location.locationName}</td>
-                                <td>{location.street}</td>
-                                <td>{location.pinCode}</td>
-                                <td>
-                                    <button
-                                        className="btn btn-warning btn-sm me-2"
-                                        onClick={() => openEditModal(location)}
-                                    >
-                                        Edit
-                                    </button>
-
-                                    <button
-                                        className="btn btn-danger btn-sm"
-                                        onClick={() => openDeleteModal(location)}
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
+                    <table className="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>Location Name</th>
+                                <th>Street</th>
+                                <th>Pincode</th>
+                                <th>Action</th>
                             </tr>
-                        ))
-                    )}
-                </tbody>
-                        </table>
-                        <Pagination
-                            searchTerm={searchTerm}
-                            onSearchChange={setSearchTerm}
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={setCurrentPage}
-                        />
-                    </>
+                        </thead>
+
+                        <tbody>
+                            {locations.length === 0 ? (
+                                <tr>
+                                    <td colSpan={4} className="text-center">
+                                        No locations found.
+                                    </td>
+                                </tr>
+                            ) : (
+                                currentLocations.map((location, index) => (
+                                    <tr key={location.locationID || index}>
+                                        <td>{location.locationName}</td>
+                                        <td>{location.street}</td>
+                                        <td>{location.pinCode}</td>
+                                        <td>
+                                            <button
+                                                className="btn btn-warning btn-sm me-2"
+                                                onClick={() => openEditModal(location)}
+                                            >
+                                                Edit
+                                            </button>
+
+                                            <button
+                                                className="btn btn-danger btn-sm"
+                                                onClick={() => openDeleteModal(location)}
+                                            >
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
+                </>
             )}
 
             {showFormModal && (

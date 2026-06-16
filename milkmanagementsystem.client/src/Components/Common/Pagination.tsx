@@ -4,12 +4,18 @@ type PaginationProps = {
     currentPage: number;
     totalPages: number;
     onPageChange: (page: number) => void;
+    searchTerm?: string;
+    onSearchChange?: (value: string) => void;
+    searchPlaceholder?: string;
 };
 
 const Pagination: React.FC<PaginationProps> = ({
     currentPage,
     totalPages,
     onPageChange,
+    searchTerm = "",
+    onSearchChange,
+    searchPlaceholder = "Search...",
 }) => {
     const [inputPage, setInputPage] = useState("");
 
@@ -42,162 +48,185 @@ const Pagination: React.FC<PaginationProps> = ({
     };
 
     return (
-        <div
-            style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexWrap: "wrap",
-                gap: "8px",
-                marginTop: "20px",
-                padding: "12px",
-                background: "#f8fafc",
-                borderRadius: "12px",
-                border: "1px solid #e2e8f0",
-            }}
-        >
-            {/* First */}
-            <button
-                onClick={() => onPageChange(1)}
-                disabled={currentPage === 1}
-                style={btnStyle(currentPage === 1)}
-                title="First"
-            >
-                {"<<"}
-            </button>
-
-            {/* Prev */}
-            <button
-                onClick={() => onPageChange(currentPage - 1)}
-                disabled={currentPage === 1}
-                style={btnStyle(currentPage === 1)}
-                title="Previous"
-            >
-                {"<"}
-            </button>
-
-            {/* Page numbers */}
-            {getPages().map((page) =>
-                typeof page === "string" ? (
-                    <span
-                        key={page}
-                        style={{
-                            padding: "0 4px",
-                            color: "#94a3b8",
-                            fontSize: "14px",
+        <div>
+            {/* Search bar - only show if onSearchChange provided */}
+            {onSearchChange && (
+                <div className="mb-3">
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder={searchPlaceholder}
+                        value={searchTerm}
+                        onChange={(e) => {
+                            onSearchChange(e.target.value);
+                            onPageChange(1);
                         }}
-                    >
-                        ...
-                    </span>
-                ) : (
-                    <button
-                        key={`page-${page}`}
-                        onClick={() => onPageChange(page)}
-                        style={{
-                            width: "36px",
-                            height: "36px",
-                            borderRadius: "8px",
-                            border: "none",
-                            cursor: "pointer",
-                            fontWeight: 600,
-                            fontSize: "14px",
-                            transition: "all 0.2s",
-                            background:
-                                currentPage === page
-                                    ? "linear-gradient(135deg, #3b82f6, #8b5cf6)"
-                                    : "#ffffff",
-                            color: currentPage === page ? "#fff" : "#475569",
-                            boxShadow:
-                                currentPage === page
-                                    ? "0 4px 12px rgba(99,102,241,0.4)"
-                                    : "0 1px 3px rgba(0,0,0,0.1)",
-                        }}
-                    >
-                        {page}
-                    </button>
-                )
+                        style={{ maxWidth: "300px" }}
+                    />
+                </div>
             )}
 
-            {/* Next */}
-            <button
-                onClick={() => onPageChange(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                style={btnStyle(currentPage === totalPages)}
-                title="Next"
-            >
-                {">"}
-            </button>
-
-            {/* Last */}
-            <button
-                onClick={() => onPageChange(totalPages)}
-                disabled={currentPage === totalPages}
-                style={btnStyle(currentPage === totalPages)}
-                title="Last"
-            >
-                {">>"}
-            </button>
-
-            {/* Divider */}
-            <div
-                style={{
-                    width: "1px",
-                    height: "28px",
-                    background: "#e2e8f0",
-                    margin: "0 4px",
-                }}
-            />
-
-            {/* Page info */}
-            <span
-                style={{
-                    fontSize: "13px",
-                    color: "#64748b",
-                    whiteSpace: "nowrap",
-                }}
-            >
-                Page <strong>{currentPage}</strong> of{" "}
-                <strong>{totalPages}</strong>
-            </span>
-
-            {/* Jump to page */}
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                <input
-                    type="number"
-                    min={1}
-                    max={totalPages}
-                    value={inputPage}
-                    onChange={(e) => setInputPage(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleJump()}
-                    placeholder="Go"
+            {/* Pagination - only show if more than 1 page */}
+            {totalPages > 1 && (
+                <div
                     style={{
-                        width: "52px",
-                        height: "32px",
-                        borderRadius: "8px",
-                        border: "1px solid #cbd5e1",
-                        textAlign: "center",
-                        fontSize: "13px",
-                        outline: "none",
-                        color: "#334155",
-                    }}
-                />
-                <button
-                    onClick={handleJump}
-                    style={{
-                        height: "32px",
-                        padding: "0 10px",
-                        borderRadius: "8px",
-                        border: "none",
-                        background: "#3b82f6",
-                        color: "#fff",
-                        fontSize: "13px",
-                        fontWeight: 600,
-                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexWrap: "wrap",
+                        gap: "8px",
+                        marginTop: "12px",
+                        padding: "12px",
+                        background: "#f8fafc",
+                        borderRadius: "12px",
+                        border: "1px solid #e2e8f0",
                     }}
                 >
-                    Go
-                </button>
-            </div>
+                    {/* First */}
+                    <button
+                        onClick={() => onPageChange(1)}
+                        disabled={currentPage === 1}
+                        style={btnStyle(currentPage === 1)}
+                        title="First"
+                    >
+                        {"<<"}
+                    </button>
+
+                    {/* Prev */}
+                    <button
+                        onClick={() => onPageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        style={btnStyle(currentPage === 1)}
+                        title="Previous"
+                    >
+                        {"<"}
+                    </button>
+
+                    {/* Page numbers */}
+                    {getPages().map((page) =>
+                        typeof page === "string" ? (
+                            <span
+                                key={page}
+                                style={{
+                                    padding: "0 4px",
+                                    color: "#94a3b8",
+                                    fontSize: "14px",
+                                }}
+                            >
+                                ...
+                            </span>
+                        ) : (
+                            <button
+                                key={`page-${page}`}
+                                onClick={() => onPageChange(page)}
+                                style={{
+                                    width: "36px",
+                                    height: "36px",
+                                    borderRadius: "8px",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    fontWeight: 600,
+                                    fontSize: "14px",
+                                    transition: "all 0.2s",
+                                    background:
+                                        currentPage === page
+                                            ? "linear-gradient(135deg, #3b82f6, #8b5cf6)"
+                                            : "#ffffff",
+                                    color:
+                                        currentPage === page ? "#fff" : "#475569",
+                                    boxShadow:
+                                        currentPage === page
+                                            ? "0 4px 12px rgba(99,102,241,0.4)"
+                                            : "0 1px 3px rgba(0,0,0,0.1)",
+                                }}
+                            >
+                                {page}
+                            </button>
+                        )
+                    )}
+
+                    {/* Next */}
+                    <button
+                        onClick={() => onPageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        style={btnStyle(currentPage === totalPages)}
+                        title="Next"
+                    >
+                        {">"}
+                    </button>
+
+                    {/* Last */}
+                    <button
+                        onClick={() => onPageChange(totalPages)}
+                        disabled={currentPage === totalPages}
+                        style={btnStyle(currentPage === totalPages)}
+                        title="Last"
+                    >
+                        {">>"}
+                    </button>
+
+                    {/* Divider */}
+                    <div
+                        style={{
+                            width: "1px",
+                            height: "28px",
+                            background: "#e2e8f0",
+                            margin: "0 4px",
+                        }}
+                    />
+
+                    {/* Page info */}
+                    <span
+                        style={{
+                            fontSize: "13px",
+                            color: "#64748b",
+                            whiteSpace: "nowrap",
+                        }}
+                    >
+                        Page <strong>{currentPage}</strong> of{" "}
+                        <strong>{totalPages}</strong>
+                    </span>
+
+                    {/* Jump to page */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <input
+                            type="number"
+                            min={1}
+                            max={totalPages}
+                            value={inputPage}
+                            onChange={(e) => setInputPage(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleJump()}
+                            placeholder="Go"
+                            style={{
+                                width: "52px",
+                                height: "32px",
+                                borderRadius: "8px",
+                                border: "1px solid #cbd5e1",
+                                textAlign: "center",
+                                fontSize: "13px",
+                                outline: "none",
+                                color: "#334155",
+                            }}
+                        />
+                        <button
+                            onClick={handleJump}
+                            style={{
+                                height: "32px",
+                                padding: "0 10px",
+                                borderRadius: "8px",
+                                border: "none",
+                                background: "#3b82f6",
+                                color: "#fff",
+                                fontSize: "13px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                            }}
+                        >
+                            Go
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
