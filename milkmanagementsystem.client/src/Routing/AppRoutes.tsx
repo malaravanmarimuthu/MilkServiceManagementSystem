@@ -3,6 +3,7 @@ import Home from "../Pages/Home";
 import Login from "../Pages/Login";
 import Dashboard from "../Pages/Dashboard";
 import Location from "../Pages/Location";
+import Employee from "../Pages/Employee";
 import About from "../Components/home/About";
 import Service from "../Components/home/Service";
 import Pricing from "../Components/home/Pricing";
@@ -57,6 +58,15 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute>
                         <Location />
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/employee"
+                element={
+                    <ProtectedRoute>
+                        <Employee />
                     </ProtectedRoute>
                 }
             />

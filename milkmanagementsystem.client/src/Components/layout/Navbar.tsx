@@ -94,7 +94,13 @@ function Navbar() {
                                     <NavLink to="/role" className="nav-link">
                                         Role
                                     </NavLink>
-                                </li>
+                                        </li>
+
+                                 <li className="nav-item">
+                                            <NavLink to="/employee" className="nav-link">
+                                                Employee
+                                            </NavLink>
+                                        </li>
 
                                 <li className="nav-item">
                                     <NavLink to="/reports" className="nav-link">

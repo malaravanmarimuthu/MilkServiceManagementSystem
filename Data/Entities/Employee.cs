@@ -27,6 +27,9 @@ namespace Data.Entities
 
         [Column(TypeName = "nvarchar(50)")]
         public string? Password { get; set; }
+        public long LocationID { get; set; }
+        public long RoleID {  get; set; }
+
         public EmployeeStatus Status { get; set; } = EmployeeStatus.Available;
        
     }

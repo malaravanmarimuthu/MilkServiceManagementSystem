@@ -4,6 +4,7 @@ using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    partial class AuthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260617072053_RoleLocationV2")]
+    partial class RoleLocationV2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,7 +53,7 @@ namespace Data.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("LastName")
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<long>("LocationID")
                         .HasColumnType("bigint");
@@ -75,6 +78,10 @@ namespace Data.Migrations
 
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("ID");
 
@@ -241,29 +248,6 @@ namespace Data.Migrations
                     b.HasKey("RoleID");
 
                     b.ToTable("Roles");
-                });
-
-            modelBuilder.Entity("Data.Entities.Subscription", b =>
-                {
-                    b.Property<long>("SubscriptionID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("SubscriptionID"));
-
-                    b.Property<string>("MilkType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<decimal>("PricePerLiter")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("decimal(65,30)");
-
-                    b.HasKey("SubscriptionID");
-
-                    b.ToTable("Subscriptions");
                 });
 #pragma warning restore 612, 618
         }
