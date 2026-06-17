@@ -85,7 +85,7 @@ namespace Services.Authentication
                     claims.Add(new Claim("orgid", userTokenPayload.OrgId));
                     claims.Add(new Claim("roleid", userTokenPayload.RoleId));
                     claims.Add(new Claim("firstname", userTokenPayload.FirstName));
-                    claims.Add(new Claim("username", userTokenPayload.UserName));
+                   // claims.Add(new Claim("username", userTokenPayload.UserName));
                     claims.Add(new Claim("rgcode", userTokenPayload.RgCode));
                 }
                 else

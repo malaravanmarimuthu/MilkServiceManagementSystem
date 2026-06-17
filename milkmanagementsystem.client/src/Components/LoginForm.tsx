@@ -54,6 +54,7 @@ export default function LoginForm({ setIsRegister }: Props) {
             const response = await axiosInstance.post(
                 config.AUTH_URL + "/Auth/login",
                 {
+
                     mobile,
                     password,
                 }
