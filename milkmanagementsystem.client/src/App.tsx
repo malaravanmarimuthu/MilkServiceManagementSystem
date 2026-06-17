@@ -11,6 +11,7 @@ import Location from "./Pages/Location";
 import ProtectedRoute from "./Routing/ProtectedRoute";
 import Role from "./Pages/Role";
 import Footer from "./Components/Common/Footer";
+import Employee from "./Pages/Employee";
 
 function AppContent() {
 
@@ -43,6 +44,7 @@ function AppContent() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/role" element={<ProtectedRoute><Role /></ProtectedRoute>} />
+                <Route path="/employee" element={<ProtectedRoute><Employee /></ProtectedRoute>} />
                 <Route path="/location" element={<ProtectedRoute><Location /></ProtectedRoute>} />
                 </Routes>
             </div>
