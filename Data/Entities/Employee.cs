@@ -17,8 +17,6 @@ namespace Data.Entities
 
         [Column(TypeName = "nvarchar(100)")]
 
-        public string Username { get; set; }
-        [Column(TypeName = "nvarchar(50)")]
         public string? LastName { get; set; }
 
         [Column(TypeName = "nvarchar(200)")]

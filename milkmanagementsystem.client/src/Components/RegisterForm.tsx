@@ -1,11 +1,14 @@
 import { useState, useRef } from "react";
+
 import axiosInstance from "../Interceptors/axiosInstance";
 import config from "../config";
+
 import { validateRegisterForm } from "../Helpers/Validation";
 import type { RegisterErrors } from "../Helpers/Validation";
+
 import { handleApiError } from "../Helpers/errorHandler";
 import ErrorModal from "./Common/ErrorModal";
-import Loader from "../Components/Common/Loader";
+
 
 type Props = {
     setIsRegister: (value: boolean) => void;
@@ -17,13 +20,16 @@ export default function RegisterForm({ setIsRegister }: Props) {
     const [lastName, setLastName] = useState("");
     const [emailId, setEmailId] = useState("");
     const [mobile, setMobile] = useState("");
-    const [username, setUsername] = useState("");
+
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
     const [message, setMessage] = useState("");
     const [messageType, setMessageType] = useState("");
+
     const [errors, setErrors] = useState<RegisterErrors>({});
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
@@ -32,14 +38,18 @@ export default function RegisterForm({ setIsRegister }: Props) {
     const lastNameRef = useRef<HTMLInputElement>(null);
     const emailRef = useRef<HTMLInputElement>(null);
     const mobileRef = useRef<HTMLInputElement>(null);
-    const usernameRef = useRef<HTMLInputElement>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
     const confirmPasswordRef = useRef<HTMLInputElement>(null);
 
     const handleRegister = async () => {
 
         const validationErrors = validateRegisterForm({
-            firstName, lastName, emailId, mobile, username, password, confirmPassword
+            firstName,
+            lastName,
+            emailId,
+            mobile,
+            password,
+            confirmPassword,
         });
 
         setErrors(validationErrors);
@@ -49,7 +59,6 @@ export default function RegisterForm({ setIsRegister }: Props) {
             else if (validationErrors.lastName) lastNameRef.current?.focus();
             else if (validationErrors.emailId) emailRef.current?.focus();
             else if (validationErrors.mobile) mobileRef.current?.focus();
-            else if (validationErrors.username) usernameRef.current?.focus();
             else if (validationErrors.password) passwordRef.current?.focus();
             else if (validationErrors.confirmPassword) confirmPasswordRef.current?.focus();
             return;
@@ -59,14 +68,21 @@ export default function RegisterForm({ setIsRegister }: Props) {
 
         try {
             await axiosInstance.post(config.AUTH_URL + "/Auth/signup", {
-                firstName, lastName, username, password, emailId, mobile
+                firstName,
+                lastName,
+                password,
+                emailId,
+                mobile,
             });
 
             setMessage("Registration Successful");
             setMessageType("success");
 
-            setFirstName(""); setLastName(""); setEmailId("");
-            setMobile(""); setUsername(""); setPassword("");
+            setFirstName("");
+            setLastName("");
+            setEmailId("");
+            setMobile("");
+            setPassword("");
             setConfirmPassword("");
 
             setTimeout(() => setIsRegister(false), 1500);
@@ -80,7 +96,6 @@ export default function RegisterForm({ setIsRegister }: Props) {
 
     return (
         <>
-
             <ErrorModal
                 message={errorMsg}
                 onClose={() => setErrorMsg("")}
@@ -105,9 +120,12 @@ export default function RegisterForm({ setIsRegister }: Props) {
                     setErrors(prev => ({ ...prev, firstName: undefined }));
                 }}
             />
-            {errors.firstName &&
-                <span className="text-danger small mb-2 d-block">{errors.firstName}</span>
-            }
+
+            {errors.firstName && (
+                <span className="text-danger small mb-2 d-block">
+                    {errors.firstName}
+                </span>
+            )}
 
             <input
                 ref={lastNameRef}
@@ -120,9 +138,12 @@ export default function RegisterForm({ setIsRegister }: Props) {
                     setErrors(prev => ({ ...prev, lastName: undefined }));
                 }}
             />
-            {errors.lastName &&
-                <span className="text-danger small mb-2 d-block">{errors.lastName}</span>
-            }
+
+            {errors.lastName && (
+                <span className="text-danger small mb-2 d-block">
+                    {errors.lastName}
+                </span>
+            )}
 
             <input
                 ref={emailRef}
@@ -135,9 +156,12 @@ export default function RegisterForm({ setIsRegister }: Props) {
                     setErrors(prev => ({ ...prev, emailId: undefined }));
                 }}
             />
-            {errors.emailId &&
-                <span className="text-danger small mb-2 d-block">{errors.emailId}</span>
-            }
+
+            {errors.emailId && (
+                <span className="text-danger small mb-2 d-block">
+                    {errors.emailId}
+                </span>
+            )}
 
             <input
                 ref={mobileRef}
@@ -150,26 +174,13 @@ export default function RegisterForm({ setIsRegister }: Props) {
                     setErrors(prev => ({ ...prev, mobile: undefined }));
                 }}
             />
-            {errors.mobile &&
-                <span className="text-danger small mb-2 d-block">{errors.mobile}</span>
-            }
 
-            <input
-                ref={usernameRef}
-                type="text"
-                placeholder="Username"
-                className={`form-control mb-1 ${errors.username ? "is-invalid" : ""}`}
-                value={username}
-                onChange={(e) => {
-                    setUsername(e.target.value);
-                    setErrors(prev => ({ ...prev, username: undefined }));
-                }}
-            />
-            {errors.username &&
-                <span className="text-danger small mb-2 d-block">{errors.username}</span>
-            }
+            {errors.mobile && (
+                <span className="text-danger small mb-2 d-block">
+                    {errors.mobile}
+                </span>
+            )}
 
-            
             <div className="password-box mb-1">
                 <input
                     ref={passwordRef}
@@ -182,18 +193,29 @@ export default function RegisterForm({ setIsRegister }: Props) {
                         setErrors(prev => ({ ...prev, password: undefined }));
                     }}
                 />
+
                 {password && (
                     <span
                         className="eye-icon"
                         onClick={() => setShowPassword(!showPassword)}
                     >
-                        <i className={showPassword ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"} />
+                        <i
+                            className={
+                                showPassword
+                                    ? "bi bi-eye-slash-fill"
+                                    : "bi bi-eye-fill"
+                            }
+                        />
                     </span>
                 )}
             </div>
-            {errors.password &&
-                <span className="text-danger small mb-2 d-block">{errors.password}</span>
-            }
+
+            {errors.password && (
+                <span className="text-danger small mb-2 d-block">
+                    {errors.password}
+                </span>
+            )}
+
             <div className="password-box mb-1">
                 <input
                     ref={confirmPasswordRef}
@@ -206,35 +228,57 @@ export default function RegisterForm({ setIsRegister }: Props) {
                         setErrors(prev => ({ ...prev, confirmPassword: undefined }));
                     }}
                 />
+
                 {confirmPassword && (
                     <span
                         className="eye-icon"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
-                        <i className={showConfirmPassword ? "bi bi-eye-slash-fill" : "bi bi-eye-fill"} />
+                        <i
+                            className={
+                                showConfirmPassword
+                                    ? "bi bi-eye-slash-fill"
+                                    : "bi bi-eye-fill"
+                            }
+                        />
                     </span>
                 )}
             </div>
-            {errors.confirmPassword &&
-                <span className="text-danger small mb-2 d-block">{errors.confirmPassword}</span>
-            }
+
+            {errors.confirmPassword && (
+                <span className="text-danger small mb-2 d-block">
+                    {errors.confirmPassword}
+                </span>
+            )}
 
             <button
+                type="button"
                 className="btn btn-success w-100 mt-3"
                 onClick={handleRegister}
                 disabled={loading}
             >
-                {loading ? <Loader text="Registering..." /> : "Register"}
+                {loading ? (
+                    <>
+                        <span
+                            className="spinner-border spinner-border-sm me-2"
+                            role="status"
+                            aria-hidden="true"
+                        ></span>
+                        Registering...
+                    </>
+                ) : (
+                    "Register"
+                )}
             </button>
 
             <button
+                type="button"
                 className="btn btn-danger w-100 mt-2"
                 onClick={() => setIsRegister(false)}
                 disabled={loading}
             >
                 Cancel
             </button>
-
         </>
     );
 }
