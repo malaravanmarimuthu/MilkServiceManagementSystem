@@ -1,10 +1,12 @@
 ﻿using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Models.Dto;
+using Models.Request;
 
 namespace Services
 {
-    public class EmployeeService(IRepositary<Employee> appUserRespository,
+    public class EmployeeService(
+        IRepositary<Employee> appUserRespository,
         ILogger<EmployeeService> logger) : IEmployeeService
     {
         private readonly string _Name = nameof(EmployeeService);
@@ -18,13 +20,15 @@ namespace Services
                 _logger.LogInformation($"Started -> request {req.ToJson()}");
 
                 var existingUser = await _appUserRespository
-               .FindByCondition(x =>
-                              x.EmailId == req.EmailId ||
-                              x.Mobile == req.Mobile)
+                    .FindByCondition(x =>
+                        x.EmailId == req.EmailId ||
+                        x.Mobile == req.Mobile)
+                    .FirstOrDefaultAsync();
                .FirstOrDefaultAsync();
 
                 if (existingUser != null)
-                {
+                    if (existingUser.Username == req.Username)
+                        throw new Exception("Username already taken");
 
                     if (existingUser.EmailId == req.EmailId)
                         throw new Exception("Email already registered");
@@ -63,19 +67,25 @@ namespace Services
         public async ValueTask<EmployeeDto> IsValidAppUserAsync(LoginDto req)
         {
             try
-            {
-                _logger.LogInformation($"Started -> request {req.ToJson()}");
+                var applicationuser = await _appUserRespository
+                    .FindByCondition(x =>
+                        x.Mobile == req.Mobile &&
+                        x.Status != Common.Enums.EmployeeStatus.Deleted)
+                    .FirstOrDefaultAsync();
 
-                var applicationuser = await _appUserRespository.FindByCondition(x => x.Status != null && x.Status != Common.Enums.EmployeeStatus.Deleted).FirstOrDefaultAsync();
+                _logger.LogInformation($"Started -> request {req.ToJson()}");
+                var applicationuser = await _appUserRespository.FindByCondition(x => x.Username == req.Username && x.Status != null && x.Status != Common.Enums.EmployeeStatus.Deleted).FirstOrDefaultAsync();
                 var appuserDto = new EmployeeDto();
-                if (applicationuser != null)
+
+                           applicationuser.Password.Equals(req.Password, StringComparison.Ordinal))
                 {
                     if (!string.IsNullOrEmpty(applicationuser.Password) &&
-                           applicationuser.Password.Equals(req.Password, StringComparison.Ordinal))
+                        applicationuser.Password.Equals(req.Password, StringComparison.Ordinal))
                     {
                         appuserDto = applicationuser.ToMap<Employee, EmployeeDto>();
                     }
                 }
+
                 return appuserDto;
             }
             catch (Exception ex)
@@ -96,15 +106,10 @@ namespace Services
                 _logger.LogInformation($"Started -> request {userId} {orgId}");
 
                 var applicationuser = await _appUserRespository
-                    .FindByCondition(x => x.ID == userId )
+                    .FindByCondition(x => x.ID == userId)
                     .FirstOrDefaultAsync();
 
-                if (applicationuser != null)
-                {
-                    return true;
-                }
-
-                return false;
+                return applicationuser != null;
             }
             catch (Exception ex)
             {
@@ -177,11 +182,10 @@ namespace Services
                     return false;
 
                 emp.FirstName = dto.FirstName;
+
                 emp.LastName = dto.LastName;
                 emp.EmailId = dto.EmailId;
                 emp.Mobile = dto.Mobile;
-                emp.LocationID = dto.LocationID;
-                emp.RoleID = dto.RoleID;
                 await _appUserRespository.UpdateAsync(emp);
 
                 return true;
