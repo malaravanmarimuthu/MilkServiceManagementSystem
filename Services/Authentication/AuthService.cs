@@ -164,14 +164,14 @@ namespace Services.Authentication
                 if (user == null || user.ID == 0)
                 {
                     _logger.LogError("{Name} - Error occurred, Exception: {Exp}", _Name, "Invalid credentials");
-                    throw new InvalidDataException("Invalid username or password");
+                    throw new InvalidDataException("Invalid mobile or password");
                 }
 
                 var claims = new List<Claim>
 {
     new Claim("userid", user.ID.ToString()),
     new Claim("orgid", "0"),
-    new Claim("username", user.Username ?? string.Empty),
+    new Claim("mobile", user.Mobile ?? string.Empty),
     new Claim("firstname", user.FirstName ?? string.Empty),
     new Claim("client", "web"),
     new Claim("type", "user")

@@ -3,9 +3,8 @@ export interface RegisterErrors {
     lastName?: string;
     emailId?: string;
     mobile?: string;
-    username?: string;
     password?: string;
-    confirmPassword?: string; 
+    confirmPassword?: string;
 }
 
 export interface RegisterFormData {
@@ -13,9 +12,8 @@ export interface RegisterFormData {
     lastName: string;
     emailId: string;
     mobile: string;
-    username: string;
     password: string;
-    confirmPassword: string; 
+    confirmPassword: string;
 }
 
 export const validateRegisterForm = (data: RegisterFormData): RegisterErrors => {
@@ -37,9 +35,6 @@ export const validateRegisterForm = (data: RegisterFormData): RegisterErrors => 
     else if (!/^\d{10}$/.test(data.mobile))
         errors.mobile = "Mobile must be 10 digits";
 
-    if (!data.username)
-        errors.username = "Username is required";
-
     if (!data.password)
         errors.password = "Password is required";
     else if (data.password.length < 6)
@@ -54,20 +49,22 @@ export const validateRegisterForm = (data: RegisterFormData): RegisterErrors => 
 };
 
 export interface LoginErrors {
-    username?: string;
+    mobile?: string;
     password?: string;
 }
 
 export interface LoginFormData {
-    username: string;
+    mobile: string;
     password: string;
 }
 
 export const validateLoginForm = (data: LoginFormData): LoginErrors => {
     const errors: LoginErrors = {};
 
-    if (!data.username)
-        errors.username = "Username is required";
+    if (!data.mobile)
+        errors.mobile = "Mobile is required";
+    else if (!/^\d{10}$/.test(data.mobile))
+        errors.mobile = "Mobile must be 10 digits";
 
     if (!data.password)
         errors.password = "Password is required";
