@@ -19,15 +19,12 @@ namespace Services
 
                 var existingUser = await _appUserRespository
                .FindByCondition(x =>
-                              x.Username == req.Username ||
                               x.EmailId == req.EmailId ||
                               x.Mobile == req.Mobile)
                .FirstOrDefaultAsync();
 
                 if (existingUser != null)
                 {
-                    if (existingUser.Username == req.Username)
-                        throw new Exception("Username already taken");
 
                     if (existingUser.EmailId == req.EmailId)
                         throw new Exception("Email already registered");
@@ -40,10 +37,11 @@ namespace Services
                 {
                     FirstName = req.FirstName,
                     LastName = req.LastName,
-                    Username = req.Username,
                     Password = req.Password,
                     EmailId = req.EmailId,
                     Mobile = req.Mobile,
+                    LocationID = req.LocationID,
+                    RoleID = req.RoleID,
                     CreatedDate = DateTime.UtcNow,
                 };
 
@@ -68,7 +66,7 @@ namespace Services
             {
                 _logger.LogInformation($"Started -> request {req.ToJson()}");
 
-                var applicationuser = await _appUserRespository.FindByCondition(x => x.Username == req.Username && x.Status != null && x.Status != Common.Enums.EmployeeStatus.Deleted).FirstOrDefaultAsync();
+                var applicationuser = await _appUserRespository.FindByCondition(x => x.Status != null && x.Status != Common.Enums.EmployeeStatus.Deleted).FirstOrDefaultAsync();
                 var appuserDto = new EmployeeDto();
                 if (applicationuser != null)
                 {
@@ -182,6 +180,8 @@ namespace Services
                 emp.LastName = dto.LastName;
                 emp.EmailId = dto.EmailId;
                 emp.Mobile = dto.Mobile;
+                emp.LocationID = dto.LocationID;
+                emp.RoleID = dto.RoleID;
                 await _appUserRespository.UpdateAsync(emp);
 
                 return true;
