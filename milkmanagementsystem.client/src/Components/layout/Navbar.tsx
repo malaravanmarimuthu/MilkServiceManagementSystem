@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import ConfirmModal from "../Common/ConfirmModal";
 
 function Navbar() {
 
     const [showLogoutModal, setShowLogoutModal] = useState(false);
-    const location = useLocation();
     const token = localStorage.getItem("token");
     const isLoggedIn = !!token;
 
