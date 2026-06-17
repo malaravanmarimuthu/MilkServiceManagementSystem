@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
@@ -20,7 +19,6 @@ import { useNavigate } from "react-router-dom";
 const ITEMS_PER_PAGE = 5;
 
 const emptyForm = {
-    id: 0,
     firstName: "",
     lastName: "",
     emailId: "",
@@ -28,7 +26,6 @@ const emptyForm = {
     password: "",
     locationID: 0,
     roleID: 1,
-    username: "",
 };
 
 const Employee: React.FC = () => {
@@ -81,7 +78,6 @@ const Employee: React.FC = () => {
             setLocations(arr);
         } catch (err) {
             console.error(err);
-            setError("Failed to load locations");
         }
     };
 
@@ -96,7 +92,7 @@ const Employee: React.FC = () => {
 
     const filteredEmployees = employees.filter((e: any) => {
         const full =
-            `${e.firstName ?? e.FirstName ?? ""} ${e.lastName ?? e.LastName ?? ""} ${e.emailId ?? e.EmailId ?? ""}`.toLowerCase();
+            `${e.firstName ?? e.FirstName ?? ""} ${e.lastName ?? e.LastName ?? ""} ${e.emailId ?? e.EmailId ?? ""} ${e.mobile ?? e.Mobile ?? ""}`.toLowerCase();
         return full.includes(search.toLowerCase());
     });
 
@@ -116,7 +112,6 @@ const Employee: React.FC = () => {
     const openEditModal = (emp: any) => {
         setEditingEmployee(emp);
         setFormData({
-            id: emp.id ?? emp.Id ?? 0,
             firstName: emp.firstName ?? emp.FirstName ?? "",
             lastName: emp.lastName ?? emp.LastName ?? "",
             emailId: emp.emailId ?? emp.EmailId ?? "",
@@ -124,7 +119,6 @@ const Employee: React.FC = () => {
             password: "",
             locationID: emp.locationID ?? emp.LocationID ?? 0,
             roleID: emp.roleID ?? emp.RoleID ?? 1,
-            username: emp.username ?? emp.Username ?? "",
         });
         setFormError("");
         setShowModal(true);
@@ -137,14 +131,15 @@ const Employee: React.FC = () => {
         const { name, value } = e.target;
         setFormData({
             ...formData,
-            [name]: name === "locationID" || name === "roleID" ? Number(value) : value,
+            [name]:
+                name === "locationID" || name === "roleID"
+                    ? Number(value)
+                    : value,
         });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log(formData);
-
         if (saving) return;
 
         if (formData.locationID === 0) {
@@ -155,30 +150,24 @@ const Employee: React.FC = () => {
         setSaving(true);
         try {
             if (editingEmployee) {
-                const id = editingEmployee.id ?? editingEmployee.Id;
-                const payload: any = {
-                    ...formData,
-                    id,
-                    username: editingEmployee.username ?? editingEmployee.Username ?? "",
-                };
-                if (!formData.password) delete payload.password;
-                await updateEmployee(id, payload);
+                const id =
+                    editingEmployee.id ??
+                    editingEmployee.ID ??
+                    editingEmployee.Id;
+                await updateEmployee(id, formData);
                 setSuccessMessage("Employee updated successfully!");
             } else {
-                // Auto-generate username from firstName + lastName
-                const username =
-                    `${formData.firstName.trim().toLowerCase()}.${formData.lastName.trim().toLowerCase()}`.replace(
-                        /\s+/g,
-                        ""
-                    );
-                await addEmployee({ ...formData, id: 0, username });
+                await addEmployee(formData);
                 setSuccessMessage("Employee created successfully!");
             }
             setShowModal(false);
             fetchEmployees();
-        } catch (err) {
-            
-            setError("Failed to save employee");
+        } catch (err: any) {
+            const msg =
+                err?.response?.data?.message ??
+                err?.response?.data ??
+                "Failed to save employee";
+            setError(typeof msg === "string" ? msg : "Failed to save employee");
         } finally {
             setSaving(false);
         }
@@ -215,7 +204,6 @@ const Employee: React.FC = () => {
             />
 
             <div className="container mt-4">
-                {/* Header */}
                 <div className="d-flex justify-content-between align-items-center mb-3">
                     <h2>Employee Management</h2>
                     <div>
@@ -234,7 +222,6 @@ const Employee: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Search */}
                 <div className="d-flex gap-2 mb-3">
                     <input
                         type="text"
@@ -249,7 +236,6 @@ const Employee: React.FC = () => {
                     />
                 </div>
 
-                {/* Loader OR Table */}
                 {loading ? (
                     <Loader />
                 ) : (
@@ -276,47 +262,27 @@ const Employee: React.FC = () => {
                                     paginatedEmployees.map(
                                         (emp: any, index: number) => {
                                             const id =
-                                                emp.id ?? emp.Id ?? index;
+                                                emp.id ??
+                                                emp.ID ??
+                                                emp.Id ??
+                                                index;
                                             return (
                                                 <tr key={`emp-${id}-${index}`}>
-                                                    <td>
-                                                        {emp.firstName ??
-                                                            emp.FirstName}
-                                                    </td>
-                                                    <td>
-                                                        {emp.lastName ??
-                                                            emp.LastName}
-                                                    </td>
-                                                    <td>
-                                                        {emp.emailId ??
-                                                            emp.EmailId}
-                                                    </td>
-                                                    <td>
-                                                        {emp.mobile ??
-                                                            emp.Mobile}
-                                                    </td>
-                                                    <td>
-                                                        {getLocationName(
-                                                            emp.locationID ??
-                                                            emp.LocationID
-                                                        )}
-                                                    </td>
+                                                    <td>{emp.firstName ?? emp.FirstName}</td>
+                                                    <td>{emp.lastName ?? emp.LastName}</td>
+                                                    <td>{emp.emailId ?? emp.EmailId}</td>
+                                                    <td>{emp.mobile ?? emp.Mobile}</td>
+                                                    <td>{getLocationName(emp.locationID ?? emp.LocationID)}</td>
                                                     <td>
                                                         <button
                                                             className="btn btn-sm btn-warning me-2"
-                                                            onClick={() =>
-                                                                openEditModal(
-                                                                    emp
-                                                                )
-                                                            }
+                                                            onClick={() => openEditModal(emp)}
                                                         >
                                                             Edit
                                                         </button>
                                                         <button
                                                             className="btn btn-sm btn-danger"
-                                                            onClick={() =>
-                                                                confirmDelete(id)
-                                                            }
+                                                            onClick={() => confirmDelete(id)}
                                                         >
                                                             Delete
                                                         </button>
@@ -335,10 +301,7 @@ const Employee: React.FC = () => {
                                 totalPages={totalPages}
                                 onPageChange={(page) => {
                                     setCurrentPage(page);
-                                    window.scrollTo({
-                                        top: 0,
-                                        behavior: "smooth",
-                                    });
+                                    window.scrollTo({ top: 0, behavior: "smooth" });
                                 }}
                             />
                         )}
@@ -346,7 +309,6 @@ const Employee: React.FC = () => {
                 )}
             </div>
 
-            {/* Add / Edit Modal */}
             {showModal && (
                 <>
                     <div
@@ -362,18 +324,14 @@ const Employee: React.FC = () => {
                             <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                                 <div className="modal-header border-0 px-4 pt-4 pb-0">
                                     <h5 className="modal-title fw-bold">
-                                        {editingEmployee
-                                            ? "Edit Employee"
-                                            : "Add Employee"}
+                                        {editingEmployee ? "Edit Employee" : "Add Employee"}
                                     </h5>
                                 </div>
                                 <div className="modal-body px-4">
                                     <form onSubmit={handleSubmit}>
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
-                                                <label className="form-label">
-                                                    First Name
-                                                </label>
+                                                <label className="form-label">First Name</label>
                                                 <input
                                                     type="text"
                                                     name="firstName"
@@ -384,22 +342,17 @@ const Employee: React.FC = () => {
                                                 />
                                             </div>
                                             <div className="col-md-6 mb-3">
-                                                <label className="form-label">
-                                                    Last Name
-                                                </label>
+                                                <label className="form-label">Last Name</label>
                                                 <input
                                                     type="text"
                                                     name="lastName"
                                                     className="form-control"
                                                     value={formData.lastName}
                                                     onChange={handleChange}
-                                                    required
                                                 />
                                             </div>
                                             <div className="col-md-6 mb-3">
-                                                <label className="form-label">
-                                                    Mobile
-                                                </label>
+                                                <label className="form-label">Mobile</label>
                                                 <input
                                                     type="text"
                                                     name="mobile"
@@ -411,40 +364,30 @@ const Employee: React.FC = () => {
                                                 />
                                             </div>
                                             <div className="col-md-6 mb-3">
-                                                <label className="form-label">
-                                                    Email
-                                                </label>
+                                                <label className="form-label">Email</label>
                                                 <input
                                                     type="email"
                                                     name="emailId"
                                                     className="form-control"
                                                     value={formData.emailId}
                                                     onChange={handleChange}
-                                                    required
                                                 />
                                             </div>
+                                            {!editingEmployee && (
+                                                <div className="col-md-6 mb-3">
+                                                    <label className="form-label">Password</label>
+                                                    <input
+                                                        type="password"
+                                                        name="password"
+                                                        className="form-control"
+                                                        value={formData.password}
+                                                        onChange={handleChange}
+                                                        required
+                                                    />
+                                                </div>
+                                            )}
                                             <div className="col-md-6 mb-3">
-                                                <label className="form-label">
-                                                    Password
-                                                </label>
-                                                <input
-                                                    type="password"
-                                                    name="password"
-                                                    className="form-control"
-                                                    value={formData.password}
-                                                    onChange={handleChange}
-                                                    required={!editingEmployee}
-                                                    placeholder={
-                                                        editingEmployee
-                                                            ? "Leave blank to keep current"
-                                                            : ""
-                                                    }
-                                                />
-                                            </div>
-                                            <div className="col-md-6 mb-3">
-                                                <label className="form-label">
-                                                    Location
-                                                </label>
+                                                <label className="form-label">Location</label>
                                                 <select
                                                     name="locationID"
                                                     className="form-select"
@@ -456,19 +399,10 @@ const Employee: React.FC = () => {
                                                         -- Select Location --
                                                     </option>
                                                     {locations.map((loc) => {
-                                                        const locId =
-                                                            loc.locationID ??
-                                                            (loc as any)
-                                                                .LocationID;
-                                                        const locName =
-                                                            loc.locationName ??
-                                                            (loc as any)
-                                                                .LocationName;
+                                                        const locId = loc.locationID ?? (loc as any).LocationID;
+                                                        const locName = loc.locationName ?? (loc as any).LocationName;
                                                         return (
-                                                            <option
-                                                                key={locId}
-                                                                value={locId}
-                                                            >
+                                                            <option key={locId} value={locId}>
                                                                 {locName}
                                                             </option>
                                                         );
@@ -478,18 +412,14 @@ const Employee: React.FC = () => {
                                         </div>
 
                                         {formError && (
-                                            <div className="text-danger mb-2">
-                                                {formError}
-                                            </div>
+                                            <div className="text-danger mb-2">{formError}</div>
                                         )}
 
                                         <div className="modal-footer border-0 justify-content-center pb-4 px-0">
                                             <button
                                                 type="button"
                                                 className="btn btn-secondary rounded-pill px-4"
-                                                onClick={() =>
-                                                    setShowModal(false)
-                                                }
+                                                onClick={() => setShowModal(false)}
                                             >
                                                 Cancel
                                             </button>
@@ -501,9 +431,7 @@ const Employee: React.FC = () => {
                                                 {saving ? (
                                                     <>
                                                         <span className="spinner-border spinner-border-sm me-2" />
-                                                        {editingEmployee
-                                                            ? "Updating..."
-                                                            : "Saving..."}
+                                                        {editingEmployee ? "Updating..." : "Saving..."}
                                                     </>
                                                 ) : editingEmployee ? (
                                                     "Update"
@@ -520,7 +448,6 @@ const Employee: React.FC = () => {
                 </>
             )}
 
-            {/* Confirm Delete */}
             {showConfirm && (
                 <ConfirmModal
                     title="Confirm Delete"

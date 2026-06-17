@@ -24,12 +24,9 @@ namespace Services
                         x.EmailId == req.EmailId ||
                         x.Mobile == req.Mobile)
                     .FirstOrDefaultAsync();
-               .FirstOrDefaultAsync();
 
                 if (existingUser != null)
-                    if (existingUser.Username == req.Username)
-                        throw new Exception("Username already taken");
-
+                {
                     if (existingUser.EmailId == req.EmailId)
                         throw new Exception("Email already registered");
 
@@ -44,8 +41,6 @@ namespace Services
                     Password = req.Password,
                     EmailId = req.EmailId,
                     Mobile = req.Mobile,
-                    LocationID = req.LocationID,
-                    RoleID = req.RoleID,
                     CreatedDate = DateTime.UtcNow,
                 };
 
@@ -67,17 +62,18 @@ namespace Services
         public async ValueTask<EmployeeDto> IsValidAppUserAsync(LoginDto req)
         {
             try
+            {
+                _logger.LogInformation($"Started -> request {req.ToJson()}");
+
                 var applicationuser = await _appUserRespository
                     .FindByCondition(x =>
                         x.Mobile == req.Mobile &&
                         x.Status != Common.Enums.EmployeeStatus.Deleted)
                     .FirstOrDefaultAsync();
 
-                _logger.LogInformation($"Started -> request {req.ToJson()}");
-                var applicationuser = await _appUserRespository.FindByCondition(x => x.Username == req.Username && x.Status != null && x.Status != Common.Enums.EmployeeStatus.Deleted).FirstOrDefaultAsync();
                 var appuserDto = new EmployeeDto();
 
-                           applicationuser.Password.Equals(req.Password, StringComparison.Ordinal))
+                if (applicationuser != null)
                 {
                     if (!string.IsNullOrEmpty(applicationuser.Password) &&
                         applicationuser.Password.Equals(req.Password, StringComparison.Ordinal))
@@ -182,10 +178,10 @@ namespace Services
                     return false;
 
                 emp.FirstName = dto.FirstName;
-
                 emp.LastName = dto.LastName;
                 emp.EmailId = dto.EmailId;
                 emp.Mobile = dto.Mobile;
+
                 await _appUserRespository.UpdateAsync(emp);
 
                 return true;
