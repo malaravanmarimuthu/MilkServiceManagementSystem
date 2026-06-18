@@ -17,7 +17,7 @@ import Loader from "../Components/Common/Loader";
 import Pagination from "../Components/Common/Pagination";
 import { useNavigate } from "react-router-dom";
 
-const ITEMS_PER_PAGE = 5;
+const ITEMS_PER_PAGE = 10;
 
 const emptyForm = {
     firstName: "",
@@ -83,15 +83,6 @@ const Employee: React.FC = () => {
             console.error(err);
         }
     };
-
-    //const getLocationName = (locationID: number) => {
-    //    const loc = locations.find(
-    //        (l) => (l.locationID ?? (l as any).LocationID) === locationID
-    //    );
-    //    return loc
-    //        ? loc.locationName ?? (loc as any).LocationName
-    //        : locationID;
-    //};
 
     const filteredEmployees = employees.filter((e: any) => {
         const full =
