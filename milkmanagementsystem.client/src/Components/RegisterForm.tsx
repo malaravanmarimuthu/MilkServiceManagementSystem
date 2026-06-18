@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/immutability */
 import { useState, useRef } from "react";
 import axiosInstance from "../Interceptors/axiosInstance";
 import config from "../config";

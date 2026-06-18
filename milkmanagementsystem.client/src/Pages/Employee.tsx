@@ -84,14 +84,14 @@ const Employee: React.FC = () => {
         }
     };
 
-    const getLocationName = (locationID: number) => {
-        const loc = locations.find(
-            (l) => (l.locationID ?? (l as any).LocationID) === locationID
-        );
-        return loc
-            ? loc.locationName ?? (loc as any).LocationName
-            : locationID;
-    };
+    //const getLocationName = (locationID: number) => {
+    //    const loc = locations.find(
+    //        (l) => (l.locationID ?? (l as any).LocationID) === locationID
+    //    );
+    //    return loc
+    //        ? loc.locationName ?? (loc as any).LocationName
+    //        : locationID;
+    //};
 
     const filteredEmployees = employees.filter((e: any) => {
         const full =
