@@ -102,11 +102,11 @@ function Navbar() {
                                             </NavLink>
                                         </li>
 
-                                <li className="nav-item">
-                                    <NavLink to="/reports" className="nav-link">
-                                        Reports
-                                    </NavLink>
-                                </li>
+                                        <li className="nav-item">
+                                            <NavLink to="/Subscription" className="nav-link">
+                                                Subscription
+                                            </NavLink>
+                                        </li>
 
                                 <li className="nav-item ms-3">
                                     <button
