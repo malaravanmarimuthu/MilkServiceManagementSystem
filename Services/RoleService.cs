@@ -46,7 +46,7 @@ namespace Services
                     .FindByCondition(x => x.RoleID == id)
                     .FirstOrDefaultAsync();
 
-                if (role == null) return null; // ← null return பண்ணுங்க
+                if (role == null) return null;
 
                 return new RoleDto
                 {

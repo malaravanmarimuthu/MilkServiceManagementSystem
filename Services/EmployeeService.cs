@@ -7,11 +7,13 @@ namespace Services
 {
     public class EmployeeService(
         IRepositary<Employee> appUserRespository,
+        IRepositary<Role> roleRepository,
         ILogger<EmployeeService> logger) : IEmployeeService
     {
         private readonly string _Name = nameof(EmployeeService);
         private readonly ILogger<EmployeeService> _logger = logger;
         private readonly IRepositary<Employee> _appUserRespository = appUserRespository;
+        private readonly IRepositary<Role> _roleRepository = roleRepository;
 
         public async ValueTask<bool> CreateAppUserAsync(RegisterDto req)
         {
@@ -33,6 +35,14 @@ namespace Services
                     if (existingUser.Mobile == req.Mobile)
                         throw new Exception("Mobile number already registered");
                 }
+                var customerRole = await _roleRepository
+                    .FindByCondition(x => x.RoleName == "Customer")
+                    .FirstOrDefaultAsync();
+
+                if (customerRole == null)
+                {
+                    throw new Exception("Customer role not found");
+                }
 
                 var appUserEntity = new Employee
                 {
@@ -41,6 +51,8 @@ namespace Services
                     Password = req.Password,
                     EmailId = req.EmailId,
                     Mobile = req.Mobile,
+                    LocationID = req.LocationID,
+                    RoleID = customerRole.RoleID,
                     CreatedDate = DateTime.UtcNow,
                 };
 
@@ -118,26 +130,35 @@ namespace Services
             }
         }
 
-        public async ValueTask<List<Employee>> GetALL(string? role)
+        public async ValueTask<List<EmployeeDto>> GetALL(string? role)
         {
             try
             {
-                _logger.LogInformation($"Started -> request Role : {role}");
-
                 var emp = await _appUserRespository
                     .FindAll()
+                    .Include(x => x.Location)
+                    .Include(x => x.Role)
                     .ToListAsync();
 
-                return emp;
+                var result = emp.Select(x => new EmployeeDto
+                {
+                    ID = x.ID,
+                    FirstName = x.FirstName,
+                    LastName = x.LastName,
+                    EmailId = x.EmailId,
+                    Mobile = x.Mobile,
+                    LocationID = x.LocationID,
+                    LocationName = x.Location != null ? x.Location.LocationName : "",
+                    RoleID = x.RoleID,
+                    RoleName = x.Role != null ? x.Role.RoleName : ""
+                }).ToList();
+
+                return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error -> request {ex.Message}");
+                Console.WriteLine(ex.ToString());
                 throw;
-            }
-            finally
-            {
-                _logger.LogInformation($"Completed -> request Role : {role}");
             }
         }
 

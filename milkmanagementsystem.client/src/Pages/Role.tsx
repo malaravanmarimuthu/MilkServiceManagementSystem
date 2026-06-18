@@ -182,7 +182,7 @@ const Role: React.FC = () => {
                     <h2>Role Management</h2>
                     <div>
                         <button
-                            className="btn btn-secondary me-2"
+                            className="btn btn-danger me-2"
                             onClick={() => navigate("/dashboard")}
                         >
                             Cancel
@@ -191,7 +191,7 @@ const Role: React.FC = () => {
                             className="btn btn-primary"
                             onClick={openAddModal}
                         >
-                            + Add Role
+                             Add Role
                         </button>
                     </div>
                 </div>
