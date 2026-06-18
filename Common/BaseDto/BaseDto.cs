@@ -18,5 +18,3 @@ public abstract class BaseDto :  BaseExtendDto , IBaseDto
     public virtual string? RegionCode { get; set; }
 
 }
-
-

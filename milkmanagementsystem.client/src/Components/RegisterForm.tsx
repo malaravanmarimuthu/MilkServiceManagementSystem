@@ -1,13 +1,12 @@
 import { useState, useRef } from "react";
-
 import axiosInstance from "../Interceptors/axiosInstance";
 import config from "../config";
-
 import { validateRegisterForm } from "../Helpers/Validation";
 import type { RegisterErrors } from "../Helpers/Validation";
-
 import { handleApiError } from "../Helpers/errorHandler";
 import ErrorModal from "./Common/ErrorModal";
+import { getLocations } from "../Services/LocationService";
+import { useEffect } from "react";
 
 
 type Props = {
@@ -20,6 +19,8 @@ export default function RegisterForm({ setIsRegister }: Props) {
     const [lastName, setLastName] = useState("");
     const [emailId, setEmailId] = useState("");
     const [mobile, setMobile] = useState("");
+    const [locationID, setLocationID] = useState(0);
+    const [locations, setLocations] = useState<any[]>([]);
 
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -40,6 +41,19 @@ export default function RegisterForm({ setIsRegister }: Props) {
     const mobileRef = useRef<HTMLInputElement>(null);
     const passwordRef = useRef<HTMLInputElement>(null);
     const confirmPasswordRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        fetchLocations();
+    }, []);
+
+    const fetchLocations = async () => {
+        try {
+            const data = await getLocations();
+            setLocations(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const handleRegister = async () => {
 
@@ -63,6 +77,10 @@ export default function RegisterForm({ setIsRegister }: Props) {
             else if (validationErrors.confirmPassword) confirmPasswordRef.current?.focus();
             return;
         }
+        if (locationID === 0) {
+            setErrorMsg("Please select a location");
+            return;
+        }
 
         setLoading(true);
 
@@ -73,6 +91,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 password,
                 emailId,
                 mobile,
+                locationID,
             });
 
             setMessage("Registration Successful");
@@ -84,6 +103,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
             setMobile("");
             setPassword("");
             setConfirmPassword("");
+            setLocationID(0);
 
             setTimeout(() => setIsRegister(false), 1500);
 
@@ -180,6 +200,24 @@ export default function RegisterForm({ setIsRegister }: Props) {
                     {errors.mobile}
                 </span>
             )}
+
+            <select
+                className="form-control mb-3"
+                value={locationID}
+                onChange={(e) => setLocationID(Number(e.target.value))}
+            >
+                <option value={0}>Select Location</option>
+
+                {locations.map((loc: any) => (
+                    <option
+                        key={loc.locationID}
+                        value={loc.locationID}
+                    >
+                        {loc.locationName}
+                    </option>
+                ))}
+            </select>
+
 
             <div className="password-box mb-1">
                 <input

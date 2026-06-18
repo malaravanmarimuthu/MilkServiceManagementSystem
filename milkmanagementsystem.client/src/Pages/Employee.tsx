@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
@@ -59,6 +60,8 @@ const Employee: React.FC = () => {
             const arr = Array.isArray(data)
                 ? data
                 : data?.$values ?? data?.data ?? [];
+
+            console.log(res.data);
             setEmployees([...arr].reverse());
             setCurrentPage(1);
         } catch (err) {
@@ -208,7 +211,7 @@ const Employee: React.FC = () => {
                     <h2>Employee Management</h2>
                     <div>
                         <button
-                            className="btn btn-secondary me-2"
+                            className="btn btn-danger me-2"
                             onClick={() => navigate("/dashboard")}
                         >
                             Cancel
@@ -217,7 +220,7 @@ const Employee: React.FC = () => {
                             className="btn btn-primary"
                             onClick={openAddModal}
                         >
-                            + Add Employee
+                             Add Employee
                         </button>
                     </div>
                 </div>
@@ -248,6 +251,7 @@ const Employee: React.FC = () => {
                                     <th>Email</th>
                                     <th>Mobile</th>
                                     <th>Location</th>
+                                    <th>Role</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -272,7 +276,8 @@ const Employee: React.FC = () => {
                                                     <td>{emp.lastName ?? emp.LastName}</td>
                                                     <td>{emp.emailId ?? emp.EmailId}</td>
                                                     <td>{emp.mobile ?? emp.Mobile}</td>
-                                                    <td>{getLocationName(emp.locationID ?? emp.LocationID)}</td>
+                                                    <td>{emp.locationName}</td>
+                                                    <td>{emp.roleName}</td>
                                                     <td>
                                                         <button
                                                             className="btn btn-sm btn-warning me-2"

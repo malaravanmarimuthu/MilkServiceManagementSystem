@@ -11,8 +11,12 @@ namespace Models.Dto
         public string? LastName { get; set; }
         public string? EmailId { get; set; }
         public string? Mobile { get; set; }
+
         public long LocationID { get; set; }
+        public string? LocationName { get; set; }
+
         public long RoleID { get; set; }
+        public string? RoleName { get; set; }
 
         public EmployeeStatus Status { get; set; } = EmployeeStatus.Available;
     }

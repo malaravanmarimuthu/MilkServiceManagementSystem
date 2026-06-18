@@ -38,4 +38,14 @@ export interface Employee {
     password: string;
     locationID: number;
     roleID: number;
+
+    location?: {
+        locationID: number;
+        locationName: string;
+    };
+
+    role?: {
+        roleID: number;
+        roleName: string;
+    };
 }

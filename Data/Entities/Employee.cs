@@ -8,7 +8,6 @@ namespace Data.Entities
 {
     public class Employee : BaseEntityModel
     {
-        [Key]
         public override long ID { get; set; }
 
         [Required]
@@ -28,8 +27,14 @@ namespace Data.Entities
         [Column(TypeName = "nvarchar(50)")]
         public string? Password { get; set; }
         public long LocationID { get; set; }
+
+        [ForeignKey("LocationID")]
+        public virtual Location Location { get; set; }
+
         public long RoleID {  get; set; }
 
+        [ForeignKey("RoleID")]
+        public virtual Role Role { get; set; }
         public EmployeeStatus Status { get; set; } = EmployeeStatus.Available;
        
     }

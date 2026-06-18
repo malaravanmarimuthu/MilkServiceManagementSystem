@@ -3,7 +3,7 @@ namespace Services.Contracts
 {
     public interface IEmployeeService
     {
-        ValueTask<List<Employee>> GetALL(string? role);
+        ValueTask<List<EmployeeDto>> GetALL(string? role);
         ValueTask<bool> CreateAppUserAsync(RegisterDto req);
         ValueTask<EmployeeDto> IsValidAppUserAsync(LoginDto req);
         ValueTask<bool> IsValidUserIdandOrgIdAsync(long userId,long orgId);
