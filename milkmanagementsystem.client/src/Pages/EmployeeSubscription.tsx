@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -10,14 +9,12 @@ import {
     type EmployeeSubscriptionType,
 } from "../Services/EmployeeSubscriptionService";
 
-import { getEmployees } from "../Services/EmployeeService";
 import { getSubscriptions } from "../Services/SubscriptionService";
 
 import { handleApiError } from "../Helpers/errorHandler";
-import { handleApiSuccess } from "../Helpers/successHandler";
-
 import ErrorModal from "../Components/Common/ErrorModal";
 import SuccessModal from "../Components/Common/SuccessModal";
+import { handleApiSuccess } from "../Helpers/successHandler";
 import Loader from "../Components/Common/Loader";
 import Pagination from "../Components/Common/Pagination";
 
@@ -29,7 +26,6 @@ type FormErrors = {
 
 function EmployeeSubscription() {
     const [employeeSubscriptions, setEmployeeSubscriptions] = useState<EmployeeSubscriptionType[]>([]);
-    const [employees, setEmployees] = useState<any[]>([]);
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
     const [errorMessage, setErrorMessage] = useState("");
@@ -55,7 +51,7 @@ function EmployeeSubscription() {
     const [formError, setFormError] = useState("");
     const [errors, setErrors] = useState<FormErrors>({});
 
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState<number>(1);
     const [searchTerm, setSearchTerm] = useState("");
 
     const recordsPerPage = 10;
@@ -63,8 +59,22 @@ function EmployeeSubscription() {
     const loadEmployeeSubscriptions = async () => {
         try {
             setLoading(true);
-            const data = await getEmployeeSubscriptions();
-            setEmployeeSubscriptions(Array.isArray(data) ? [...data].reverse() : []);
+
+            const data: any = await getEmployeeSubscriptions();
+
+            console.log("EmployeeSubscription API Response:", data);
+
+            const arr = Array.isArray(data)
+                ? data
+                : data?.$values
+                    ? data.$values
+                    : data?.data?.$values
+                        ? data.data.$values
+                        : data?.data
+                            ? data.data
+                            : [];
+
+            setEmployeeSubscriptions([...arr].reverse());
         } catch (error) {
             setErrorMessage(handleApiError(error));
         } finally {
@@ -72,25 +82,20 @@ function EmployeeSubscription() {
         }
     };
 
-    const loadEmployees = async () => {
-        try {
-            const res = await getEmployees();
-            const data: any = res.data;
-            const arr = Array.isArray(data)
-                ? data
-                : data?.$values ?? data?.data ?? [];
-            setEmployees(arr);
-        } catch {
-            setEmployees([]);
-        }
-    };
-
     const loadSubscriptions = async () => {
         try {
-            const data = await getSubscriptions();
+            const data: any = await getSubscriptions();
+
             const arr = Array.isArray(data)
                 ? data
-                : (data as any)?.$values ?? (data as any)?.data ?? [];
+                : data?.$values
+                    ? data.$values
+                    : data?.data?.$values
+                        ? data.data.$values
+                        : data?.data
+                            ? data.data
+                            : [];
+
             setSubscriptions(arr);
         } catch {
             setSubscriptions([]);
@@ -99,23 +104,15 @@ function EmployeeSubscription() {
 
     useEffect(() => {
         loadEmployeeSubscriptions();
-        loadEmployees();
         loadSubscriptions();
     }, []);
 
-    const getEmployeeName = (id: number) => {
-        const emp = employees.find((x) =>
-            (x.id ?? x.ID ?? x.employeeId ?? x.EmployeeId) === id
-        );
-
-        if (!emp) return id;
-
-        return `${emp.firstName ?? emp.FirstName ?? ""} ${emp.lastName ?? emp.LastName ?? ""}`.trim();
-    };
-
     const getSubscriptionName = (id: number) => {
         const sub = subscriptions.find((x) =>
-            (x.subscriptionID ?? x.subscriptionId ?? x.SubscriptionID ?? x.SubscriptionId) === id
+            (x.subscriptionID ??
+                x.subscriptionId ??
+                x.SubscriptionID ??
+                x.SubscriptionId) === id
         );
 
         if (!sub) return id;
@@ -124,18 +121,20 @@ function EmployeeSubscription() {
     };
 
     const filteredEmployeeSubscriptions = employeeSubscriptions.filter((item) => {
-        const employeeName = String(getEmployeeName(item.employeeId)).toLowerCase();
-        const subscriptionName = String(getSubscriptionName(item.subscriptionId)).toLowerCase();
+        const employeeText = String(item.employeeId).toLowerCase();
+        const subscriptionText = String(getSubscriptionName(item.subscriptionId)).toLowerCase();
         const statusText = item.status.toLowerCase();
 
         return (
-            employeeName.includes(searchTerm.toLowerCase()) ||
-            subscriptionName.includes(searchTerm.toLowerCase()) ||
+            employeeText.includes(searchTerm.toLowerCase()) ||
+            subscriptionText.includes(searchTerm.toLowerCase()) ||
             statusText.includes(searchTerm.toLowerCase())
         );
     });
 
-    const totalPages = Math.ceil(filteredEmployeeSubscriptions.length / recordsPerPage);
+    const totalPages = Math.ceil(
+        filteredEmployeeSubscriptions.length / recordsPerPage
+    );
 
     const currentEmployeeSubscriptions = filteredEmployeeSubscriptions.slice(
         (currentPage - 1) * recordsPerPage,
@@ -186,7 +185,7 @@ function EmployeeSubscription() {
         const newErrors: FormErrors = {};
 
         if (employeeId === 0) {
-            newErrors.employeeId = "Employee is required.";
+            newErrors.employeeId = "Employee Id is required.";
         }
 
         if (subscriptionId === 0) {
@@ -339,7 +338,7 @@ function EmployeeSubscription() {
                     <table className="table table-bordered table-striped">
                         <thead>
                             <tr>
-                                <th>Employee</th>
+                                <th>Employee Id</th>
                                 <th>Subscription</th>
                                 <th>Status</th>
                                 <th>Action</th>
@@ -347,7 +346,7 @@ function EmployeeSubscription() {
                         </thead>
 
                         <tbody>
-                            {employeeSubscriptions.length === 0 ? (
+                            {currentEmployeeSubscriptions.length === 0 ? (
                                 <tr>
                                     <td colSpan={4} className="text-center">
                                         No employee subscriptions found.
@@ -356,7 +355,7 @@ function EmployeeSubscription() {
                             ) : (
                                 currentEmployeeSubscriptions.map((item, index) => (
                                     <tr key={item.employeeSubscriptionId || index}>
-                                        <td>{getEmployeeName(item.employeeId)}</td>
+                                        <td>{item.employeeId}</td>
                                         <td>{getSubscriptionName(item.subscriptionId)}</td>
                                         <td>{item.status}</td>
                                         <td>
@@ -427,37 +426,20 @@ function EmployeeSubscription() {
 
                                 <div className="mb-3">
                                     <label className="form-label">
-                                        Employee <span className="text-danger">*</span>
+                                        Employee Id <span className="text-danger">*</span>
                                     </label>
 
-                                    <select
-                                        className={`form-select ${errors.employeeId ? "is-invalid" : ""}`}
-                                        value={employeeId}
+                                    <input
+                                        type="number"
+                                        className={`form-control ${errors.employeeId ? "is-invalid" : ""}`}
+                                        value={employeeId === 0 ? "" : employeeId}
                                         onChange={(e) => {
                                             setEmployeeId(Number(e.target.value));
                                             setErrors(prev => ({ ...prev, employeeId: undefined }));
                                             setFormError("");
                                         }}
-                                    >
-                                        <option value={0}>-- Select Employee --</option>
-                                        {employees.map((emp, index) => {
-                                            const id =
-                                                emp.id ??
-                                                emp.ID ??
-                                                emp.employeeId ??
-                                                emp.EmployeeId ??
-                                                index;
-
-                                            const name =
-                                                `${emp.firstName ?? emp.FirstName ?? ""} ${emp.lastName ?? emp.LastName ?? ""}`.trim();
-
-                                            return (
-                                                <option key={id} value={id}>
-                                                    {name || id}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
+                                        placeholder="Enter Employee Id"
+                                    />
 
                                     {errors.employeeId && (
                                         <span className="text-danger small">
@@ -480,7 +462,10 @@ function EmployeeSubscription() {
                                             setFormError("");
                                         }}
                                     >
-                                        <option value={0}>-- Select Subscription --</option>
+                                        <option value={0}>
+                                            -- Select Subscription --
+                                        </option>
+
                                         {subscriptions.map((sub, index) => {
                                             const id =
                                                 sub.subscriptionID ??

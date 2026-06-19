@@ -16,7 +16,7 @@ public class EmployeeSubscriptionController
         _service = service;
     }
 
-    [HttpGet]
+    [HttpGet("GetAll")]
     public async Task<IActionResult> GetAll()
     {
         var data =
