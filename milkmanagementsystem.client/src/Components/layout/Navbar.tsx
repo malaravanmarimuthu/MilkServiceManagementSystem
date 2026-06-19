@@ -84,34 +84,48 @@ function Navbar() {
                             </>
                         ) : (
                             <>
-                                <li className="nav-item">
-                                    <NavLink to="/location" className="nav-link">
-                                        Location
-                                    </NavLink>
-                                </li>
+                                        <li className="nav-item dropdown">
+                                            <a
+                                                className="nav-link dropdown-toggle fw-bold"
+                                                href="#"
+                                                role="button"
+                                                data-bs-toggle="dropdown"
+                                            >
+                                                Master
+                                            </a>
 
-                                <li className="nav-item">
-                                    <NavLink to="/role" className="nav-link">
-                                        Role
-                                    </NavLink>
-                                        </li>
+                                            <ul className="dropdown-menu">
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/location">
+                                                        Location
+                                                    </NavLink>
+                                                </li>
 
-                                 <li className="nav-item">
-                                            <NavLink to="/employee" className="nav-link">
-                                                Employee
-                                            </NavLink>
-                                        </li>
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/role">
+                                                        Role
+                                                    </NavLink>
+                                                </li>
 
-                                        <li className="nav-item">
-                                            <NavLink to="/Subscription" className="nav-link">
-                                                Subscription
-                                            </NavLink>
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/employee">
+                                                        Employee
+                                                    </NavLink>
+                                                </li>
+
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/subscription">
+                                                        Subscription
+                                                    </NavLink>
+                                                </li>
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/Employeesubscription">
+                                                        EmployeeSubscription
+                                                    </NavLink>
+                                                </li>
+                                            </ul>
                                         </li>
-                                        <li className="nav-item">
-                                            <NavLink to="/EmployeeSubscription" className="nav-link">
-                                                EmployeeSubscription
-                                            </NavLink>
-                                        </li>
+                                        
 
                                 <li className="nav-item ms-3">
                                     <button

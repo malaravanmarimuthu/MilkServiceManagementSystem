@@ -15,7 +15,7 @@ export interface CreateEmployeeSubscriptionDto {
 
 export const getEmployeeSubscriptions = async () => {
     const response = await axiosInstance.get<EmployeeSubscriptionType[]>(
-        "/api/EmployeeSubscription"
+        "/api/EmployeeSubscription/GetAll"
     );
     return response.data;
 };
