@@ -107,6 +107,11 @@ function Navbar() {
                                                 Subscription
                                             </NavLink>
                                         </li>
+                                        <li className="nav-item">
+                                            <NavLink to="/EmployeeSubscription" className="nav-link">
+                                                EmployeeSubscription
+                                            </NavLink>
+                                        </li>
 
                                 <li className="nav-item ms-3">
                                     <button

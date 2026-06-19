@@ -20,7 +20,7 @@ namespace Data.Context
         public DbSet<Organization> Organizations { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<Location> Locations { get; set; }
-
         public DbSet<Subscription> Subscriptions { get; set; }
+        public DbSet<EmployeeSubscription> EmployeeSubscriptions { get; set; }
     }
 }
