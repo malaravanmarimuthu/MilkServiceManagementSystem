@@ -1,4 +1,5 @@
 using api_authenticationservice;
+using System.Text.Json.Serialization;
 var corsPolicyName = "AllowAll";
 var builder = WebApplication.CreateBuilder(args);
 

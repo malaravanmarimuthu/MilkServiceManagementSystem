@@ -13,5 +13,9 @@ namespace Data.Entities
         public string MilkType { get; set; } = string.Empty;
         public decimal Quantity { get; set; }
         public decimal PricePerLiter { get; set; }
+
+        //EmployeeSubscription
+        public ICollection<EmployeeSubscription> EmployeeSubscriptions { get; set; }
+        = new List<EmployeeSubscription>();
     }
 }

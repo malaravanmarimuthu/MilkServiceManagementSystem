@@ -8,14 +8,21 @@ export default function ErrorModal({ message, onClose }: Props) {
 
     return (
         <>
-            
             <div
                 className="modal-backdrop fade show"
-                style={{ backdropFilter: "blur(4px)", backgroundColor: "rgba(0,0,0,0.6)" }}
+                style={{
+                    backdropFilter: "blur(4px)",
+                    backgroundColor: "rgba(0,0,0,0.6)",
+                    zIndex: 999999
+                }}
                 onClick={onClose}
             />
 
-            <div className="modal fade show d-block" tabIndex={-1}>
+            <div
+                className="modal fade show d-block"
+                tabIndex={-1}
+                style={{ zIndex: 1000000 }}
+            >
                 <div className="modal-dialog modal-dialog-centered">
                     <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
 

@@ -144,12 +144,6 @@ function Subscription() {
             return;
         }
 
-        if (isNaN(Number(quantity)) || Number(quantity) <= 0) {
-            setErrors({
-                quantity: "Quantity must be a valid positive number.",
-            });
-            return;
-        }
 
         if (isNaN(Number(pricePerLiter)) || Number(pricePerLiter) <= 0) {
             setErrors({
@@ -170,7 +164,7 @@ function Subscription() {
 
         const subscriptionData = {
             milkType,
-            quantity: Number(quantity),
+            quantity: 1,
             pricePerLiter: Number(pricePerLiter),
         };
 
@@ -398,16 +392,23 @@ function Subscription() {
                                     </label>
 
                                     <input
-                                        type="number"
-                                        step="0.1"
-                                        className={`form-control ${errors.quantity ? "is-invalid" : ""}`}
-                                        value={quantity}
-                                        onChange={(e) => {
-                                            setQuantity(e.target.value);
-                                            setErrors(prev => ({ ...prev, quantity: undefined }));
-                                            setFormError("");
-                                        }}
-                                    />
+                                        type="text"
+                                        className="form-control"
+                                        value="1 Liter"
+                                        readOnly
+                                        />
+
+                                    {/*<input*/}
+                                    {/*    type="number"*/}
+                                    {/*    step="0.1"*/}
+                                    {/*    className={`form-control ${errors.quantity ? "is-invalid" : ""}`}*/}
+                                    {/*    value={quantity}*/}
+                                    {/*    onChange={(e) => {*/}
+                                    {/*        setQuantity(e.target.value);*/}
+                                    {/*        setErrors(prev => ({ ...prev, quantity: undefined }));*/}
+                                    {/*        setFormError("");*/}
+                                    {/*    }}*/}
+                                    {/*/>*/}
 
                                     {errors.quantity && (
                                         <span className="text-danger small">

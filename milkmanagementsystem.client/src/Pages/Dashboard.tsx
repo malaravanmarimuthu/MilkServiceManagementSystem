@@ -9,16 +9,16 @@ interface JwtPayload {
 function Dashboard() {
     const token = localStorage.getItem("token");
 
-    let username = "";
+    let firstName = "";
 
     if (token) {
         const decoded = jwtDecode<JwtPayload>(token);
-        username = decoded.username;
+        firstName = decoded.firstname;
     }
 
     return (
         <div className="text-center mt-5">
-            <h2>Welcome {username}</h2>
+            <h2>Welcome {firstName}</h2>
         </div>
     );
 }

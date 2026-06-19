@@ -36,6 +36,10 @@ namespace Data.Entities
         [ForeignKey("RoleID")]
         public virtual Role Role { get; set; }
         public EmployeeStatus Status { get; set; } = EmployeeStatus.Available;
-       
+
+        //EmployeeSubscription
+        public ICollection<EmployeeSubscription> EmployeeSubscriptions { get; set; }
+         = new List<EmployeeSubscription>();
+
     }
 }

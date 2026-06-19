@@ -10,6 +10,8 @@ import Pricing from "../Components/home/Pricing";
 import Contact from "../Components/home/Contact";
 import ProtectedRoute from "./ProtectedRoute";
 import Subscription from "../Pages/Subscription";
+import EmployeeSubscription from "../Pages/EmployeeSubscription";
+
 
 function AppRoutes() {
     return (
@@ -76,6 +78,14 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute>
                         <Employee />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/Employeesubscription"
+                element={
+                    <ProtectedRoute>
+                        <EmployeeSubscription />
                     </ProtectedRoute>
                 }
             />
