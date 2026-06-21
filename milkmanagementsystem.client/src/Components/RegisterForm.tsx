@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import axiosInstance from "../Interceptors/axiosInstance";
 import config from "../config";
 import { validateRegisterForm } from "../Helpers/Validation";
-import type { RegisterErrors } from "../Helpers/Validation";
+import { RegisterErrors } from "../Helpers/Validation";
 import { handleApiError } from "../Helpers/errorHandler";
 import ErrorModal from "./Common/ErrorModal";
 import { getLocations } from "../Services/LocationService";
@@ -57,6 +57,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
     const handleRegister = async () => {
         const validationErrors = validateRegisterForm({
             firstName, lastName, emailId, mobile, password, confirmPassword,
+            location: ""
         });
         setErrors(validationErrors);
         if (Object.keys(validationErrors).length > 0) {
@@ -68,7 +69,11 @@ export default function RegisterForm({ setIsRegister }: Props) {
             else if (validationErrors.confirmPassword) confirmPasswordRef.current?.focus();
             return;
         }
-        if (locationID === 0) { setErrorMsg("Please select a location"); return; }
+        if (locationID === 0)
+        {
+            setErrors((prev: any) => ({ ...prev, location: "Please select a location" }));
+            return;
+        }
         setLoading(true);
         try {
             await axiosInstance.post(config.AUTH_URL + "/Auth/signup", {
@@ -460,7 +465,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                                 placeholder="First name"
                                 className={`reg-input ${errors.firstName ? "is-invalid" : ""}`}
                                 value={firstName}
-                                onChange={(e) => { setFirstName(e.target.value); setErrors(p => ({ ...p, firstName: undefined })); }}
+                                onChange={(e) => { setFirstName(e.target.value); setErrors((p: any) => ({ ...p, firstName: undefined })); }}
                             />
                             {errors.firstName && <div className="error-text"><i className="bi bi-exclamation-circle-fill" />{errors.firstName}</div>}
                         </div>
@@ -472,7 +477,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                                 placeholder="Last name"
                                 className={`reg-input ${errors.lastName ? "is-invalid" : ""}`}
                                 value={lastName}
-                                onChange={(e) => { setLastName(e.target.value); setErrors(p => ({ ...p, lastName: undefined })); }}
+                                onChange={(e) => { setLastName(e.target.value); setErrors((p: any) => ({ ...p, lastName: undefined })); }}
                             />
                             {errors.lastName && <div className="error-text"><i className="bi bi-exclamation-circle-fill" />{errors.lastName}</div>}
                         </div>
@@ -488,7 +493,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                                 placeholder="you@email.com"
                                 className={`reg-input ${errors.emailId ? "is-invalid" : ""}`}
                                 value={emailId}
-                                onChange={(e) => { setEmailId(e.target.value); setErrors(p => ({ ...p, emailId: undefined })); }}
+                                onChange={(e) => { setEmailId(e.target.value); setErrors((p: any) => ({ ...p, emailId: undefined })); }}
                             />
                             {errors.emailId && <div className="error-text"><i className="bi bi-exclamation-circle-fill" />{errors.emailId}</div>}
                         </div>
@@ -500,7 +505,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                                 placeholder="10-digit"
                                 className={`reg-input ${errors.mobile ? "is-invalid" : ""}`}
                                 value={mobile}
-                                onChange={(e) => { setMobile(e.target.value); setErrors(p => ({ ...p, mobile: undefined })); }}
+                                onChange={(e) => { setMobile(e.target.value); setErrors((p: any) => ({ ...p, mobile: undefined })); }}
                             />
                             {errors.mobile && <div className="error-text"><i className="bi bi-exclamation-circle-fill" />{errors.mobile}</div>}
                         </div>
@@ -512,13 +517,22 @@ export default function RegisterForm({ setIsRegister }: Props) {
                         <select
                             className="reg-select"
                             value={locationID}
-                            onChange={(e) => setLocationID(Number(e.target.value))}
+                            onChange={(e) => {
+                                setLocationID(Number(e.target.value));
+                                setErrors((prev: any) => ({ ...prev, location: undefined }));
+                            }}
                         >
-                            <option value={0}> Select Location </option>
+                            <option value={0}>— Select Location —</option>
                             {locations.map((loc: any) => (
                                 <option key={loc.locationID} value={loc.locationID}>{loc.locationName}</option>
                             ))}
                         </select>
+                        {errors.location && (
+                            <div className="error-text">
+                                <i className="bi bi-exclamation-circle-fill" />
+                                {errors.location}
+                            </div>
+                        )}
                     </div>
 
                     <div className="divider-label"> SECURITY</div>
@@ -533,7 +547,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                                 placeholder="Create a strong password"
                                 className={`reg-input ${errors.password ? "is-invalid" : ""}`}
                                 value={password}
-                                onChange={(e) => { setPassword(e.target.value); setErrors(p => ({ ...p, password: undefined })); }}
+                                onChange={(e) => { setPassword(e.target.value); setErrors((p: any) => ({ ...p, password: undefined })); }}
                             />
                             {password && (
                                 <span className="pw-toggle" onClick={() => setShowPassword(!showPassword)}>
@@ -554,7 +568,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                                 placeholder="Re-enter your password"
                                 className={`reg-input ${errors.confirmPassword ? "is-invalid" : ""}`}
                                 value={confirmPassword}
-                                onChange={(e) => { setConfirmPassword(e.target.value); setErrors(p => ({ ...p, confirmPassword: undefined })); }}
+                                onChange={(e) => { setConfirmPassword(e.target.value); setErrors((p: any) => ({ ...p, confirmPassword: undefined })); }}
                             />
                             {confirmPassword && (
                                 <span className="pw-toggle" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
