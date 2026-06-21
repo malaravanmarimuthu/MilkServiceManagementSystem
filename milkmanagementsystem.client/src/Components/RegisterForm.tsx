@@ -5,7 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import axiosInstance from "../Interceptors/axiosInstance";
 import config from "../config";
 import { validateRegisterForm } from "../Helpers/Validation";
-import { RegisterErrors } from "../Helpers/Validation";
+import type { RegisterErrors } from "../Helpers/Validation";
 import { handleApiError } from "../Helpers/errorHandler";
 import ErrorModal from "./Common/ErrorModal";
 import { getLocations } from "../Services/LocationService";

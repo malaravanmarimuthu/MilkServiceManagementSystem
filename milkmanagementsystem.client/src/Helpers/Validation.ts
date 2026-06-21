@@ -1,3 +1,13 @@
+export interface RegisterErrors {
+    firstName?: string;
+    lastName?: string;
+    emailId?: string;
+    mobile?: string;
+    location?: string;
+    password?: string;
+    confirmPassword?: string;
+}
+
 export interface RegisterFormData {
     firstName: string;
     lastName: string;
@@ -39,6 +49,30 @@ export const validateRegisterForm = (data: RegisterFormData): RegisterErrors => 
         errors.confirmPassword = "Confirm Password is required";
     else if (data.password !== data.confirmPassword)
         errors.confirmPassword = "Passwords do not match";
+
+    return errors;
+};
+
+export interface LoginErrors {
+    mobile?: string;
+    password?: string;
+}
+
+export interface LoginFormData {
+    mobile: string;
+    password: string;
+}
+
+export const validateLoginForm = (data: LoginFormData): LoginErrors => {
+    const errors: LoginErrors = {};
+
+    if (!data.mobile)
+        errors.mobile = "Mobile is required";
+    else if (!/^\d{10}$/.test(data.mobile))
+        errors.mobile = "Mobile must be 10 digits";
+
+    if (!data.password)
+        errors.password = "Password is required";
 
     return errors;
 };
