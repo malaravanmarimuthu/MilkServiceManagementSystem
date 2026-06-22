@@ -22,5 +22,6 @@ namespace Data.Context
         public DbSet<Location> Locations { get; set; }
         public DbSet<Subscription> Subscriptions { get; set; }
         public DbSet<EmployeeSubscription> EmployeeSubscriptions { get; set; }
+        public DbSet<LeaveRequest> LeaveRequests { get; set; }
     }
 }

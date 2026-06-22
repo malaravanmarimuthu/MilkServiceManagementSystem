@@ -189,7 +189,12 @@ function Navbar() {
                                                 <NavLink className="dropdown-item" to="/Employeesubscription">
                                                     EmployeeSubscription
                                                 </NavLink>
-                                            </li>
+                                                </li>
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/leave-request">
+                                                        Leave Request
+                                                    </NavLink>
+                                                </li>
                                         </ul>
                                     </li>
 
