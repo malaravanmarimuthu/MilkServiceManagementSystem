@@ -11,6 +11,7 @@ import Contact from "../Components/home/Contact";
 import ProtectedRoute from "./ProtectedRoute";
 import Subscription from "../Pages/Subscription";
 import EmployeeSubscription from "../Pages/EmployeeSubscription";
+import LeaveRequest from "../Pages/LeaveRequest";
 
 
 function AppRoutes() {
@@ -86,6 +87,14 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute>
                         <EmployeeSubscription />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/leave-request"
+                element={
+                    <ProtectedRoute>
+                        <LeaveRequest />
                     </ProtectedRoute>
                 }
             />

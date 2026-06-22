@@ -14,6 +14,7 @@ import Footer from "./Components/Common/Footer";
 import Employee from "./Pages/Employee";
 import Subscription from "./Pages/Subscription";
 import EmployeeSubscription from "./Pages/EmployeeSubscription";
+import LeaveRequest from "./Pages/LeaveRequest";
 
 function AppContent() {
 
@@ -50,8 +51,9 @@ function AppContent() {
                 <Route path="/location" element={<ProtectedRoute><Location /></ProtectedRoute>} />
                 <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
                 <Route path="/EmployeeSubscription" element={<ProtectedRoute><EmployeeSubscription /></ProtectedRoute>} />
+                <Route path="/leave-request" element={ <ProtectedRoute> <LeaveRequest /></ProtectedRoute>}/>
 
-                </Routes>
+            </Routes>
             </div>
 
                 {!hideFooter && <Footer /> }
