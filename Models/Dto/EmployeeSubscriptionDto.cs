@@ -13,5 +13,6 @@ namespace Models.Dto
         public long EmployeeId { get; set; }
         public long SubscriptionId { get; set; }
         public string Status { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
     }
 }
