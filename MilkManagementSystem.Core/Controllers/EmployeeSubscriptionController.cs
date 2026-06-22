@@ -2,84 +2,81 @@
 using Models.Dto;
 using Services.Contracts;
 
-[Route("api/[controller]")]
-[ApiController]
-public class EmployeeSubscriptionController
-    : ControllerBase
+namespace MilkManagementSystem.Core.Controllers
 {
-    private readonly IEmployeeSubscriptionService
-        _service;
-
-    public EmployeeSubscriptionController(
-        IEmployeeSubscriptionService service)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class EmployeeSubscriptionController : ControllerBase
     {
-        _service = service;
-    }
+        private readonly IEmployeeSubscriptionService _service;
 
-    [HttpGet("GetAll")]
-    public async Task<IActionResult> GetAll()
-    {
-        var data =
-            await _service.GetAllAsync();
-
-        return Ok(data);
-    }
-
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(
-        long id)
-    {
-        var data =
-            await _service.GetByIdAsync(id);
-
-        if (data == null)
-            return NotFound();
-
-        return Ok(data);
-    }
-
-    [HttpPost("Create")]
-    public async Task<IActionResult> Create(EmployeeSubscriptionDto dto)
-    {
-        try
+        public EmployeeSubscriptionController(
+            IEmployeeSubscriptionService service)
         {
-            var data = await _service.CreateEmployeeSubscription(dto);
+            _service = service;
+        }
+
+        [HttpGet("GetAll")]
+        public async Task<IActionResult> GetAll()
+        {
+            var data = await _service.GetAllAsync();
+            return Ok(data);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(long id)
+        {
+            var data = await _service.GetByIdAsync(id);
+
+            if (data == null)
+                return NotFound();
 
             return Ok(data);
         }
-        catch (Exception ex)
+
+        [HttpPost("Create")]
+        public async Task<IActionResult> Create(EmployeeSubscriptionDto dto)
         {
-            return BadRequest(ex.Message);
+            try
+            {
+                var data = await _service.CreateEmployeeSubscription(dto);
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
-    }
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(
-        long id,
-        EmployeeSubscriptionDto dto)
-    {
-        var data =
-            await _service.UpdateAsync(
-                id,
-                dto);
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(
+            long id,
+            EmployeeSubscriptionDto dto)
+        {
+            try
+            {
+                var data = await _service.UpdateAsync(id, dto);
 
-        if (data == null)
-            return NotFound();
+                if (data == null)
+                    return NotFound();
 
-        return Ok(data);
-    }
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(
-        long id)
-    {
-        var result =
-            await _service.DeleteAsync(id);
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(long id)
+        {
+            var result = await _service.DeleteAsync(id);
 
-        if (!result)
-            return NotFound();
+            if (!result)
+                return NotFound();
 
-        return Ok(
-            "Deleted Successfully");
+            return Ok("Deleted Successfully");
+        }
     }
 }

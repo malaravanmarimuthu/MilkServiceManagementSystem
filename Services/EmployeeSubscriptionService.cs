@@ -1,6 +1,5 @@
 ﻿using Data.Context;
 using Data.Entities;
-using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Models.Dto;
 using Services.Contracts;
@@ -19,7 +18,13 @@ namespace Services
         public async Task<IEnumerable<EmployeeSubscriptionDto>> GetAllAsync()
         {
             return await _context.EmployeeSubscriptions
-                .Select(x => x.Adapt<EmployeeSubscriptionDto>())
+                .Select(x => new EmployeeSubscriptionDto
+                {
+                    EmployeeSubscriptionId = x.EmployeeSubscriptionId,
+                    EmployeeId = x.EmployeeId,
+                    SubscriptionId = x.SubscriptionId,
+                    Status = x.Status
+                })
                 .ToListAsync();
         }
 
@@ -27,7 +32,13 @@ namespace Services
         {
             return await _context.EmployeeSubscriptions
                 .Where(x => x.EmployeeSubscriptionId == id)
-                .Select(x => x.Adapt<EmployeeSubscriptionDto>())
+                .Select(x => new EmployeeSubscriptionDto
+                {
+                    EmployeeSubscriptionId = x.EmployeeSubscriptionId,
+                    EmployeeId = x.EmployeeId,
+                    SubscriptionId = x.SubscriptionId,
+                    Status = x.Status
+                })
                 .FirstOrDefaultAsync();
         }
 
@@ -51,12 +62,23 @@ namespace Services
                 throw new Exception("This subscription already assigned to employee.");
             }
 
-            var entity = dto.Adapt<EmployeeSubscription>();
+            var entity = new EmployeeSubscription
+            {
+                EmployeeId = dto.EmployeeId,
+                SubscriptionId = dto.SubscriptionId,
+                Status = dto.Status
+            };
 
             _context.EmployeeSubscriptions.Add(entity);
             await _context.SaveChangesAsync();
 
-            return entity.Adapt<EmployeeSubscriptionDto>();
+            return new EmployeeSubscriptionDto
+            {
+                EmployeeSubscriptionId = entity.EmployeeSubscriptionId,
+                EmployeeId = entity.EmployeeId,
+                SubscriptionId = entity.SubscriptionId,
+                Status = entity.Status
+            };
         }
 
         public async Task<EmployeeSubscriptionDto?> UpdateAsync(
@@ -81,7 +103,13 @@ namespace Services
 
             await _context.SaveChangesAsync();
 
-            return entity.Adapt<EmployeeSubscriptionDto>();
+            return new EmployeeSubscriptionDto
+            {
+                EmployeeSubscriptionId = entity.EmployeeSubscriptionId,
+                EmployeeId = entity.EmployeeId,
+                SubscriptionId = entity.SubscriptionId,
+                Status = entity.Status
+            };
         }
 
         public async Task<bool> DeleteAsync(long id)
