@@ -4,6 +4,7 @@ using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    partial class AuthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260622073430_AddQuantityToEmployeeSubscription")]
+    partial class AddQuantityToEmployeeSubscription
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -300,42 +303,6 @@ namespace Data.Migrations
                     b.ToTable("Subscriptions");
                 });
 
-            modelBuilder.Entity("LeaveRequest", b =>
-                {
-                    b.Property<long>("LeaveRequestID")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("LeaveRequestID"));
-
-                    b.Property<long>("EmployeeID")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("FromDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("LeaveType")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<DateTime>("ToDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.HasKey("LeaveRequestID");
-
-                    b.HasIndex("EmployeeID");
-
-                    b.ToTable("LeaveRequests");
-                });
-
             modelBuilder.Entity("Data.Entities.Employee", b =>
                 {
                     b.HasOne("Data.Entities.Location", "Location")
@@ -368,17 +335,6 @@ namespace Data.Migrations
                         .HasForeignKey("SubscriptionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("LeaveRequest", b =>
-                {
-                    b.HasOne("Data.Entities.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeID")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("Data.Entities.Employee", b =>

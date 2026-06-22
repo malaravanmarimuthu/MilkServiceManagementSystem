@@ -17,8 +17,10 @@ namespace Data.Entities
 
         public string Status { get; set; } = string.Empty;
 
-        public Employee Employee { get; set; } = null!;
+        public decimal Quantity { get; set; }
 
-        public Subscription Subscription { get; set; } = null!;
+        //public Employee Employee { get; set; } = null!;
+
+        //public Subscription Subscription { get; set; } = null!;
     }
 }

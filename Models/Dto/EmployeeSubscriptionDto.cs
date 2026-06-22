@@ -9,14 +9,10 @@ namespace Models.Dto
 {
     public class EmployeeSubscriptionDto
     {
-
-            public long EmployeeSubscriptionId { get; set; } 
-        
-            public long EmployeeId { get; set; }
-
-            public long SubscriptionId { get; set; }
-
+        public long EmployeeSubscriptionId { get; set; }
+        public long EmployeeId { get; set; }
+        public long SubscriptionId { get; set; }
         public string Status { get; set; } = string.Empty;
-        
+        public decimal Quantity { get; set; }
     }
 }
