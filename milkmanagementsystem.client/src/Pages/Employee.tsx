@@ -234,7 +234,8 @@ const Employee: React.FC = () => {
                     <Loader />
                 ) : (
                     <>
-                        <table className="table table-bordered">
+                            <div className="table-responsive">
+                                <table className="table table-bordered text-nowrap">
                             <thead>
                                 <tr>
                                     <th>First Name</th>
@@ -288,8 +289,10 @@ const Employee: React.FC = () => {
                                         }
                                     )
                                 )}
-                            </tbody>
-                        </table>
+                                    </tbody>
+                                </table>
+                            </div>
+                    
 
                         {totalPages > 1 && (
                             <Pagination
