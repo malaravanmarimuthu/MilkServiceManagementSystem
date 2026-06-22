@@ -4,12 +4,14 @@ export interface EmployeeSubscriptionType {
     employeeSubscriptionId: number;
     employeeId: number;
     subscriptionId: number;
+    quantity: number;
     status: string;
 }
 
 export interface CreateEmployeeSubscriptionDto {
     employeeId: number;
     subscriptionId: number;
+    quantity: number;
     status: string;
 }
 

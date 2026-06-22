@@ -1,5 +1,6 @@
 ﻿using Data.Context;
 using Data.Entities;
+using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Models.Dto;
 using Services.Contracts;
@@ -17,112 +18,156 @@ namespace Services
 
         public async Task<IEnumerable<EmployeeSubscriptionDto>> GetAllAsync()
         {
-            return await _context.EmployeeSubscriptions
-                .Select(x => new EmployeeSubscriptionDto
-                {
-                    EmployeeSubscriptionId = x.EmployeeSubscriptionId,
-                    EmployeeId = x.EmployeeId,
-                    SubscriptionId = x.SubscriptionId,
-                    Status = x.Status
-                })
-                .ToListAsync();
+            try
+            {
+                var list = await _context.EmployeeSubscriptions.ToListAsync();
+                return list.Adapt<List<EmployeeSubscriptionDto>>();
+                
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("An error occurred while retrieving all employee subscriptions.", ex);
+            }
         }
 
         public async Task<EmployeeSubscriptionDto?> GetByIdAsync(long id)
         {
-            return await _context.EmployeeSubscriptions
-                .Where(x => x.EmployeeSubscriptionId == id)
-                .Select(x => new EmployeeSubscriptionDto
-                {
-                    EmployeeSubscriptionId = x.EmployeeSubscriptionId,
-                    EmployeeId = x.EmployeeId,
-                    SubscriptionId = x.SubscriptionId,
-                    Status = x.Status
-                })
-                .FirstOrDefaultAsync();
+            try
+            {
+                return await _context.EmployeeSubscriptions
+                    .Where(x => x.EmployeeSubscriptionId == id)
+                    .Select(x => new EmployeeSubscriptionDto
+                    {
+                        EmployeeSubscriptionId = x.EmployeeSubscriptionId,
+                        EmployeeId = x.EmployeeId,
+                        SubscriptionId = x.SubscriptionId,
+                        Status = x.Status,
+                        Quantity = x.Quantity
+                    })
+                    .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"An error occurred while retrieving employee subscription with ID {id}.", ex);
+            }
         }
 
         public async Task<EmployeeSubscriptionDto> CreateEmployeeSubscription(
             EmployeeSubscriptionDto dto)
         {
-            if (dto.Status != "Active" &&
-                dto.Status != "Inactive" &&
-                dto.Status != "Freeze")
+            try
             {
-                throw new Exception("Status must be Active, Inactive or Freeze.");
+                if (dto.Status != "Active" &&
+                    dto.Status != "Inactive" &&
+                    dto.Status != "Freeze")
+                {
+                    throw new Exception("Status must be Active, Inactive or Freeze.");
+                }
+
+                if (dto.Quantity <= 0)
+                {
+                    throw new Exception("Quantity must be greater than zero.");
+                }
+
+                var alreadyExists = await _context.EmployeeSubscriptions
+                    .AnyAsync(x =>
+                        x.EmployeeId == dto.EmployeeId &&
+                        x.SubscriptionId == dto.SubscriptionId);
+
+                if (alreadyExists)
+                {
+                    throw new Exception("This subscription already assigned to employee.");
+                }
+
+                var entity = new EmployeeSubscription
+                {
+                    EmployeeId = dto.EmployeeId,
+                    SubscriptionId = dto.SubscriptionId,
+                    Status = dto.Status,
+                    Quantity = dto.Quantity
+                };
+
+                _context.EmployeeSubscriptions.Add(entity);
+                await _context.SaveChangesAsync();
+
+                return new EmployeeSubscriptionDto
+                {
+                    EmployeeSubscriptionId = entity.EmployeeSubscriptionId,
+                    EmployeeId = entity.EmployeeId,
+                    SubscriptionId = entity.SubscriptionId,
+                    Status = entity.Status,
+                    Quantity = entity.Quantity
+                };
             }
-
-            var alreadyExists = await _context.EmployeeSubscriptions
-                .AnyAsync(x =>
-                    x.EmployeeId == dto.EmployeeId &&
-                    x.SubscriptionId == dto.SubscriptionId);
-
-            if (alreadyExists)
+            catch (Exception ex)
             {
-                throw new Exception("This subscription already assigned to employee.");
+                throw new Exception("An error occurred while creating the employee subscription.", ex);
             }
-
-            var entity = new EmployeeSubscription
-            {
-                EmployeeId = dto.EmployeeId,
-                SubscriptionId = dto.SubscriptionId,
-                Status = dto.Status
-            };
-
-            _context.EmployeeSubscriptions.Add(entity);
-            await _context.SaveChangesAsync();
-
-            return new EmployeeSubscriptionDto
-            {
-                EmployeeSubscriptionId = entity.EmployeeSubscriptionId,
-                EmployeeId = entity.EmployeeId,
-                SubscriptionId = entity.SubscriptionId,
-                Status = entity.Status
-            };
         }
 
         public async Task<EmployeeSubscriptionDto?> UpdateAsync(
             long id,
             EmployeeSubscriptionDto dto)
         {
-            if (dto.Status != "Active" &&
-                dto.Status != "Inactive" &&
-                dto.Status != "Freeze")
+            try
             {
-                throw new Exception("Status must be Active, Inactive or Freeze.");
+                if (dto.Status != "Active" &&
+                    dto.Status != "Inactive" &&
+                    dto.Status != "Freeze")
+                {
+                    throw new Exception("Status must be Active, Inactive or Freeze.");
+                }
+
+                if (dto.Quantity <= 0)
+                {
+                    throw new Exception("Quantity must be greater than zero.");
+                }
+
+                var entity = await _context.EmployeeSubscriptions.FindAsync(id);
+
+                if (entity == null)
+                    return null;
+
+                entity.EmployeeId = dto.EmployeeId;
+                entity.SubscriptionId = dto.SubscriptionId;
+                entity.Status = dto.Status;
+                entity.Quantity = dto.Quantity;
+
+                await _context.SaveChangesAsync();
+
+                return new EmployeeSubscriptionDto
+                {
+                    EmployeeSubscriptionId = entity.EmployeeSubscriptionId,
+                    EmployeeId = entity.EmployeeId,
+                    SubscriptionId = entity.SubscriptionId,
+                    Status = entity.Status,
+                    Quantity = entity.Quantity
+                };
             }
-
-            var entity = await _context.EmployeeSubscriptions.FindAsync(id);
-
-            if (entity == null)
-                return null;
-
-            entity.EmployeeId = dto.EmployeeId;
-            entity.SubscriptionId = dto.SubscriptionId;
-            entity.Status = dto.Status;
-
-            await _context.SaveChangesAsync();
-
-            return new EmployeeSubscriptionDto
+            catch (Exception ex)
             {
-                EmployeeSubscriptionId = entity.EmployeeSubscriptionId,
-                EmployeeId = entity.EmployeeId,
-                SubscriptionId = entity.SubscriptionId,
-                Status = entity.Status
-            };
+                throw new Exception($"An error occurred while updating employee subscription with ID {id}.", ex);
+            }
         }
 
         public async Task<bool> DeleteAsync(long id)
         {
-            var entity = await _context.EmployeeSubscriptions.FindAsync(id);
+            try
+            {
+                var entity = await _context.EmployeeSubscriptions.FindAsync(id);
 
-            if (entity == null)
-                return false;
+                if (entity == null)
+                    return false;
 
-            _context.EmployeeSubscriptions.Remove(entity);
-            await _context.SaveChangesAsync();
+                _context.EmployeeSubscriptions.Remove(entity);
+                await _context.SaveChangesAsync();
 
-            return true;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"An error occurred while deleting employee subscription with ID {id}.", ex);
+            }
         }
     }
 }
