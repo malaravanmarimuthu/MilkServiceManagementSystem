@@ -1,4 +1,5 @@
-﻿/* eslint-disable react-hooks/purity */
+﻿/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/purity */
 import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axiosInstance from "../Interceptors/axiosInstance";
@@ -40,6 +41,7 @@ export default function LoginForm({ setIsRegister }: Props) {
             const response = await axiosInstance.post(config.AUTH_URL + "/Auth/login", { mobile, password });
             localStorage.setItem("token", response.data.data.jwtToken);
             localStorage.setItem("refreshToken", response.data.data.refreshToken);
+
             setMessage("Login Successful! Redirecting...");
             setTimeout(() => navigate("/dashboard"), 1500);
         } catch (err) {

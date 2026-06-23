@@ -173,6 +173,7 @@ namespace Services.Authentication
     new Claim("orgid", "0"),
     new Claim("mobile", user.Mobile ?? string.Empty),
     new Claim("firstname", user.FirstName ?? string.Empty),
+    new Claim("rolename", user.RoleName ?? string.Empty),
     new Claim("client", "web"),
     new Claim("type", "user")
 };

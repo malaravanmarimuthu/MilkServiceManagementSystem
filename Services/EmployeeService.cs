@@ -78,10 +78,11 @@ namespace Services
                 _logger.LogInformation($"Started -> request {req.ToJson()}");
 
                 var applicationuser = await _appUserRespository
-                    .FindByCondition(x =>
-                        x.Mobile == req.Mobile &&
-                        x.Status != Common.Enums.EmployeeStatus.Deleted)
-                    .FirstOrDefaultAsync();
+    .FindByCondition(x =>
+        x.Mobile == req.Mobile &&
+        x.Status != Common.Enums.EmployeeStatus.Deleted)
+    .Include(x => x.Role)
+    .FirstOrDefaultAsync();
 
                 var appuserDto = new EmployeeDto();
 
@@ -91,6 +92,8 @@ namespace Services
                         applicationuser.Password.Equals(req.Password, StringComparison.Ordinal))
                     {
                         appuserDto = applicationuser.ToMap<Employee, EmployeeDto>();
+
+                        appuserDto.RoleName = applicationuser.Role?.RoleName ?? "";
                     }
                 }
 
@@ -189,8 +192,6 @@ namespace Services
         {
             try
             {
-                _logger.LogInformation($"Started -> request Id : {id}");
-
                 var emp = await _appUserRespository
                     .FindByCondition(x => x.ID == id)
                     .FirstOrDefaultAsync();
@@ -202,6 +203,8 @@ namespace Services
                 emp.LastName = dto.LastName;
                 emp.EmailId = dto.EmailId;
                 emp.Mobile = dto.Mobile;
+                emp.LocationID = dto.LocationID;
+                emp.RoleID = dto.RoleID;
 
                 await _appUserRespository.UpdateAsync(emp);
 

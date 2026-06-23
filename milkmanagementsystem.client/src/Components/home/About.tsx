@@ -136,7 +136,7 @@ function About() {
                         <p className="about-text">
                             Every bottle we deliver was milked that morning. We work directly
                             with local dairy farms, cutting out distributors and cold storage
-                            delays — so what reaches your door is as close to fresh as it gets.
+                            delays so what reaches your door is as close to fresh as it gets.
                         </p>
 
                         <div className="row mt-5 g-3">

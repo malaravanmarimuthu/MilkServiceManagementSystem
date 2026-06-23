@@ -10,6 +10,8 @@ import {
 } from "../Services/EmployeeService";
 import { getLocations } from "../Services/LocationService";
 import type { LocationType } from "../Services/LocationService";
+import RoleService from "../Services/RoleService";
+import type { Role } from "../Services/RoleService";
 import ConfirmModal from "../Components/Common/ConfirmModal";
 import ErrorModal from "../Components/Common/ErrorModal";
 import SuccessModal from "../Components/Common/SuccessModal";
@@ -26,12 +28,13 @@ const emptyForm = {
     mobile: "",
     password: "",
     locationID: 0,
-    roleID: 1,
+    roleID: 0,
 };
 
 const Employee: React.FC = () => {
     const [employees, setEmployees] = useState<any[]>([]);
     const [locations, setLocations] = useState<LocationType[]>([]);
+    const [roles, setRoles] = useState<Role[]>([]);
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<any | null>(null);
@@ -50,6 +53,7 @@ const Employee: React.FC = () => {
     useEffect(() => {
         fetchEmployees();
         fetchLocations();
+        fetchRoles();
     }, []);
 
     const fetchEmployees = async () => {
@@ -60,8 +64,6 @@ const Employee: React.FC = () => {
             const arr = Array.isArray(data)
                 ? data
                 : data?.$values ?? data?.data ?? [];
-
-            console.log(res.data);
             setEmployees([...arr].reverse());
             setCurrentPage(1);
         } catch (err) {
@@ -79,6 +81,19 @@ const Employee: React.FC = () => {
                 ? data
                 : (data as any)?.$values ?? (data as any)?.data ?? [];
             setLocations(arr);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchRoles = async () => {
+        try {
+            const res = await RoleService.getAll();
+            const data: any = res.data;
+            const arr = Array.isArray(data)
+                ? data
+                : data?.$values ?? data?.data ?? [];
+            setRoles(arr);
         } catch (err) {
             console.error(err);
         }
@@ -112,7 +127,7 @@ const Employee: React.FC = () => {
             mobile: emp.mobile ?? emp.Mobile ?? "",
             password: "",
             locationID: emp.locationID ?? emp.LocationID ?? 0,
-            roleID: emp.roleID ?? emp.RoleID ?? 1,
+            roleID: emp.roleID ?? emp.RoleID ?? 0,
         });
         setFormError("");
         setShowModal(true);
@@ -138,6 +153,10 @@ const Employee: React.FC = () => {
 
         if (formData.locationID === 0) {
             setFormError("Please select a location.");
+            return;
+        }
+        if (formData.roleID === 0) {
+            setFormError("Please select a role.");
             return;
         }
 
@@ -200,9 +219,9 @@ const Employee: React.FC = () => {
             <div className="container mt-4">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                     <h2>Employee Management</h2>
-                    <div>
+                    <div className="d-flex gap-2">
                         <button
-                            className="btn btn-danger me-2"
+                            className="btn btn-danger"
                             onClick={() => navigate("/dashboard")}
                         >
                             Cancel
@@ -211,7 +230,7 @@ const Employee: React.FC = () => {
                             className="btn btn-primary"
                             onClick={openAddModal}
                         >
-                             Add Employee
+                            Add Employee
                         </button>
                     </div>
                 </div>
@@ -234,34 +253,29 @@ const Employee: React.FC = () => {
                     <Loader />
                 ) : (
                     <>
-                            <div className="table-responsive">
-                                <table className="table table-bordered text-nowrap">
-                            <thead>
-                                <tr>
-                                    <th>First Name</th>
-                                    <th>Last Name</th>
-                                    <th>Email</th>
-                                    <th>Mobile</th>
-                                    <th>Location</th>
-                                    <th>Role</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {paginatedEmployees.length === 0 ? (
+                        <div className="table-responsive">
+                            <table className="table table-bordered text-nowrap">
+                                <thead>
                                     <tr>
-                                        <td colSpan={6} className="text-center">
-                                            No employees found
-                                        </td>
+                                        <th>First Name</th>
+                                        <th>Last Name</th>
+                                        <th>Email</th>
+                                        <th>Mobile</th>
+                                        <th>Location</th>
+                                        <th>Role</th>
+                                        <th>Actions</th>
                                     </tr>
-                                ) : (
-                                    paginatedEmployees.map(
-                                        (emp: any, index: number) => {
-                                            const id =
-                                                emp.id ??
-                                                emp.ID ??
-                                                emp.Id ??
-                                                index;
+                                </thead>
+                                <tbody>
+                                    {paginatedEmployees.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={7} className="text-center">
+                                                No employees found
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        paginatedEmployees.map((emp: any, index: number) => {
+                                            const id = emp.id ?? emp.ID ?? emp.Id ?? index;
                                             return (
                                                 <tr key={`emp-${id}-${index}`}>
                                                     <td>{emp.firstName ?? emp.FirstName}</td>
@@ -286,13 +300,11 @@ const Employee: React.FC = () => {
                                                     </td>
                                                 </tr>
                                             );
-                                        }
-                                    )
-                                )}
-                                    </tbody>
-                                </table>
-                            </div>
-                    
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
 
                         {totalPages > 1 && (
                             <Pagination
@@ -408,16 +420,40 @@ const Employee: React.FC = () => {
                                                     })}
                                                 </select>
                                             </div>
+
+
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">Role</label>
+                                                <select
+                                                    name="roleID"
+                                                    className="form-select"
+                                                    value={formData.roleID}
+                                                    onChange={handleChange}
+                                                    required
+                                                >
+                                                    <option value={0} disabled>
+                                                        -- Select Role --
+                                                    </option>
+                                                    {roles.map((role) => (
+                                                        <option key={role.roleID} value={role.roleID}>
+                                                            {role.roleName}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
                                         </div>
 
                                         {formError && (
-                                            <div className="text-danger mb-2">{formError}</div>
+                                            <div className="alert alert-danger py-2 mb-2">
+                                                {formError}
+                                            </div>
                                         )}
 
                                         <div className="modal-footer border-0 justify-content-center pb-4 px-0">
+
                                             <button
                                                 type="button"
-                                                className="btn btn-secondary rounded-pill px-4"
+                                                className="btn btn-danger rounded-pill px-4"
                                                 onClick={() => setShowModal(false)}
                                             >
                                                 Cancel
@@ -432,11 +468,7 @@ const Employee: React.FC = () => {
                                                         <span className="spinner-border spinner-border-sm me-2" />
                                                         {editingEmployee ? "Updating..." : "Saving..."}
                                                     </>
-                                                ) : editingEmployee ? (
-                                                    "Update"
-                                                ) : (
-                                                    "Save"
-                                                )}
+                                                ) : editingEmployee ? "Update" : "Save"}
                                             </button>
                                         </div>
                                     </form>

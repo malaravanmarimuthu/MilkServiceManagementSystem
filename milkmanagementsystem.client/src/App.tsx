@@ -1,8 +1,8 @@
 import {BrowserRouter,Routes,Route,useLocation,} from "react-router-dom";
 import Navbar from "./Components/layout/Navbar";
 import Home from "./Pages/Home";
-//import About from "./Components/home/About";
-//import Service from "./Components/home/Service";
+import About from "./Components/home/About";
+import Service from "./Components/home/Service";
 import Pricing from "./Components/home/Pricing";
 import Contact from "./Components/home/Contact";
 import Login from "./Pages/Login";
@@ -40,6 +40,8 @@ function AppContent() {
 
             <Routes>
                 <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/service" element={<Service /> } />
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/contact" element={<Contact />} />
                 <Route path="/login" element={<Login />} />
