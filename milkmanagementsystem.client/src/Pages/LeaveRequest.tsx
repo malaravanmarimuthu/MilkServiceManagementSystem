@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { LeaveRequestService } from "../Services/LeaveRequestService";
 import type { LeaveRequestDto } from "../Services/LeaveRequestService";
+import { getEmployees } from "../Services/EmployeeService";
 import ConfirmModal from "../Components/Common/ConfirmModal";
 import ErrorModal from "../Components/Common/ErrorModal";
 import SuccessModal from "../Components/Common/SuccessModal";
 import Loader from "../Components/Common/Loader";
 import Pagination from "../Components/Common/Pagination";
+import { jwtDecode } from "jwt-decode";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -22,17 +24,53 @@ const LEAVE_TYPES = [
 
 const getTodayStr = () => new Date().toISOString().split("T")[0];
 
-const emptyForm = {
-    employeeID: 0,
-    leaveType: "",
-    fromDate: "",
-    toDate: "",
-    reason: "",
-    status: "Pending",
+interface JwtPayload {
+    username: string;
+    firstname: string;
+    userid: string;
+    role?: string;
+    RoleName?: string;
+    roleName?: string;
+    RoleID?: string;
+    roleID?: string;
+}
+
+const getLoggedInUser = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return { employeeID: 0, firstName: "", role: "" };
+    try {
+        const decoded = jwtDecode<JwtPayload>(token);
+        const role = decoded.role ?? decoded.RoleName ?? decoded.roleName ?? "";
+        return {
+            employeeID: Number(decoded.userid),
+            firstName: decoded.firstname,
+            role: role,
+        };
+    } catch {
+        return { employeeID: 0, firstName: "", role: "" };
+    }
+};
+
+const isAdminOrSupervisor = (role: string) => {
+    const r = role.toLowerCase();
+    return r === "admin" || r === "supervisor";
 };
 
 const LeaveRequestPage: React.FC = () => {
+    const loggedInUser = getLoggedInUser();
+    const isAdmin = isAdminOrSupervisor(loggedInUser.role);
+
+    const emptyForm = {
+        employeeID: isAdmin ? 0 : loggedInUser.employeeID,
+        leaveType: "",
+        fromDate: "",
+        toDate: "",
+        reason: "",
+        status: "Pending",
+    };
+
     const [leaveList, setLeaveList] = useState<LeaveRequestDto[]>([]);
+    const [employeeList, setEmployeeList] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editingLeave, setEditingLeave] = useState<LeaveRequestDto | null>(null);
@@ -49,6 +87,7 @@ const LeaveRequestPage: React.FC = () => {
 
     useEffect(() => {
         fetchAll();
+        if (isAdmin) fetchEmployees();
     }, []);
 
     const fetchAll = async () => {
@@ -67,6 +106,19 @@ const LeaveRequestPage: React.FC = () => {
         }
     };
 
+    const fetchEmployees = async () => {
+        try {
+            const res = await getEmployees();
+            const data: any = res.data;
+            const arr = Array.isArray(data)
+                ? data
+                : data?.$values ?? data?.data ?? [];
+            setEmployeeList(arr);
+        } catch {
+            console.error("Failed to load employees");
+        }
+    };
+
     const filteredList = leaveList.filter((l) => {
         const combined = `${l.employeeName ?? ""} ${l.leaveType} ${l.status ?? ""}`.toLowerCase();
         return combined.includes(search.toLowerCase());
@@ -80,7 +132,14 @@ const LeaveRequestPage: React.FC = () => {
 
     const openAddModal = () => {
         setEditingLeave(null);
-        setFormData(emptyForm);
+        setFormData({
+            employeeID: isAdmin ? 0 : loggedInUser.employeeID,
+            leaveType: "",
+            fromDate: "",
+            toDate: "",
+            reason: "",
+            status: "Pending",
+        });
         setFormError("");
         setShowModal(true);
     };
@@ -93,7 +152,6 @@ const LeaveRequestPage: React.FC = () => {
             fromDate: item.fromDate?.split("T")[0] ?? "",
             toDate: item.toDate?.split("T")[0] ?? "",
             reason: item.reason,
-            // Keep existing status but user cannot change it
             status: item.status ?? "Pending",
         });
         setFormError("");
@@ -123,8 +181,8 @@ const LeaveRequestPage: React.FC = () => {
 
         const today = getTodayStr();
 
-        if (!formData.employeeID || formData.employeeID === 0) {
-            setFormError("Employee ID is required.");
+        if (isAdmin && (!formData.employeeID || formData.employeeID === 0)) {
+            setFormError("Please select an employee.");
             return;
         }
         if (!formData.leaveType) {
@@ -158,7 +216,6 @@ const LeaveRequestPage: React.FC = () => {
                 await LeaveRequestService.update(editingLeave.leaveRequestID, {
                     ...formData,
                     leaveRequestID: editingLeave.leaveRequestID,
-                    // Always keep original status - never change on edit
                     status: editingLeave.status ?? "Pending",
                 });
                 setSuccessMessage("Leave request updated successfully!");
@@ -228,9 +285,14 @@ const LeaveRequestPage: React.FC = () => {
             <div className="container mt-4">
                 <div className="d-flex justify-content-between align-items-center mb-3">
                     <h2>Leave Request Management</h2>
-                    <button className="btn btn-primary" onClick={openAddModal}>
-                        Add Request
-                    </button>
+                    <div className="d-flex gap-2">
+                        <button className="btn btn-danger" onClick={() => window.history.back()}>
+                            Cancel
+                        </button>
+                        <button className="btn btn-primary" onClick={openAddModal}>
+                            Add Request
+                        </button>
+                    </div>
                 </div>
 
                 <div className="d-flex gap-2 mb-3">
@@ -347,19 +409,40 @@ const LeaveRequestPage: React.FC = () => {
                                     <form onSubmit={handleSubmit}>
                                         <div className="row">
 
-                                            <div className="col-md-6 mb-3">
-                                                <label className="form-label">Employee ID</label>
-                                                <input
-                                                    type="number"
-                                                    name="employeeID"
-                                                    className="form-control"
-                                                    value={formData.employeeID || ""}
-                                                    onChange={handleChange}
-                                                    placeholder="Enter employee ID"
-                                                    min={1}
-                                                    required
-                                                />
-                                            </div>
+                                            {isAdmin ? (
+                                                <div className="col-md-6 mb-3">
+                                                    <label className="form-label">Select Employee</label>
+                                                    <select
+                                                        name="employeeID"
+                                                        className="form-select"
+                                                        value={formData.employeeID}
+                                                        onChange={handleChange}
+                                                        required
+                                                    >
+                                                        <option value={0} disabled>-- Select Employee --</option>
+                                                        {employeeList.map((emp: any) => {
+                                                            const id = emp.id ?? emp.ID ?? emp.Id;
+                                                            const name = `${emp.firstName ?? emp.FirstName ?? ""} ${emp.lastName ?? emp.LastName ?? ""}`.trim();
+                                                            return (
+                                                                <option key={id} value={id}>
+                                                                    {name}
+                                                                </option>
+                                                            );
+                                                        })}
+                                                    </select>
+                                                </div>
+                                            ) : (
+ 
+                                                <div className="col-md-6 mb-3">
+                                                    <label className="form-label">Employee</label>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control"
+                                                        value={`${loggedInUser.firstName} (ID: ${loggedInUser.employeeID})`}
+                                                        disabled
+                                                    />
+                                                </div>
+                                            )}
 
                                             <div className="col-md-6 mb-3">
                                                 <label className="form-label">Leave Type</label>
@@ -418,8 +501,6 @@ const LeaveRequestPage: React.FC = () => {
                                                 />
                                             </div>
 
-                                            {/* Status - REMOVED from both add and edit */}
-
                                         </div>
 
                                         {formError && (
@@ -431,7 +512,7 @@ const LeaveRequestPage: React.FC = () => {
                                         <div className="modal-footer border-0 justify-content-center pb-4 px-0">
                                             <button
                                                 type="button"
-                                                className="btn btn-secondary rounded-pill px-4"
+                                                className="btn btn-danger rounded-pill px-4"
                                                 onClick={() => setShowModal(false)}
                                             >
                                                 Cancel

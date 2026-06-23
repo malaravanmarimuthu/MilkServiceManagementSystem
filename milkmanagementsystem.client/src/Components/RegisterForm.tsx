@@ -57,7 +57,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
     const handleRegister = async () => {
         const validationErrors = validateRegisterForm({
             firstName, lastName, emailId, mobile, password, confirmPassword,
-            location: ""
+            location: locationID > 0 ? "selected" :""
         });
         setErrors(validationErrors);
         if (Object.keys(validationErrors).length > 0) {

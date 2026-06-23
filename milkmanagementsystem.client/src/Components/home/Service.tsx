@@ -100,7 +100,7 @@ function Service() {
                             <h3 className="service-card-title">Daily Doorstep Delivery</h3>
                             <p className="service-card-text">
                                 Fresh milk delivered to your door every morning before 6AM,
-                                rain or shine — no missed days.
+                                rain or shine  no missed days.
                             </p>
                         </div>
                     </div>
@@ -126,7 +126,7 @@ function Service() {
                             <h3 className="service-card-title">Quality Lab Testing</h3>
                             <p className="service-card-text">
                                 Every batch is tested for purity and fat content before it
-                                leaves the depot — reports available on request.
+                                leaves the depot  reports available on request.
                             </p>
                         </div>
                     </div>
@@ -138,7 +138,7 @@ function Service() {
                             </div>
                             <h3 className="service-card-title">Flexible Subscriptions</h3>
                             <p className="service-card-text">
-                                Pause, skip, or change your quantity anytime from the app —
+                                Pause, skip, or change your quantity anytime from the app 
                                 no calls, no penalties.
                             </p>
                         </div>
@@ -151,7 +151,7 @@ function Service() {
                             </div>
                             <h3 className="service-card-title">Reusable Glass Bottles</h3>
                             <p className="service-card-text">
-                                We collect and sanitize empty bottles on your next delivery —
+                                We collect and sanitize empty bottles on your next delivery 
                                 less plastic, less waste.
                             </p>
                         </div>
