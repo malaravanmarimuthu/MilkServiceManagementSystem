@@ -29,6 +29,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\MilkManagementSystem.AuthServer\MilkManagementSystem.AuthServer.csproj" />
     <ProjectReference Include="..\milkmanagementsystem.client\milkmanagementsystem.client.esproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
