@@ -148,12 +148,6 @@ function EmployeeSubscription() {
         return sub.milkType ?? sub.MilkType ?? id;
     };
 
-    const getEmployeeName = (id: number) => {
-        const emp = employees.find((x) => x.id === id);
-        if (!emp) return id;
-        return `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim();
-    };
-
     const filteredEmployeeSubscriptions = employeeSubscriptions.filter((item) => {
         const employeeText = String(item.employeeId).toLowerCase();
         const subscriptionText = String(getSubscriptionName(item.subscriptionId)).toLowerCase();
