@@ -28,16 +28,16 @@ function Navbar() {
                 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap');
 
                 .navbar-fresh {
-    background: linear-gradient(135deg, #1a6b3c 0%, #2ecc8e 50%, #1a6b3c 100%);
-    background-size: 200% 200%;
-    animation: gradientShift 6s ease infinite;
-}
+                    background: linear-gradient(135deg, #1a6b3c 0%, #2ecc8e 50%, #1a6b3c 100%);
+                    background-size: 200% 200%;
+                    animation: gradientShift 6s ease infinite;
+                }
 
-@keyframes gradientShift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
+                @keyframes gradientShift {
+                    0% { background-position: 0% 50%; }
+                    50% { background-position: 100% 50%; }
+                    100% { background-position: 0% 50%; }
+                }
 
                 .navbar-fresh::before {
                     content: '';
@@ -47,9 +47,7 @@ function Navbar() {
                     pointer-events: none;
                 }
 
-                .navbar-inner {
-                    padding: 10px 0;
-                }
+                .navbar-inner { padding: 10px 0; }
 
                 .nav-brand-fresh {
                     font-family: 'Poppins', sans-serif;
@@ -190,9 +188,7 @@ function Navbar() {
                     padding: 6px 10px !important;
                 }
 
-                .navbar-toggler-icon {
-                    filter: brightness(0) invert(1);
-                }
+                .navbar-toggler-icon { filter: brightness(0) invert(1); }
 
                 .nav-divider {
                     width: 1px;
@@ -201,7 +197,6 @@ function Navbar() {
                     margin: 0 6px;
                 }
 
-                /* Gradient animated shimmer on brand */
                 @keyframes shimmer {
                     0% { background-position: -200% center; }
                     100% { background-position: 200% center; }
@@ -256,6 +251,7 @@ function Navbar() {
                             ) : (
                                 <>
                                     {isAdmin ? (
+
                                         <li className="nav-item dropdown">
                                             <a
                                                 className="nav-link dropdown-toggle nav-master-toggle"
@@ -267,38 +263,27 @@ function Navbar() {
                                             </a>
                                             <ul className="dropdown-menu nav-dropdown-fresh">
                                                 <li>
-                                                    <NavLink className="dropdown-item" to="/location">
-                                                        Location
-                                                    </NavLink>
+                                                    <NavLink className="dropdown-item" to="/location">Location</NavLink>
                                                 </li>
                                                 <li>
-                                                    <NavLink className="dropdown-item" to="/role">
-                                                        Role
-                                                    </NavLink>
+                                                    <NavLink className="dropdown-item" to="/role">Role</NavLink>
                                                 </li>
                                                 <li>
-                                                    <NavLink className="dropdown-item" to="/employee">
-                                                        Employee
-                                                    </NavLink>
+                                                    <NavLink className="dropdown-item" to="/employee">Employee</NavLink>
                                                 </li>
                                                 <li>
-                                                    <NavLink className="dropdown-item" to="/subscription">
-                                                        Subscription
-                                                    </NavLink>
+                                                    <NavLink className="dropdown-item" to="/subscription">Subscription</NavLink>
                                                 </li>
                                                 <li>
-                                                    <NavLink className="dropdown-item" to="/Employeesubscription">
-                                                        EmployeeSubscription
-                                                    </NavLink>
+                                                    <NavLink className="dropdown-item" to="/Employeesubscription">EmployeeSubscription</NavLink>
                                                 </li>
                                                 <li>
-                                                    <NavLink className="dropdown-item" to="/leave-request">
-                                                        Leave Request
-                                                    </NavLink>
+                                                    <NavLink className="dropdown-item" to="/leave-request">Leave Request</NavLink>
                                                 </li>
                                             </ul>
                                         </li>
                                     ) : (
+                      
                                         <>
                                             <li className="nav-item">
                                                 <NavLink to="/my-profile" className="nav-link nav-link-fresh">
@@ -317,38 +302,8 @@ function Navbar() {
                                             </li>
                                         </>
                                     )}
-                                    <li className="nav-item ms-lg-3 mt-2 mt-lg-0">
-                                    <li className="nav-item dropdown">
-                                        <a
-                                            className="nav-link dropdown-toggle nav-master-toggle"
-                                            href="#"
-                                            role="button"
-                                            data-bs-toggle="dropdown"
-                                        >
-                                             Master
-                                        </a>
-                                            <ul className="dropdown-menu nav-dropdown-fresh">
-                                                <li>
-                                                    <NavLink className="dropdown-item" to="/location">Location</NavLink>
-                                                </li>
-                                                <li>
-                                                    <NavLink className="dropdown-item" to="/role">Role</NavLink>
-                                                </li>
-                                                <li>
-                                                    <NavLink className="dropdown-item" to="/employee">Employee</NavLink>
-                                                </li>
-                                                <li>
-                                                    <NavLink className="dropdown-item" to="/subscription">Subscription</NavLink>
-                                                </li>
-                                                <li>
-                                                    <NavLink className="dropdown-item" to="/Employeesubscription">Employee Subscription</NavLink>
-                                                </li>
-                                                <li>
-                                                    <NavLink className="dropdown-item" to="/leave-request">Leave Request</NavLink>
-                                                </li>
-                                            </ul>
-                                    </li>
 
+       
                                     <li className="nav-item ms-lg-2 mt-2 mt-lg-0">
                                         <button
                                             className="btn nav-logout-btn"
