@@ -1,4 +1,5 @@
 ﻿/* eslint-disable react-hooks/immutability */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { LeaveRequestService } from "../Services/LeaveRequestService";
@@ -15,14 +16,21 @@ const ITEMS_PER_PAGE = 10;
 
 const LEAVE_TYPES = [
     "Casual Leave",
-    "Sick Leave",
-    "Earned Leave",
-    "Maternity Leave",
-    "Paternity Leave",
-    "Loss of Pay",
+    "Vacation Leave",
+    "Inactive",
+    "Freeze",
+    "Emergency Leave",
 ];
 
+const getTomorrowStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split("T")[0];
+};
+
 const getTodayStr = () => new Date().toISOString().split("T")[0];
+
+const NO_TO_DATE_TYPES = ["Vacation Leave", "Inactive", "Freeze", "Emergency Leave"];
 
 interface JwtPayload {
     userid: string;
@@ -53,21 +61,21 @@ const LeaveRequestPage: React.FC = () => {
     const loggedInUser = getLoggedInUser();
     const isAdmin = loggedInUser.role === "admin" || loggedInUser.role === "supervisor";
 
-    const emptyForm = {
+    const getEmptyForm = () => ({
         employeeID: isAdmin ? 0 : loggedInUser.employeeID,
         leaveType: "",
         fromDate: "",
         toDate: "",
         reason: "",
         status: "Pending",
-    };
+    });
 
     const [leaveList, setLeaveList] = useState<LeaveRequestDto[]>([]);
     const [employeeList, setEmployeeList] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editingLeave, setEditingLeave] = useState<LeaveRequestDto | null>(null);
-    const [formData, setFormData] = useState(emptyForm);
+    const [formData, setFormData] = useState(getEmptyForm());
     const [formError, setFormError] = useState("");
     const [error, setError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
@@ -127,14 +135,7 @@ const LeaveRequestPage: React.FC = () => {
 
     const openAddModal = () => {
         setEditingLeave(null);
-        setFormData({
-            employeeID: isAdmin ? 0 : loggedInUser.employeeID,
-            leaveType: "",
-            fromDate: "",
-            toDate: "",
-            reason: "",
-            status: "Pending",
-        });
+        setFormData(getEmptyForm());
         setFormError("");
         setShowModal(true);
     };
@@ -153,11 +154,40 @@ const LeaveRequestPage: React.FC = () => {
         setShowModal(true);
     };
 
+    const handleLeaveTypeChange = (leaveType: string) => {
+        setFormError("");
+        if (leaveType === "Emergency Leave") {
+            setFormData((prev) => ({
+                ...prev,
+                leaveType,
+                fromDate: getTodayStr(),
+                toDate: "",
+            }));
+        } else {
+            setFormData((prev) => ({
+                ...prev,
+                leaveType,
+                fromDate: "",
+                toDate: "",
+            }));
+        }
+    };
+
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
     ) => {
         setFormError("");
         const { name, value } = e.target;
+
+        if (name === "leaveType") {
+            handleLeaveTypeChange(value);
+            return;
+        }
+
+        if (name === "fromDate" && formData.leaveType === "Emergency Leave") {
+            return;
+        }
+
         setFormData((prev) => {
             const updated = {
                 ...prev,
@@ -170,11 +200,22 @@ const LeaveRequestPage: React.FC = () => {
         });
     };
 
+    const getMinFromDate = () => {
+        if (formData.leaveType === "Emergency Leave") return getTodayStr();
+        return getTomorrowStr();
+    };
+
+    const getMaxFromDate = () => {
+        if (formData.leaveType === "Emergency Leave") return getTodayStr();
+        return undefined;
+    };
+
+    const isNoToDate = NO_TO_DATE_TYPES.includes(formData.leaveType);
+    const isEmergency = formData.leaveType === "Emergency Leave";
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (saving) return;
-
-        const today = getTodayStr();
 
         if (isAdmin && (!formData.employeeID || formData.employeeID === 0)) {
             setFormError("Please select an employee.");
@@ -188,17 +229,23 @@ const LeaveRequestPage: React.FC = () => {
             setFormError("From date is required.");
             return;
         }
-        if (formData.fromDate < today) {
-            setFormError("From date cannot be in the past.");
+        if (isEmergency && formData.fromDate !== getTodayStr()) {
+            setFormError("Emergency Leave must be today's date.");
             return;
         }
-        if (!formData.toDate) {
-            setFormError("To date is required.");
+        if (!isEmergency && formData.fromDate < getTomorrowStr()) {
+            setFormError("From date must be tomorrow or later.");
             return;
         }
-        if (formData.toDate < formData.fromDate) {
-            setFormError("To date must be on or after From date.");
-            return;
+        if (!isNoToDate) {
+            if (!formData.toDate) {
+                setFormError("To date is required.");
+                return;
+            }
+            if (formData.toDate < formData.fromDate) {
+                setFormError("To date must be on or after From date.");
+                return;
+            }
         }
         if (!formData.reason.trim()) {
             setFormError("Reason is required.");
@@ -207,16 +254,21 @@ const LeaveRequestPage: React.FC = () => {
 
         setSaving(true);
         try {
+            const payload = {
+                ...formData,
+                toDate: isNoToDate ? formData.fromDate : formData.toDate,
+            };
+
             if (editingLeave) {
                 await LeaveRequestService.update(editingLeave.leaveRequestID, {
-                    ...formData,
+                    ...payload,
                     leaveRequestID: editingLeave.leaveRequestID,
                     status: editingLeave.status ?? "Pending",
                 });
                 setSuccessMessage("Leave request updated successfully!");
             } else {
                 await LeaveRequestService.create({
-                    ...formData,
+                    ...payload,
                     leaveRequestID: 0,
                     status: "Pending",
                 });
@@ -288,9 +340,12 @@ const LeaveRequestPage: React.FC = () => {
     return (
         <>
             <ErrorModal message={error} onClose={() => setError("")} />
-            <SuccessModal
-                message={successMessage}
-                onClose={() => setSuccessMessage("")}
+            <SuccessModal message={successMessage} onClose={() => setSuccessMessage("")} />
+            <ConfirmModal
+                message={showConfirm ? "Are you sure you want to delete this leave request?" : ""}
+                onConfirm={handleDelete}
+                onClose={() => { setShowConfirm(false); setDeleteId(null); }}
+                isLoading={deleting}
             />
 
             <div className="container mt-4">
@@ -298,7 +353,7 @@ const LeaveRequestPage: React.FC = () => {
                     <h2>Leave Request Management</h2>
                     <div className="d-flex gap-2">
                         <button className="btn btn-danger" onClick={() => window.history.back()}>
-                            Cancel
+                            Back
                         </button>
                         <button className="btn btn-primary" onClick={openAddModal}>
                             Add Request
@@ -334,7 +389,6 @@ const LeaveRequestPage: React.FC = () => {
                                         <th>To</th>
                                         <th>Reason</th>
                                         <th>Status</th>
-                                        {/* ✅ Admin மட்டும் Approval column காட்டும் */}
                                         {isAdmin && <th>Approval</th>}
                                         <th>Actions</th>
                                     </tr>
@@ -352,7 +406,12 @@ const LeaveRequestPage: React.FC = () => {
                                                 <td>{item.employeeName ?? `Emp #${item.employeeID}`}</td>
                                                 <td>{item.leaveType}</td>
                                                 <td>{new Date(item.fromDate).toLocaleDateString("en-IN")}</td>
-                                                <td>{new Date(item.toDate).toLocaleDateString("en-IN")}</td>
+                                                <td>
+                                                    {NO_TO_DATE_TYPES.includes(item.leaveType)
+                                                        ? <span className="text-muted">Ongoing</span>
+                                                        : new Date(item.toDate).toLocaleDateString("en-IN")
+                                                    }
+                                                </td>
                                                 <td
                                                     style={{
                                                         maxWidth: "150px",
@@ -366,7 +425,6 @@ const LeaveRequestPage: React.FC = () => {
                                                 </td>
                                                 <td>{statusBadge(item.status ?? "Pending")}</td>
 
-                                                {/* ✅ Admin மட்டும் Approve/Reject buttons */}
                                                 {isAdmin && (
                                                     <td>
                                                         {item.status === "Pending" ? (
@@ -452,6 +510,7 @@ const LeaveRequestPage: React.FC = () => {
                                 <div className="modal-body px-4">
                                     <form onSubmit={handleSubmit}>
                                         <div className="row">
+
                                             {isAdmin ? (
                                                 <div className="col-md-6 mb-3">
                                                     <label className="form-label">Select Employee</label>
@@ -464,11 +523,12 @@ const LeaveRequestPage: React.FC = () => {
                                                     >
                                                         <option value={0} disabled>-- Select Employee --</option>
                                                         {employeeList.map((emp: any) => {
-                                                            const id = emp.id ?? emp.ID ?? emp.Id;
-                                                            const name = `${emp.firstName ?? emp.FirstName ?? ""} ${emp.lastName ?? emp.LastName ?? ""}`.trim();
+                                                            const id = emp.employeeID ?? emp.id ?? emp.ID ?? emp.Id;
+                                                            const firstName = emp.firstName ?? emp.FirstName ?? emp.first_name ?? "";
+                                                            const lastName = emp.lastName ?? emp.LastName ?? emp.last_name ?? "";
                                                             return (
                                                                 <option key={id} value={id}>
-                                                                    {name}
+                                                                    {`${firstName} ${lastName}`.trim()} (ID: {id})
                                                                 </option>
                                                             );
                                                         })}
@@ -480,7 +540,7 @@ const LeaveRequestPage: React.FC = () => {
                                                     <input
                                                         type="text"
                                                         className="form-control"
-                                                        value={`${loggedInUser.firstName} (ID: ${loggedInUser.employeeID})`}
+                                                        value={loggedInUser.firstName}
                                                         disabled
                                                     />
                                                 </div>
@@ -496,79 +556,112 @@ const LeaveRequestPage: React.FC = () => {
                                                     required
                                                 >
                                                     <option value="">-- Select Leave Type --</option>
-                                                    {LEAVE_TYPES.map((t) => (
-                                                        <option key={t} value={t}>{t}</option>
+                                                    {LEAVE_TYPES.map((lt) => (
+                                                        <option key={lt} value={lt}>{lt}</option>
                                                     ))}
                                                 </select>
                                             </div>
 
-                                            <div className="col-md-6 mb-3">
-                                                <label className="form-label">From Date</label>
-                                                <input
-                                                    type="date"
-                                                    name="fromDate"
-                                                    className="form-control"
-                                                    value={formData.fromDate}
-                                                    onChange={handleChange}
-                                                    min={getTodayStr()}
-                                                    required
-                                                />
-                                                <small className="text-muted">Past dates cannot be selected</small>
-                                            </div>
+                                            {formData.leaveType && (
+                                                <div className="col-md-6 mb-3">
+                                                    <label className="form-label">
+                                                        From Date
+                                                        {isEmergency && (
+                                                            <span className="badge bg-danger ms-2">Today Only</span>
+                                                        )}
+                                                    </label>
+                                                    <input
+                                                        type="date"
+                                                        name="fromDate"
+                                                        className="form-control"
+                                                        value={formData.fromDate}
+                                                        min={getMinFromDate()}
+                                                        max={getMaxFromDate()}
+                                                        onChange={handleChange}
+                                                        readOnly={isEmergency}
+                                                        style={isEmergency ? { backgroundColor: "#e9ecef", cursor: "not-allowed" } : {}}
+                                                        required
+                                                    />
+                                                    {isEmergency && (
+                                                        <small className="text-muted">
+                                                            Emergency leave is automatically set to today and cannot be changed.
+                                                        </small>
+                                                    )}
+                                                    {!isEmergency && (
+                                                        <small className="text-muted">
+                                                            Select from tomorrow onwards.
+                                                        </small>
+                                                    )}
+                                                </div>
+                                            )}
 
-                                            <div className="col-md-6 mb-3">
-                                                <label className="form-label">To Date</label>
-                                                <input
-                                                    type="date"
-                                                    name="toDate"
-                                                    className="form-control"
-                                                    value={formData.toDate}
-                                                    onChange={handleChange}
-                                                    min={formData.fromDate || getTodayStr()}
-                                                    required
-                                                />
-                                                <small className="text-muted">Must be on or after From date</small>
-                                            </div>
+                                            {formData.leaveType && !isNoToDate && (
+                                                <div className="col-md-6 mb-3">
+                                                    <label className="form-label">To Date</label>
+                                                    <input
+                                                        type="date"
+                                                        name="toDate"
+                                                        className="form-control"
+                                                        value={formData.toDate}
+                                                        min={formData.fromDate || getTomorrowStr()}
+                                                        onChange={handleChange}
+                                                        required
+                                                    />
+                                                </div>
+                                            )}
 
-                                            <div className="col-12 mb-3">
-                                                <label className="form-label">Reason</label>
-                                                <textarea
-                                                    name="reason"
-                                                    className="form-control"
-                                                    value={formData.reason}
-                                                    onChange={handleChange}
-                                                    rows={3}
-                                                    placeholder="Enter reason for leave"
-                                                    required
-                                                />
-                                            </div>
+                                            {formData.leaveType && isNoToDate && formData.fromDate && (
+                                                <div className="col-md-6 mb-3 d-flex align-items-end">
+                                                    <div className="alert alert-info py-2 px-3 mb-0 w-100">
+                                                        {isEmergency
+                                                            ? "🚨 Emergency Leave starts today and continues until cancelled."
+                                                            : formData.leaveType === "Freeze"
+                                                                ? "🔒 Freeze starts from selected date and continues until cancelled."
+                                                                : `📅 ${formData.leaveType} starts from selected date and continues automatically.`
+                                                        }
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {formData.leaveType && (
+                                                <div className="col-12 mb-3">
+                                                    <label className="form-label">Reason</label>
+                                                    <textarea
+                                                        name="reason"
+                                                        className="form-control"
+                                                        rows={3}
+                                                        placeholder="Enter reason for leave"
+                                                        value={formData.reason}
+                                                        onChange={handleChange}
+                                                        required
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {formError && (
+                                                <div className="col-12">
+                                                    <div className="alert alert-danger py-2">{formError}</div>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {formError && (
-                                            <div className="alert alert-danger py-2 mb-2">
-                                                {formError}
-                                            </div>
-                                        )}
-
-                                        <div className="modal-footer border-0 justify-content-center pb-4 px-0">
+                                        <div className="d-flex justify-content-end gap-2 pt-2 pb-3">
                                             <button
                                                 type="button"
-                                                className="btn btn-danger rounded-pill px-4"
+                                                className="btn btn-secondary"
                                                 onClick={() => setShowModal(false)}
                                             >
                                                 Cancel
                                             </button>
                                             <button
                                                 type="submit"
-                                                className="btn btn-primary rounded-pill px-4"
+                                                className="btn btn-primary"
                                                 disabled={saving}
                                             >
                                                 {saving ? (
-                                                    <>
-                                                        <span className="spinner-border spinner-border-sm me-2" />
-                                                        {editingLeave ? "Updating..." : "Saving..."}
-                                                    </>
-                                                ) : editingLeave ? "Update" : "Save"}
+                                                    <span className="spinner-border spinner-border-sm me-2" />
+                                                ) : null}
+                                                {saving ? "Saving..." : "Save"}
                                             </button>
                                         </div>
                                     </form>
@@ -577,17 +670,6 @@ const LeaveRequestPage: React.FC = () => {
                         </div>
                     </div>
                 </>
-            )}
-
-            {showConfirm && (
-                <ConfirmModal
-                    title="Confirm Delete"
-                    message="Are you sure you want to delete this leave request?"
-                    confirmText={deleting ? "Deleting..." : "Delete"}
-                    isLoading={deleting}
-                    onConfirm={handleDelete}
-                    onClose={() => setShowConfirm(false)}
-                />
             )}
         </>
     );

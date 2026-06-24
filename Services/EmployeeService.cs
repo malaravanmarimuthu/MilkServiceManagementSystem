@@ -35,13 +35,30 @@ namespace Services
                     if (existingUser.Mobile == req.Mobile)
                         throw new Exception("Mobile number already registered");
                 }
-                var customerRole = await _roleRepository
-                    .FindByCondition(x => x.RoleName == "Customer")
-                    .FirstOrDefaultAsync();
 
-                if (customerRole == null)
+                long roleId;
+
+                if (req.RoleID > 0)
                 {
-                    throw new Exception("Customer role not found");
+                    var roleExists = await _roleRepository
+                        .FindByCondition(x => x.RoleID == req.RoleID)
+                        .FirstOrDefaultAsync();
+
+                    if (roleExists == null)
+                        throw new Exception("Selected role not found");
+
+                    roleId = req.RoleID;
+                }
+                else
+                {
+                    var customerRole = await _roleRepository
+                        .FindByCondition(x => x.RoleName == "Customer")
+                        .FirstOrDefaultAsync();
+
+                    if (customerRole == null)
+                        throw new Exception("Customer role not found");
+
+                    roleId = customerRole.RoleID;
                 }
 
                 var appUserEntity = new Employee
@@ -52,7 +69,7 @@ namespace Services
                     EmailId = req.EmailId,
                     Mobile = req.Mobile,
                     LocationID = req.LocationID,
-                    RoleID = customerRole.RoleID,
+                    RoleID = roleId,
                     CreatedDate = DateTime.UtcNow,
                 };
 
