@@ -17,7 +17,7 @@ const getRoleFromToken = (): string | null => {
 
 function Navbar() {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
-    const [scrolled, setScrolled] = useState(false);
+    const [] = useState(false);
     const token = localStorage.getItem("token");
     const isLoggedIn = !!token;
     const isAdmin = getRoleFromToken() === "Admin";
