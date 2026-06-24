@@ -25,14 +25,12 @@ const LEAVE_TYPES = [
 const getTodayStr = () => new Date().toISOString().split("T")[0];
 
 interface JwtPayload {
-    username: string;
-    firstname: string;
     userid: string;
+    firstname: string;
+    mobile: string;
+    rolename?: string;
     role?: string;
     RoleName?: string;
-    roleName?: string;
-    RoleID?: string;
-    roleID?: string;
 }
 
 const getLoggedInUser = () => {
@@ -40,25 +38,20 @@ const getLoggedInUser = () => {
     if (!token) return { employeeID: 0, firstName: "", role: "" };
     try {
         const decoded = jwtDecode<JwtPayload>(token);
-        const role = decoded.role ?? decoded.RoleName ?? decoded.roleName ?? "";
+        const role = decoded.rolename ?? decoded.role ?? decoded.RoleName ?? "";
         return {
             employeeID: Number(decoded.userid),
             firstName: decoded.firstname,
-            role: role,
+            role: role.toLowerCase(),
         };
     } catch {
         return { employeeID: 0, firstName: "", role: "" };
     }
 };
 
-const isAdminOrSupervisor = (role: string) => {
-    const r = role.toLowerCase();
-    return r === "admin" || r === "supervisor";
-};
-
 const LeaveRequestPage: React.FC = () => {
     const loggedInUser = getLoggedInUser();
-    const isAdmin = isAdminOrSupervisor(loggedInUser.role);
+    const isAdmin = loggedInUser.role === "admin" || loggedInUser.role === "supervisor";
 
     const emptyForm = {
         employeeID: isAdmin ? 0 : loggedInUser.employeeID,
@@ -82,6 +75,7 @@ const LeaveRequestPage: React.FC = () => {
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const [saving, setSaving] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [updatingId, setUpdatingId] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [search, setSearch] = useState("");
 
@@ -120,6 +114,7 @@ const LeaveRequestPage: React.FC = () => {
     };
 
     const filteredList = leaveList.filter((l) => {
+        if (!isAdmin && l.employeeID !== loggedInUser.employeeID) return false;
         const combined = `${l.employeeName ?? ""} ${l.leaveType} ${l.status ?? ""}`.toLowerCase();
         return combined.includes(search.toLowerCase());
     });
@@ -261,6 +256,22 @@ const LeaveRequestPage: React.FC = () => {
         }
     };
 
+    const handleStatusUpdate = async (item: LeaveRequestDto, newStatus: string) => {
+        setUpdatingId(item.leaveRequestID);
+        try {
+            await LeaveRequestService.update(item.leaveRequestID, {
+                ...item,
+                status: newStatus,
+            });
+            setSuccessMessage(`Leave request ${newStatus} successfully!`);
+            fetchAll();
+        } catch {
+            setError("Failed to update status.");
+        } finally {
+            setUpdatingId(null);
+        }
+    };
+
     const statusBadge = (status: string) => {
         const map: Record<string, string> = {
             Pending: "warning",
@@ -323,13 +334,15 @@ const LeaveRequestPage: React.FC = () => {
                                         <th>To</th>
                                         <th>Reason</th>
                                         <th>Status</th>
+                                        {/* ✅ Admin மட்டும் Approval column காட்டும் */}
+                                        {isAdmin && <th>Approval</th>}
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {paginated.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="text-center">
+                                            <td colSpan={isAdmin ? 8 : 7} className="text-center">
                                                 No leave requests found.
                                             </td>
                                         </tr>
@@ -352,6 +365,37 @@ const LeaveRequestPage: React.FC = () => {
                                                     {item.reason}
                                                 </td>
                                                 <td>{statusBadge(item.status ?? "Pending")}</td>
+
+                                                {/* ✅ Admin மட்டும் Approve/Reject buttons */}
+                                                {isAdmin && (
+                                                    <td>
+                                                        {item.status === "Pending" ? (
+                                                            <div className="d-flex gap-1">
+                                                                <button
+                                                                    className="btn btn-success btn-sm"
+                                                                    disabled={updatingId === item.leaveRequestID}
+                                                                    onClick={() => handleStatusUpdate(item, "Approved")}
+                                                                >
+                                                                    {updatingId === item.leaveRequestID ? (
+                                                                        <span className="spinner-border spinner-border-sm" />
+                                                                    ) : "Approve"}
+                                                                </button>
+                                                                <button
+                                                                    className="btn btn-danger btn-sm"
+                                                                    disabled={updatingId === item.leaveRequestID}
+                                                                    onClick={() => handleStatusUpdate(item, "Rejected")}
+                                                                >
+                                                                    {updatingId === item.leaveRequestID ? (
+                                                                        <span className="spinner-border spinner-border-sm" />
+                                                                    ) : "Reject"}
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-muted">—</span>
+                                                        )}
+                                                    </td>
+                                                )}
+
                                                 <td>
                                                     <button
                                                         className="btn btn-sm btn-warning me-2"
@@ -408,7 +452,6 @@ const LeaveRequestPage: React.FC = () => {
                                 <div className="modal-body px-4">
                                     <form onSubmit={handleSubmit}>
                                         <div className="row">
-
                                             {isAdmin ? (
                                                 <div className="col-md-6 mb-3">
                                                     <label className="form-label">Select Employee</label>
@@ -432,7 +475,6 @@ const LeaveRequestPage: React.FC = () => {
                                                     </select>
                                                 </div>
                                             ) : (
- 
                                                 <div className="col-md-6 mb-3">
                                                     <label className="form-label">Employee</label>
                                                     <input
@@ -500,7 +542,6 @@ const LeaveRequestPage: React.FC = () => {
                                                     required
                                                 />
                                             </div>
-
                                         </div>
 
                                         {formError && (
