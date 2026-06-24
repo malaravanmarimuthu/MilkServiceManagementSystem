@@ -1,12 +1,34 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
+import { jwtDecode } from "jwt-decode";
 import ConfirmModal from "../Common/ConfirmModal";
+
+interface JwtPayload {
+    userid: string;
+    firstname: string;
+    rolename?: string;
+    role?: string;
+    RoleName?: string;
+}
+
+const getRole = (): string => {
+    const token = localStorage.getItem("token");
+    if (!token) return "";
+    try {
+        const decoded = jwtDecode<JwtPayload>(token);
+        return (decoded.rolename ?? decoded.role ?? decoded.RoleName ?? "").toLowerCase();
+    } catch {
+        return "";
+    }
+};
 
 function Navbar() {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const token = localStorage.getItem("token");
     const isLoggedIn = !!token;
+    const role = getRole();
+    const isAdmin = role === "admin";
 
     return (
         <>
@@ -164,38 +186,41 @@ function Navbar() {
                                             Master
                                         </a>
 
-                                        <ul className="dropdown-menu nav-dropdown-fresh">
-                                            <li>
-                                                <NavLink className="dropdown-item" to="/location">
-                                                    Location
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink className="dropdown-item" to="/role">
-                                                    Role
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink className="dropdown-item" to="/employee">
-                                                    Employee
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink className="dropdown-item" to="/subscription">
-                                                    Subscription
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink className="dropdown-item" to="/Employeesubscription">
-                                                    EmployeeSubscription
-                                                </NavLink>
+                                            <ul className="dropdown-menu nav-dropdown-fresh">
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/location">
+                                                        Location
+                                                    </NavLink>
+                                                </li>
+
+                                                {isAdmin && (
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/role">
+                                                            Role
+                                                        </NavLink>
+                                                    </li>
+                                                )}
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/employee">
+                                                        Employee
+                                                    </NavLink>
+                                                </li>
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/subscription">
+                                                        Subscription
+                                                    </NavLink>
+                                                </li>
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/Employeesubscription">
+                                                        EmployeeSubscription
+                                                    </NavLink>
                                                 </li>
                                                 <li>
                                                     <NavLink className="dropdown-item" to="/leave-request">
                                                         Leave Request
                                                     </NavLink>
                                                 </li>
-                                        </ul>
+                                            </ul>
                                     </li>
 
                                     <li className="nav-item ms-lg-3 mt-2 mt-lg-0">
