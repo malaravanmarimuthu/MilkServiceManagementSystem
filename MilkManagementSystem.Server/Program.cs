@@ -1,5 +1,4 @@
 using Common.Settings;
-using DocumentFormat.OpenXml.Drawing.Charts;
 using Microsoft.Extensions.Options;
 using Services;
 

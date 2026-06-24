@@ -78,11 +78,11 @@ namespace Services
                 _logger.LogInformation($"Started -> request {req.ToJson()}");
 
                 var applicationuser = await _appUserRespository
-    .FindByCondition(x =>
-        x.Mobile == req.Mobile &&
-        x.Status != Common.Enums.EmployeeStatus.Deleted)
-    .Include(x => x.Role)
-    .FirstOrDefaultAsync();
+                    .FindByCondition(x =>
+                        x.Mobile == req.Mobile &&
+                        x.Status != Common.Enums.EmployeeStatus.Deleted)
+                    .Include(x => x.Role)
+                    .FirstOrDefaultAsync();
 
                 var appuserDto = new EmployeeDto();
 
@@ -92,8 +92,7 @@ namespace Services
                         applicationuser.Password.Equals(req.Password, StringComparison.Ordinal))
                     {
                         appuserDto = applicationuser.ToMap<Employee, EmployeeDto>();
-
-                        appuserDto.RoleName = applicationuser.Role?.RoleName ?? "";
+                        appuserDto.RoleName = applicationuser.Role?.RoleName ?? string.Empty;
                     }
                 }
 
