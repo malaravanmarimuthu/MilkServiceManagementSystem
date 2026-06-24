@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
@@ -151,9 +152,9 @@ function MyProfile() {
                 <div className="alert alert-info">Profile not found.</div>
             ) : (
                 <div className="card border-0 shadow-sm rounded-4 p-4">
-
                     <div className="text-center mb-4">
                         <div style={{ position: "relative", display: "inline-block" }}>
+
                             {photoPreview ? (
                                 <img
                                     src={photoPreview}
@@ -183,8 +184,6 @@ function MyProfile() {
                                     {getInitial()}
                                 </div>
                             )}
-
-                            {/* Camera icon */}
                             <div
                                 onClick={() => fileInputRef.current?.click()}
                                 style={{
@@ -200,13 +199,24 @@ function MyProfile() {
                                     alignItems: "center",
                                     justifyContent: "center",
                                     cursor: "pointer",
-                                    fontSize: "13px",
                                 }}
                             >
-                                
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="14"
+                                    height="14"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                >
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                    <circle cx="12" cy="13" r="4" />
+                                </svg>
                             </div>
                         </div>
-
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -219,9 +229,7 @@ function MyProfile() {
                             {employee.firstName ?? employee.FirstName}{" "}
                             {employee.lastName ?? employee.LastName}
                         </h5>
-                        <span className="badge bg-success mt-1">
-                            {employee.roleName ?? "Employee"}
-                        </span>
+                       
                     </div>
 
                     {/* Details */}

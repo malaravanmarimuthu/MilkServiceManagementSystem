@@ -80,11 +80,25 @@ function Dashboard() {
         (x) => (x.status ?? "").toLowerCase() === "active"
     ).length;
 
-    const inactiveCount = userSubscriptions.length - activeCount;
+    const inactiveCount = userSubscriptions.filter(
+        (x) => (x.status ?? "").toLowerCase() === "inactive"
+    ).length;
+
+    const freezeCount = userSubscriptions.filter(
+        (x) => (x.status ?? "").toLowerCase() === "freeze"
+    ).length;
+
+    const getStatusBadge = (status: string) => {
+        const s = (status ?? "").toLowerCase();
+        if (s === "active") return { bg: "#dcfce7", color: "#166534", label: "✓ Active" };
+        if (s === "freeze") return { bg: "#e0f2fe", color: "#075985", label: "❄️ Freeze" };
+        return { bg: "#fee2e2", color: "#991b1b", label: "✗ Inactive" };
+    };
 
     return (
         <div style={{ minHeight: "100vh", background: "#f0f4f8" }}>
 
+            {/* Hero Banner */}
             <div
                 style={{
                     background: "linear-gradient(135deg, #1B4332 0%, #2D6A4F 60%, #52B788 100%)",
@@ -93,7 +107,6 @@ function Dashboard() {
                     overflow: "hidden",
                 }}
             >
-                {/* Background circles decoration */}
                 <div style={{
                     position: "absolute", top: "-40px", right: "-40px",
                     width: "200px", height: "200px", borderRadius: "50%",
@@ -107,7 +120,6 @@ function Dashboard() {
 
                 <div className="container" style={{ position: "relative", zIndex: 1 }}>
                     <div className="d-flex align-items-center gap-3 mb-2">
-                        {/* Avatar */}
                         <div style={{
                             width: "56px", height: "56px", borderRadius: "50%",
                             background: "rgba(255,255,255,0.2)",
@@ -146,7 +158,7 @@ function Dashboard() {
 
             <div className="container" style={{ marginTop: "-32px", position: "relative", zIndex: 2, paddingBottom: "48px" }}>
 
-                {/*  Admin View */}
+                {/* Admin View */}
                 {isAdmin && (
                     <div className="row g-4 mt-1">
                         {[
@@ -200,14 +212,14 @@ function Dashboard() {
                     </div>
                 )}
 
-                {/*  User View */}
+                {/* User View */}
                 {!isAdmin && (
                     <>
                         {/* Stats Cards */}
                         <div className="row g-3 mb-4">
                             {[
                                 {
-                                    label: "Total Subscriptions",
+                                    label: "Total",
                                     value: userSubscriptions.length,
                                     icon: "🥛",
                                     bg: "#1B4332",
@@ -217,18 +229,25 @@ function Dashboard() {
                                     label: "Active",
                                     value: activeCount,
                                     icon: "✅",
-                                    bg: "#1e40af",
-                                    light: "#eff6ff",
+                                    bg: "#166534",
+                                    light: "#dcfce7",
                                 },
                                 {
                                     label: "Inactive",
                                     value: inactiveCount,
                                     icon: "⏸️",
-                                    bg: "#92400e",
-                                    light: "#fffbeb",
+                                    bg: "#991b1b",
+                                    light: "#fee2e2",
+                                },
+                                {
+                                    label: "Freeze",
+                                    value: freezeCount,
+                                    icon: "❄️",
+                                    bg: "#075985",
+                                    light: "#e0f2fe",
                                 },
                             ].map((stat, i) => (
-                                <div className="col-4" key={i}>
+                                <div className="col-3" key={i}>
                                     <div
                                         className="card border-0 text-center"
                                         style={{
@@ -310,7 +329,7 @@ function Dashboard() {
                                         </thead>
                                         <tbody>
                                             {userSubscriptions.map((item: any, index: number) => {
-                                                const isActive = (item.status ?? "").toLowerCase() === "active";
+                                                const badge = getStatusBadge(item.status);
                                                 return (
                                                     <tr
                                                         key={item.employeeSubscriptionId || index}
@@ -331,10 +350,10 @@ function Dashboard() {
                                                                 borderRadius: "20px",
                                                                 fontSize: "0.78rem",
                                                                 fontWeight: 600,
-                                                                background: isActive ? "#dcfce7" : "#fee2e2",
-                                                                color: isActive ? "#166534" : "#991b1b",
+                                                                background: badge.bg,
+                                                                color: badge.color,
                                                             }}>
-                                                                {isActive ? "✓ Active" : "✗ Inactive"}
+                                                                {badge.label}
                                                             </span>
                                                         </td>
                                                     </tr>
