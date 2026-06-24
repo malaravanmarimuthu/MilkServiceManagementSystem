@@ -12,6 +12,8 @@ import ProtectedRoute from "./ProtectedRoute";
 import Subscription from "../Pages/Subscription";
 import EmployeeSubscription from "../Pages/EmployeeSubscription";
 import LeaveRequest from "../Pages/LeaveRequest";
+import MyProfile from "../Pages/MyProfile";
+
 
 
 function AppRoutes() {
@@ -95,6 +97,14 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute>
                         <LeaveRequest />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/My-Profile"
+                element={
+                    <ProtectedRoute>
+                        <MyProfile />
                     </ProtectedRoute>
                 }
             />
