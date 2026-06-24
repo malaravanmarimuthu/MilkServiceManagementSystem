@@ -8,5 +8,6 @@
         public string? EmailId { get; set; }
         public string? Mobile { get; set; }
         public long LocationID { get; set; }
+        public long RoleID { get; set; }
     }
 }

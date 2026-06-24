@@ -29,9 +29,9 @@ namespace API.Controllers
             try
             {
                 _logger.LogInformation($"Started -> {_Name}.Create Request : {dto.ToJson()}");
+                _logger.LogInformation($"RoleID received: {dto.RoleID}");
 
                 var result = await _employeeService.CreateAppUserAsync(dto);
-
                 return Ok(result);
             }
             catch (Exception ex)
@@ -43,6 +43,7 @@ namespace API.Controllers
                 _logger.LogInformation($"Completed -> {_Name}.Create Request : {dto.ToJson()}");
             }
         }
+
         // READ ALL
         [HttpGet]
         public async Task<IActionResult> GetALL()
