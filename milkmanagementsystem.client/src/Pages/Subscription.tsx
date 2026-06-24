@@ -1,5 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 import {
     getSubscriptions,
@@ -21,6 +23,12 @@ type FormErrors = {
     quantity?: string;
     pricePerLiter?: string;
 };
+
+interface JwtPayload {
+    userid: string;
+    firstname: string;
+    rolename: string;
+}
 
 function Subscription() {
     const [subscriptions, setSubscriptions] = useState<SubscriptionType[]>([]);
@@ -49,6 +57,13 @@ function Subscription() {
     const [searchTerm, setSearchTerm] = useState("");
     const recordsPerPage = 10;
 
+    const token = localStorage.getItem("token");
+    let isAdmin = false;
+    if (token) {
+        const decoded = jwtDecode<JwtPayload>(token);
+        isAdmin = decoded.rolename?.toLowerCase() === "admin";
+    }
+
     const loadSubscriptions = async () => {
         try {
             setLoading(true);
@@ -66,14 +81,10 @@ function Subscription() {
     }, []);
 
     const filteredSubscriptions = subscriptions.filter((sub) =>
-        sub.milkType
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())
+        sub.milkType.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const totalPages = Math.ceil(
-        filteredSubscriptions.length / recordsPerPage
-    );
+    const totalPages = Math.ceil(filteredSubscriptions.length / recordsPerPage);
 
     const currentSubscriptions = filteredSubscriptions.slice(
         (currentPage - 1) * recordsPerPage,
@@ -133,22 +144,16 @@ function Subscription() {
         }
 
         setErrors(newErrors);
-
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async () => {
         setFormError("");
 
-        if (!validateForm()) {
-            return;
-        }
-
+        if (!validateForm()) return;
 
         if (isNaN(Number(pricePerLiter)) || Number(pricePerLiter) <= 0) {
-            setErrors({
-                pricePerLiter: "Price must be a valid positive number.",
-            });
+            setErrors({ pricePerLiter: "Price must be a valid positive number." });
             return;
         }
 
@@ -219,15 +224,8 @@ function Subscription() {
 
     return (
         <div className="container mt-4">
-            <ErrorModal
-                message={errorMessage}
-                onClose={() => setErrorMessage("")}
-            />
-
-            <SuccessModal
-                message={successMessage}
-                onClose={() => setsuccessMessage("")}
-            />
+            <ErrorModal message={errorMessage} onClose={() => setErrorMessage("")} />
+            <SuccessModal message={successMessage} onClose={() => setsuccessMessage("")} />
 
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h2>Subscription Management</h2>
@@ -240,15 +238,13 @@ function Subscription() {
                         Cancel
                     </button>
 
-                    <button
-                        className="btn btn-primary"
-                        onClick={openAddModal}
-                    >
-                        Add Subscription
-                    </button>
+                    {isAdmin && (
+                        <button className="btn btn-primary" onClick={openAddModal}>
+                            Add Subscription
+                        </button>
+                    )}
                 </div>
             </div>
-
 
             <div className="mb-3" style={{ maxWidth: "400px" }}>
                 <input
@@ -270,23 +266,17 @@ function Subscription() {
                     <table className="table table-bordered table-striped">
                         <thead>
                             <tr>
-                                <th>
-                                    Milk Type 
-                                </th>
-                                <th>
-                                    Quantity 
-                                </th>
-                                <th>
-                                    Price 
-                                </th>
-                                <th>Action</th>
+                                <th>Milk Type</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                {isAdmin && <th>Action</th>}
                             </tr>
                         </thead>
 
                         <tbody>
                             {subscriptions.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="text-center">
+                                    <td colSpan={isAdmin ? 4 : 3} className="text-center">
                                         No subscriptions found.
                                     </td>
                                 </tr>
@@ -296,21 +286,23 @@ function Subscription() {
                                         <td>{subscription.milkType}</td>
                                         <td>{subscription.quantity}</td>
                                         <td>{subscription.pricePerLiter}</td>
-                                        <td>
-                                            <button
-                                                className="btn btn-warning btn-sm me-2"
-                                                onClick={() => openEditModal(subscription)}
-                                            >
-                                                Edit
-                                            </button>
-
-                                            <button
-                                                className="btn btn-danger btn-sm"
-                                                onClick={() => openDeleteModal(subscription)}
-                                            >
-                                                Delete
-                                            </button>
-                                        </td>
+                                        {/* Admin  Edit/Delete buttons */}
+                                        {isAdmin && (
+                                            <td>
+                                                <button
+                                                    className="btn btn-warning btn-sm me-2"
+                                                    onClick={() => openEditModal(subscription)}
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    className="btn btn-danger btn-sm"
+                                                    onClick={() => openDeleteModal(subscription)}
+                                                >
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))
                             )}
@@ -325,7 +317,8 @@ function Subscription() {
                 </>
             )}
 
-            {showFormModal && (
+            {/* Form Modal - Admin only */}
+            {isAdmin && showFormModal && (
                 <div
                     className="modal d-block"
                     tabIndex={-1}
@@ -338,33 +331,23 @@ function Subscription() {
                                 <h5 className="modal-title">
                                     {editId === null ? "Add Subscription" : "Edit Subscription"}
                                 </h5>
-
-                                <button
-                                    type="button"
-                                    className="btn-close"
-                                    onClick={closeFormModal}
-                                />
+                                <button type="button" className="btn-close" onClick={closeFormModal} />
                             </div>
 
                             <div className="modal-body">
                                 <div className="mb-2">
                                     <span className="text-danger fw-bold">*</span>{" "}
-                                    <span className="text-muted small">
-                                        indicates mandatory fields
-                                    </span>
+                                    <span className="text-muted small">indicates mandatory fields</span>
                                 </div>
 
                                 {formError && (
-                                    <div className="alert alert-danger mb-3">
-                                        {formError}
-                                    </div>
+                                    <div className="alert alert-danger mb-3">{formError}</div>
                                 )}
 
                                 <div className="mb-3">
                                     <label className="form-label">
                                         Milk Type <span className="text-danger">*</span>
                                     </label>
-
                                     <select
                                         className={`form-select ${errors.milkType ? "is-invalid" : ""}`}
                                         value={milkType}
@@ -378,11 +361,8 @@ function Subscription() {
                                         <option value="Cow">Cow</option>
                                         <option value="Buffalo">Buffalo</option>
                                     </select>
-
                                     {errors.milkType && (
-                                        <span className="text-danger small">
-                                            {errors.milkType}
-                                        </span>
+                                        <span className="text-danger small">{errors.milkType}</span>
                                     )}
                                 </div>
 
@@ -390,38 +370,18 @@ function Subscription() {
                                     <label className="form-label">
                                         Quantity <span className="text-danger">*</span>
                                     </label>
-
                                     <input
                                         type="text"
                                         className="form-control"
                                         value="1 Liter"
                                         readOnly
-                                        />
-
-                                    {/*<input*/}
-                                    {/*    type="number"*/}
-                                    {/*    step="0.1"*/}
-                                    {/*    className={`form-control ${errors.quantity ? "is-invalid" : ""}`}*/}
-                                    {/*    value={quantity}*/}
-                                    {/*    onChange={(e) => {*/}
-                                    {/*        setQuantity(e.target.value);*/}
-                                    {/*        setErrors(prev => ({ ...prev, quantity: undefined }));*/}
-                                    {/*        setFormError("");*/}
-                                    {/*    }}*/}
-                                    {/*/>*/}
-
-                                    {errors.quantity && (
-                                        <span className="text-danger small">
-                                            {errors.quantity}
-                                        </span>
-                                    )}
+                                    />
                                 </div>
 
                                 <div className="mb-3">
                                     <label className="form-label">
                                         Price <span className="text-danger">*</span>
                                     </label>
-
                                     <input
                                         type="number"
                                         step="0.01"
@@ -433,11 +393,8 @@ function Subscription() {
                                             setFormError("");
                                         }}
                                     />
-
                                     {errors.pricePerLiter && (
-                                        <span className="text-danger small">
-                                            {errors.pricePerLiter}
-                                        </span>
+                                        <span className="text-danger small">{errors.pricePerLiter}</span>
                                     )}
                                 </div>
                             </div>
@@ -450,17 +407,12 @@ function Subscription() {
                                 >
                                     Cancel
                                 </button>
-
                                 <button
                                     className="btn btn-success"
                                     onClick={handleSubmit}
                                     disabled={loading}
                                 >
-                                    {loading
-                                        ? "Saving..."
-                                        : editId === null
-                                            ? "Save"
-                                            : "Update"}
+                                    {loading ? "Saving..." : editId === null ? "Save" : "Update"}
                                 </button>
                             </div>
 
@@ -469,7 +421,8 @@ function Subscription() {
                 </div>
             )}
 
-            {showDeleteModal && (
+            {/* Delete Modal - Admin only */}
+            {isAdmin && showDeleteModal && (
                 <div
                     className="modal d-block"
                     tabIndex={-1}
@@ -480,12 +433,7 @@ function Subscription() {
 
                             <div className="modal-header">
                                 <h5 className="modal-title">Delete Subscription</h5>
-
-                                <button
-                                    type="button"
-                                    className="btn-close"
-                                    onClick={closeDeleteModal}
-                                />
+                                <button type="button" className="btn-close" onClick={closeDeleteModal} />
                             </div>
 
                             <div className="modal-body">
@@ -501,7 +449,6 @@ function Subscription() {
                                 >
                                     Cancel
                                 </button>
-
                                 <button
                                     className="btn btn-danger"
                                     onClick={confirmDelete}

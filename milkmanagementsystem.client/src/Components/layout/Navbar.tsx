@@ -3,10 +3,23 @@ import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import ConfirmModal from "../Common/ConfirmModal";
 
+const getRoleFromToken = (): string | null => {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    try {
+        const payload = token.split(".")[1];
+        const decoded = JSON.parse(atob(payload));
+        return decoded.rolename;
+    } catch {
+        return null;
+    }
+};
+
 function Navbar() {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const token = localStorage.getItem("token");
     const isLoggedIn = !!token;
+    const isAdmin = getRoleFromToken() === "Admin";
 
     return (
         <>
@@ -154,50 +167,68 @@ function Navbar() {
                                 </>
                             ) : (
                                 <>
-                                    <li className="nav-item dropdown">
-                                        <a
-                                            className="nav-link dropdown-toggle nav-master-toggle"
-                                            href="#"
-                                            role="button"
-                                            data-bs-toggle="dropdown"
-                                        >
-                                            Master
-                                        </a>
-
-                                        <ul className="dropdown-menu nav-dropdown-fresh">
-                                            <li>
-                                                <NavLink className="dropdown-item" to="/location">
-                                                    Location
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink className="dropdown-item" to="/role">
-                                                    Role
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink className="dropdown-item" to="/employee">
-                                                    Employee
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink className="dropdown-item" to="/subscription">
-                                                    Subscription
-                                                </NavLink>
-                                            </li>
-                                            <li>
-                                                <NavLink className="dropdown-item" to="/Employeesubscription">
-                                                    EmployeeSubscription
-                                                </NavLink>
+                                    {isAdmin ? (
+                                        <li className="nav-item dropdown">
+                                            <a
+                                                className="nav-link dropdown-toggle nav-master-toggle"
+                                                href="#"
+                                                role="button"
+                                                data-bs-toggle="dropdown"
+                                            >
+                                                Master
+                                            </a>
+                                            <ul className="dropdown-menu nav-dropdown-fresh">
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/location">
+                                                        Location
+                                                    </NavLink>
+                                                </li>
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/role">
+                                                        Role
+                                                    </NavLink>
+                                                </li>
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/employee">
+                                                        Employee
+                                                    </NavLink>
+                                                </li>
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/subscription">
+                                                        Subscription
+                                                    </NavLink>
+                                                </li>
+                                                <li>
+                                                    <NavLink className="dropdown-item" to="/Employeesubscription">
+                                                        EmployeeSubscription
+                                                    </NavLink>
                                                 </li>
                                                 <li>
                                                     <NavLink className="dropdown-item" to="/leave-request">
                                                         Leave Request
                                                     </NavLink>
                                                 </li>
-                                        </ul>
-                                    </li>
-
+                                            </ul>
+                                        </li>
+                                    ) : (
+                                        <>
+                                            <li className="nav-item">
+                                                <NavLink to="/my-profile" className="nav-link nav-link-fresh">
+                                                    My Profile
+                                                </NavLink>
+                                            </li>
+                                            <li className="nav-item">
+                                                <NavLink to="/leave-request" className="nav-link nav-link-fresh">
+                                                    Leave Request
+                                                </NavLink>
+                                            </li>
+                                            <li className="nav-item">
+                                                <NavLink to="/subscription" className="nav-link nav-link-fresh">
+                                                    Subscription
+                                                </NavLink>
+                                            </li>
+                                        </>
+                                    )}
                                     <li className="nav-item ms-lg-3 mt-2 mt-lg-0">
                                         <button
                                             className="btn nav-logout-btn"
