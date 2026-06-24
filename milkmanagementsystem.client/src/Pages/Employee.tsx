@@ -18,8 +18,29 @@ import SuccessModal from "../Components/Common/SuccessModal";
 import Loader from "../Components/Common/Loader";
 import Pagination from "../Components/Common/Pagination";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 const ITEMS_PER_PAGE = 10;
+
+interface JwtPayload {
+    userid: string;
+    firstname: string;
+    rolename?: string;
+    role?: string;
+    RoleName?: string;
+}
+
+const getLoggedInUser = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return { employeeID: 0, role: "" };
+    try {
+        const decoded = jwtDecode<JwtPayload>(token);
+        const role = (decoded.rolename ?? decoded.role ?? decoded.RoleName ?? "").toLowerCase();
+        return { employeeID: Number(decoded.userid), role };
+    } catch {
+        return { employeeID: 0, role: "" };
+    }
+};
 
 const emptyForm = {
     firstName: "",
@@ -32,6 +53,9 @@ const emptyForm = {
 };
 
 const Employee: React.FC = () => {
+    const loggedInUser = getLoggedInUser();
+    const isAdmin = loggedInUser.role === "admin";
+
     const [employees, setEmployees] = useState<any[]>([]);
     const [locations, setLocations] = useState<LocationType[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
@@ -53,7 +77,7 @@ const Employee: React.FC = () => {
     useEffect(() => {
         fetchEmployees();
         fetchLocations();
-        fetchRoles();
+        if (isAdmin) fetchRoles();
     }, []);
 
     const fetchEmployees = async () => {
@@ -99,7 +123,15 @@ const Employee: React.FC = () => {
         }
     };
 
-    const filteredEmployees = employees.filter((e: any) => {
+    // ? Admin ? ?????????, ?????????? ? ?????? record ???????
+    const visibleEmployees = isAdmin
+        ? employees
+        : employees.filter((e: any) => {
+            const id = e.id ?? e.ID ?? e.Id;
+            return Number(id) === loggedInUser.employeeID;
+        });
+
+    const filteredEmployees = visibleEmployees.filter((e: any) => {
         const full =
             `${e.firstName ?? e.FirstName ?? ""} ${e.lastName ?? e.LastName ?? ""} ${e.emailId ?? e.EmailId ?? ""} ${e.mobile ?? e.Mobile ?? ""}`.toLowerCase();
         return full.includes(search.toLowerCase());
@@ -155,18 +187,11 @@ const Employee: React.FC = () => {
             setFormError("Please select a location.");
             return;
         }
-        if (formData.roleID === 0) {
-            setFormError("Please select a role.");
-            return;
-        }
 
         setSaving(true);
         try {
             if (editingEmployee) {
-                const id =
-                    editingEmployee.id ??
-                    editingEmployee.ID ??
-                    editingEmployee.Id;
+                const id = editingEmployee.id ?? editingEmployee.ID ?? editingEmployee.Id;
                 await updateEmployee(id, formData);
                 setSuccessMessage("Employee updated successfully!");
             } else {
@@ -226,12 +251,15 @@ const Employee: React.FC = () => {
                         >
                             Cancel
                         </button>
-                        <button
-                            className="btn btn-primary"
-                            onClick={openAddModal}
-                        >
-                            Add Employee
-                        </button>
+                        {/* ? Add Employee - Admin ??????? */}
+                        {isAdmin && (
+                            <button
+                                className="btn btn-primary"
+                                onClick={openAddModal}
+                            >
+                                Add Employee
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -291,12 +319,15 @@ const Employee: React.FC = () => {
                                                         >
                                                             Edit
                                                         </button>
-                                                        <button
-                                                            className="btn btn-sm btn-danger"
-                                                            onClick={() => confirmDelete(id)}
-                                                        >
-                                                            Delete
-                                                        </button>
+                                                        {/* ? Delete - Admin ??????? */}
+                                                        {isAdmin && (
+                                                            <button
+                                                                className="btn btn-sm btn-danger"
+                                                                onClick={() => confirmDelete(id)}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                        )}
                                                     </td>
                                                 </tr>
                                             );
@@ -421,26 +452,27 @@ const Employee: React.FC = () => {
                                                 </select>
                                             </div>
 
-
-                                            <div className="col-md-6 mb-3">
-                                                <label className="form-label">Role</label>
-                                                <select
-                                                    name="roleID"
-                                                    className="form-select"
-                                                    value={formData.roleID}
-                                                    onChange={handleChange}
-                                                    required
-                                                >
-                                                    <option value={0} disabled>
-                                                        -- Select Role --
-                                                    </option>
-                                                    {roles.map((role) => (
-                                                        <option key={role.roleID} value={role.roleID}>
-                                                            {role.roleName}
+                                            {/* ? Role - Admin ??????? ???????? */}
+                                            {isAdmin && (
+                                                <div className="col-md-6 mb-3">
+                                                    <label className="form-label">Role</label>
+                                                    <select
+                                                        name="roleID"
+                                                        className="form-select"
+                                                        value={formData.roleID}
+                                                        onChange={handleChange}
+                                                    >
+                                                        <option value={0} disabled>
+                                                            -- Select Role --
                                                         </option>
-                                                    ))}
-                                                </select>
-                                            </div>
+                                                        {roles.map((role) => (
+                                                            <option key={role.roleID} value={role.roleID}>
+                                                                {role.roleName}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {formError && (
@@ -450,7 +482,6 @@ const Employee: React.FC = () => {
                                         )}
 
                                         <div className="modal-footer border-0 justify-content-center pb-4 px-0">
-
                                             <button
                                                 type="button"
                                                 className="btn btn-danger rounded-pill px-4"

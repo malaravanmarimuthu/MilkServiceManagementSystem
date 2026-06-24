@@ -468,7 +468,7 @@ const LeaveRequestPage: React.FC = () => {
                                                             const name = `${emp.firstName ?? emp.FirstName ?? ""} ${emp.lastName ?? emp.LastName ?? ""}`.trim();
                                                             return (
                                                                 <option key={id} value={id}>
-                                                                    {name}
+                                                                    {name} (ID: {id})
                                                                 </option>
                                                             );
                                                         })}
