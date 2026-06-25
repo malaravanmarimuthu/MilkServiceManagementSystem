@@ -1,6 +1,7 @@
 ﻿using Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Models.Models;
 
 namespace Data.Context
 {
@@ -23,5 +24,6 @@ namespace Data.Context
         public DbSet<Subscription> Subscriptions { get; set; }
         public DbSet<EmployeeSubscription> EmployeeSubscriptions { get; set; }
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
+        public DbSet<MilkEntry> MilkEntries { get; set; }
     }
 }

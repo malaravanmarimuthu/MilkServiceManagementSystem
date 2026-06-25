@@ -19,8 +19,8 @@ namespace Data.Entities
 
         public decimal Quantity { get; set; }
 
-        //public Employee Employee { get; set; } = null!;
+        public Employee Employee { get; set; } = null!;
 
-        //public Subscription Subscription { get; set; } = null!;
+        public Subscription Subscription { get; set; } = null!;
     }
 }

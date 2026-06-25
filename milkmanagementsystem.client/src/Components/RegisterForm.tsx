@@ -1,4 +1,5 @@
-﻿/* eslint-disable react-hooks/immutability */
+﻿/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/immutability */
 /* eslint-disable react-hooks/purity */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useRef, useEffect } from "react";
@@ -45,7 +46,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
             const arr = Array.isArray(data) ? data : [];
 
             arr.sort((a: any, b: any) => {
-                if (a.loactionName === "Other") return 1;
+                if (a.locationName === "Other") return 1;
                 if (b.locationName === "Other") return -1;
                 return 0;
             });
@@ -69,11 +70,6 @@ export default function RegisterForm({ setIsRegister }: Props) {
             else if (validationErrors.confirmPassword) confirmPasswordRef.current?.focus();
             return;
         }
-        if (locationID === 0)
-        {
-            setErrors((prev: any) => ({ ...prev, location: "Please select a location" }));
-            return;
-        }
         setLoading(true);
         try {
             await axiosInstance.post(config.AUTH_URL + "/Auth/signup", {
@@ -94,20 +90,18 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 /* ── PAGE BACKGROUND ── */
                 .reg-page {
     min-height: 100vh;
-    width: 100vw;          
-    margin: 0;             
+    width: 100%;
+    margin: 0;
     padding: 30px 16px;
-    position: fixed;       
-    top: 0;
-    left: 0;
+    position: relative;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
     background-size: 400% 400%;
     animation: bgShift 10s ease infinite;
-    overflow: hidden;
-    z-index: 9999;         
+    overflow-y: auto;
+    z-index: 9999;
 }
 
                 @keyframes bgShift {
@@ -185,6 +179,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                     animation: cardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
                 }
                 @keyframes cardIn {
+                    from { opacity: 0; transform: translateY(40px) scale(0.95); }
                     from { opacity: 0; transform: translateY(40px) scale(0.95); }
                     to   { opacity: 1; transform: translateY(0) scale(1); }
                 }
@@ -515,17 +510,19 @@ export default function RegisterForm({ setIsRegister }: Props) {
                     <div className="field-group">
                         <label className="field-label">Location <span className="req-star">*</span></label>
                         <select
-                            className="reg-select"
+                            className={`reg-select ${errors.location ? "is-invalid" : ""}`}
                             value={locationID}
                             onChange={(e) => {
                                 setLocationID(Number(e.target.value));
-                                setErrors((prev: any) => ({ ...prev, location: undefined }));
+
+                                if (errors.location) {
+                                    setErrors((prev: any) => ({
+                                        ...prev,
+                                        location: undefined,
+                                    }));
+                                }
                             }}
                         >
-                            <option value={0}>— Select Location —</option>
-                            {locations.map((loc: any) => (
-                                <option key={loc.locationID} value={loc.locationID}>{loc.locationName}</option>
-                            ))}
                         </select>
                         {errors.location && (
                             <div className="error-text">

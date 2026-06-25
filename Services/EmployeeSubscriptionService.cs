@@ -18,16 +18,19 @@ namespace Services
 
         public async Task<IEnumerable<EmployeeSubscriptionDto>> GetAllAsync()
         {
-            try
-            {
-                var list = await _context.EmployeeSubscriptions.ToListAsync();
-                return list.Adapt<List<EmployeeSubscriptionDto>>();
-                
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while retrieving all employee subscriptions.", ex);
-            }
+            return await _context.EmployeeSubscriptions
+                .Include(x => x.Employee)
+                .Select(x => new EmployeeSubscriptionDto
+                {
+                    EmployeeSubscriptionId = x.EmployeeSubscriptionId,
+                    EmployeeId = x.EmployeeId,
+                    EmployeeName = x.Employee.FirstName + " " + x.Employee.LastName,
+                    LocationID = x.Employee.LocationID,
+                    SubscriptionId = x.SubscriptionId,
+                    Status = x.Status,
+                    Quantity = x.Quantity
+                })
+                .ToListAsync();
         }
 
         public async Task<EmployeeSubscriptionDto?> GetByIdAsync(long id)
