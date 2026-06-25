@@ -55,6 +55,10 @@ export default function RegisterForm({ setIsRegister }: Props) {
     };
 
     const handleRegister = async () => {
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+        });
         const validationErrors = validateRegisterForm({
             firstName, lastName, emailId, mobile, password, confirmPassword,
             location: locationID > 0 ? "selected" :""
@@ -94,20 +98,18 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 /* ── PAGE BACKGROUND ── */
                 .reg-page {
     min-height: 100vh;
-    width: 100vw;          
-    margin: 0;             
+    width: 100%;
+    margin: 0;
     padding: 30px 16px;
-    position: fixed;       
-    top: 0;
-    left: 0;
+    position: relative;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
     background-size: 400% 400%;
     animation: bgShift 10s ease infinite;
-    overflow: hidden;
-    z-index: 9999;         
+    overflow-y: auto;
+    z-index: 9999;
 }
 
                 @keyframes bgShift {

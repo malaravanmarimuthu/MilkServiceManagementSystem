@@ -31,33 +31,18 @@ namespace Services
                 {
                     if (existingUser.EmailId == req.EmailId)
                         throw new Exception("Email already registered");
-
                     if (existingUser.Mobile == req.Mobile)
                         throw new Exception("Mobile number already registered");
                 }
 
-                long roleId;
-
-                if (req.RoleID > 0)
-                {
-                    var roleExists = await _roleRepository
-                        .FindByCondition(x => x.RoleID == req.RoleID)
-                        .FirstOrDefaultAsync();
-
-                    if (roleExists == null)
-                        throw new Exception("Selected role not found");
-
-                    roleId = req.RoleID;
-                }
-                else
+                long roleId = req.RoleID;
+                if (roleId <= 0)
                 {
                     var customerRole = await _roleRepository
                         .FindByCondition(x => x.RoleName == "Customer")
                         .FirstOrDefaultAsync();
-
                     if (customerRole == null)
                         throw new Exception("Customer role not found");
-
                     roleId = customerRole.RoleID;
                 }
 
@@ -74,7 +59,6 @@ namespace Services
                 };
 
                 await _appUserRespository.CreateAsync(appUserEntity);
-
                 return true;
             }
             catch (Exception ex)

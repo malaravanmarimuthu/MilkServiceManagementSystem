@@ -250,39 +250,52 @@ function Navbar() {
                                 </>
                             ) : (
                                 <>
-                                    {isAdmin ? (
+                                        {isAdmin ? (
+                                            <>
+                                                <li className="nav-item">
+                                                    <NavLink to="/my-profile" className="nav-link nav-link-fresh">
+                                                        My Profile
+                                                    </NavLink>
+                                                </li>
 
-                                        <li className="nav-item dropdown">
-                                            <a
-                                                className="nav-link dropdown-toggle nav-master-toggle"
-                                                href="#"
-                                                role="button"
-                                                data-bs-toggle="dropdown"
-                                            >
-                                                Master
-                                            </a>
-                                            <ul className="dropdown-menu nav-dropdown-fresh">
-                                                <li>
-                                                    <NavLink className="dropdown-item" to="/location">Location</NavLink>
+                                                <li className="nav-item dropdown">
+                                                    <a
+                                                        className="nav-link dropdown-toggle nav-master-toggle"
+                                                        href="#"
+                                                        role="button"
+                                                        data-bs-toggle="dropdown"
+                                                    >
+                                                        Master
+                                                    </a>
+
+                                                    <ul className="dropdown-menu nav-dropdown-fresh">
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/location">Location</NavLink>
+                                                        </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/role">Role</NavLink>
+                                                        </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/employee">Employee</NavLink>
+                                                        </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/subscription">Subscription</NavLink>
+                                                        </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/employeesubscription">Employee Subscription</NavLink>
+                                                        </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/leave-request">Leave Request</NavLink>
+                                                        </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/milk-entry">
+                                                                Milk Entry
+                                                            </NavLink>
+                                                        </li>
+                                                    </ul>
                                                 </li>
-                                                <li>
-                                                    <NavLink className="dropdown-item" to="/role">Role</NavLink>
-                                                </li>
-                                                <li>
-                                                    <NavLink className="dropdown-item" to="/employee">Employee</NavLink>
-                                                </li>
-                                                <li>
-                                                    <NavLink className="dropdown-item" to="/subscription">Subscription</NavLink>
-                                                </li>
-                                                <li>
-                                                    <NavLink className="dropdown-item" to="/Employeesubscription">EmployeeSubscription</NavLink>
-                                                </li>
-                                                <li>
-                                                    <NavLink className="dropdown-item" to="/leave-request">Leave Request</NavLink>
-                                                </li>
-                                            </ul>
-                                        </li>
-                                    ) : (
+                                            </>
+                                        ) : (
                       
                                         <>
                                             <li className="nav-item">

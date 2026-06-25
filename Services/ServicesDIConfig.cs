@@ -41,7 +41,8 @@ namespace Services
             services.AddScoped<IEmployeeSubscriptionService, EmployeeSubscriptionService>();
             services.AddScoped<ILeaveRequestService, LeaveRequestService>();
             services.AddScoped(typeof(IApiMessage<>), typeof(ApiMessage<>));
-            
+            services.AddScoped<IMilkEntryService, MilkEntryService>();
+
         }
 
         public static void AddDALServices(this IServiceCollection services)
