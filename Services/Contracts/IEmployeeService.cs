@@ -7,6 +7,8 @@ namespace Services.Contracts
         ValueTask<bool> CreateAppUserAsync(RegisterDto req);
         ValueTask<EmployeeDto> IsValidAppUserAsync(LoginDto req);
         ValueTask<bool> IsValidUserIdandOrgIdAsync(long userId,long orgId);
+        ValueTask<bool> ChangePassword(long id, string newPassword);
+
         ValueTask<Employee> GetById(long id);
 
         ValueTask<bool> Update(long id, EmployeeDto dto);

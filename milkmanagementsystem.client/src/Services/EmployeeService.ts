@@ -26,6 +26,20 @@ export const updateEmployee = (id: number, data: any) =>
         roleID: data.roleID,
     });
 
+export const changePassword = async (
+    userId: number,
+    mobile: string,
+    oldPassword: string,
+    newPassword: string
+) => {
+    return await axiosInstance.post(`/Auth/changepassword`, {
+        employeeId: userId,
+        mobile: mobile,
+        oldPassword,
+        newPassword,
+    });
+};
+
 export const deleteEmployee = (id: number) =>
     axiosInstance.delete(`${API}/${id}`);
 

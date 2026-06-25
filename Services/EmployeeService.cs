@@ -237,6 +237,23 @@ namespace Services
             }
         }
 
+        //ChangePass
+        public async ValueTask<bool> ChangePassword(long id, string newPassword)
+        {
+            var emp = await _appUserRespository
+                .FindByCondition(x => x.ID == id)
+                .FirstOrDefaultAsync();
+
+            if (emp == null)
+                return false;
+
+            emp.Password = newPassword;
+
+            await _appUserRespository.UpdateAsync(emp);
+
+            return true;
+        }
+
         public async ValueTask<bool> Delete(long id)
         {
             try

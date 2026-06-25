@@ -11,6 +11,8 @@ namespace Services.Authentication
         ValueTask<RefreshTokenDto> RefreshTokenAsync(string refreshToken);
 
         ValueTask<SuccessDto> RegisterMemberAsync(RegisterDto registerDto);
+        ValueTask<SuccessDto> ChangePasswordAsync(ChangePasswordDto registerDto);
+
         ValueTask<string> GenerateAccessToken(List<Claim> claims,string secret);
         ValueTask<string>  GenerateRefreshToken(List<Claim> claims);
         ValueTask<ClaimsPrincipal> GetPrincipalFromExpiredToken(string token);
