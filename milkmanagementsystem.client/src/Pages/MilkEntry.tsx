@@ -9,6 +9,7 @@ import type { MilkEntryDto } from "../Services/MilkEntryService";
 import ErrorModal from "../Components/Common/ErrorModal";
 import SuccessModal from "../Components/Common/SuccessModal";
 import Loader from "../Components/Common/Loader";
+import { getEmployees } from "../Services/EmployeeService";
 
 const getTodayStr = () => {
     const d = new Date();
@@ -29,6 +30,7 @@ const MilkEntry: React.FC = () => {
     const [savingType, setSavingType] = useState<string>("");
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [employees, setEmployees] = useState<any[]>([]);
 
     useEffect(() => {
         fetchAll();
@@ -37,12 +39,20 @@ const MilkEntry: React.FC = () => {
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [locData, empSubData, subData, entryData] = await Promise.all([
-                getLocations(),
-                getEmployeeSubscriptions(),
-                getSubscriptions(),
-                MilkEntryService.getAll(),
-            ]);
+            const [locData, empSubData, subData, entryData, empData] =
+                await Promise.all([
+                    getLocations(),
+                    getEmployeeSubscriptions(),
+                    getSubscriptions(),
+                    MilkEntryService.getAll(),
+                    getEmployees(),
+                ]);
+
+            const empArr = Array.isArray(empData.data)
+                ? empData.data
+                : empData.data?.$values ?? [];
+
+            setEmployees(empArr);
 
             const locArr = Array.isArray(locData)
                 ? locData
@@ -82,17 +92,22 @@ const MilkEntry: React.FC = () => {
         (s.status ?? "").toLowerCase() === "active"
     );
 
-    const filteredSubs = selectedLocationID > 0
-        ? activeSubscriptions.filter((s: any) =>
-            (s.locationID ?? s.LocationID) === selectedLocationID
-        )
-        : activeSubscriptions;
+    const filteredSubs =
+        selectedLocationID > 0
+            ? activeSubscriptions.filter((s: any) => {
+
+                return (s.locationID ?? s.LocationID) == selectedLocationID;
+            })
+            : activeSubscriptions;
+
 
     const handleSave = async (sub: any, type: string, qty: number) => {
+        console.log("Selected Location:", selectedLocationID);
         if (!selectedLocationID) {
             setError("Please select a location.");
             return;
         }
+
         const empId = sub.employeeId ?? sub.EmployeeId;
         setSavingId(empId);
         setSavingType(type);
@@ -184,7 +199,8 @@ const MilkEntry: React.FC = () => {
                                         const empId = sub.employeeId ?? sub.EmployeeId;
                                         const subId = sub.subscriptionId ?? sub.SubscriptionId;
                                         const qty = sub.quantity ?? 0;
-                                        const empName = sub.employeeName ?? sub.EmployeeName ?? `Emp #${empId}`;
+                                        const employee = employees.find( (e: any) => (e.id ?? e.ID) === empId);
+                                        const empName = employee? `${employee.firstName ?? employee.FirstName} ${employee.lastName ?? employee.LastName}`: `Emp #${empId}`;
                                         const isSaving = savingId === empId;
                                         const done = hasEntry(empId);
 
