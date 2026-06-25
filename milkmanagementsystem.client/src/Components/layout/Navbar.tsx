@@ -292,6 +292,11 @@ function Navbar() {
                                                                 Milk Entry
                                                             </NavLink>
                                                         </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/View-Milk-Entry">
+                                                               View Milk Entry
+                                                            </NavLink>
+                                                        </li>
                                                     </ul>
                                                 </li>
                                             </>

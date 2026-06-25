@@ -36,6 +36,31 @@ namespace Services
                 Notes = x.Notes,
             }).ToList();
         }
+        public async ValueTask<MilkEntryDto?> GetById(long id)
+        {
+            var entry = await _milkEntryRepository
+                .FindByCondition(x => x.MilkEntryID == id)
+                .Include(x => x.Employee)
+                .Include(x => x.Location)
+                .FirstOrDefaultAsync();
+
+            if (entry == null) return null;
+
+            return new MilkEntryDto
+            {
+                MilkEntryID = entry.MilkEntryID,
+                EmployeeID = entry.EmployeeID,
+                EmployeeName = entry.Employee != null
+                    ? $"{entry.Employee.FirstName} {entry.Employee.LastName}"
+                    : "",
+                LocationID = entry.LocationID,
+                LocationName = entry.Location != null ? entry.Location.LocationName : "",
+                EntryDate = entry.EntryDate,
+                EntryType = entry.EntryType,
+                Quantity = entry.Quantity,
+                Notes = entry.Notes,
+            };
+        }
 
         public async ValueTask<bool> Create(MilkEntryDto dto)
         {
@@ -52,7 +77,24 @@ namespace Services
             await _milkEntryRepository.CreateAsync(entity);
             return true;
         }
+        public async ValueTask<bool> Update(long id, MilkEntryDto dto)
+        {
+            var entity = await _milkEntryRepository
+                .FindByCondition(x => x.MilkEntryID == id)
+                .FirstOrDefaultAsync();
 
+            if (entity == null) return false;
+
+            entity.EmployeeID = dto.EmployeeID;
+            entity.LocationID = dto.LocationID;
+            entity.EntryDate = dto.EntryDate;
+            entity.EntryType = dto.EntryType;
+            entity.Quantity = dto.Quantity;
+            entity.Notes = dto.Notes;
+
+            await _milkEntryRepository.UpdateAsync(entity);
+            return true;
+        }
         public async ValueTask<bool> Delete(long id)
         {
             var entity = await _milkEntryRepository
@@ -61,6 +103,8 @@ namespace Services
             if (entity == null) return false;
             await _milkEntryRepository.DeleteAsync(entity);
             return true;
-        }
+        }      
+
+       
     }
 }

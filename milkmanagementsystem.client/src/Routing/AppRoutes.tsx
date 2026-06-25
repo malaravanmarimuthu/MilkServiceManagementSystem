@@ -13,6 +13,8 @@ import Subscription from "../Pages/Subscription";
 import EmployeeSubscription from "../Pages/EmployeeSubscription";
 import LeaveRequest from "../Pages/LeaveRequest";
 import MyProfile from "../Pages/MyProfile";
+import ViewMilkEntry from "../Pages/ViewMilkEntry";
+
 
 
 
@@ -105,6 +107,14 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute>
                         <MyProfile />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/View-Milk-Entry"
+                element={
+                    <ProtectedRoute>
+                        <ViewMilkEntry />
                     </ProtectedRoute>
                 }
             />
