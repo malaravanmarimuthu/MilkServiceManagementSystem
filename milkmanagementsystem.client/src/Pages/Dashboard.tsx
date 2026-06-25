@@ -4,6 +4,8 @@ import { jwtDecode } from "jwt-decode";
 import { useEffect, useState } from "react";
 import { getEmployeeSubscriptions } from "../Services/EmployeeSubscriptionService";
 import { getSubscriptions } from "../Services/SubscriptionService";
+import { getEmployees } from "../Services/EmployeeService";
+import { LeaveRequestService } from "../Services/LeaveRequestService";
 import Loader from "../Components/Common/Loader";
 
 interface JwtPayload {
@@ -24,18 +26,64 @@ function Dashboard() {
         const decoded = jwtDecode<JwtPayload>(token);
         firstName = decoded.firstname;
         userId = Number(decoded.userid);
-        isAdmin = decoded.rolename === "Admin";
+        isAdmin = decoded.rolename?.toLowerCase() === "admin";
     }
 
     const [userSubscriptions, setUserSubscriptions] = useState<any[]>([]);
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
+    // Admin stats
+    const [totalEmployees, setTotalEmployees] = useState(0);
+    const [activeEmployees, setActiveEmployees] = useState(0);
+    const [todayLeaves, setTodayLeaves] = useState(0);
+    const [pendingLeaves, setPendingLeaves] = useState(0);
+
     useEffect(() => {
-        if (!isAdmin) {
+        if (isAdmin) {
+            loadAdminStats();
+        } else {
             loadUserSubscriptions();
         }
     }, []);
+
+    const loadAdminStats = async () => {
+        try {
+            setLoading(true);
+
+            // Employees
+            const empRes: any = await getEmployees();
+            const empData = empRes?.data;
+            const empArr = Array.isArray(empData)
+                ? empData
+                : empData?.$values ?? empData?.data ?? [];
+            setTotalEmployees(empArr.length);
+            setActiveEmployees(empArr.length); // all employees active
+
+            // Leave Requests
+            const leaveData: any = await LeaveRequestService.getAll();
+            const leaveArr = Array.isArray(leaveData)
+                ? leaveData
+                : leaveData?.$values ?? leaveData?.data ?? [];
+
+            const today = new Date().toISOString().split("T")[0];
+            const todayLeaveList = leaveArr.filter((l: any) => {
+                const from = l.fromDate?.split("T")[0];
+                return from === today;
+            });
+            setTodayLeaves(todayLeaveList.length);
+
+            const pending = leaveArr.filter(
+                (l: any) => (l.status ?? "").toLowerCase() === "pending"
+            );
+            setPendingLeaves(pending.length);
+
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const loadUserSubscriptions = async () => {
         try {
@@ -99,14 +147,12 @@ function Dashboard() {
         <div style={{ minHeight: "100vh", background: "#f0f4f8" }}>
 
             {/* Hero Banner */}
-            <div
-                style={{
-                    background: "linear-gradient(135deg, #1B4332 0%, #2D6A4F 60%, #52B788 100%)",
-                    padding: "48px 32px 64px",
-                    position: "relative",
-                    overflow: "hidden",
-                }}
-            >
+            <div style={{
+                background: "linear-gradient(135deg, #1B4332 0%, #2D6A4F 60%, #52B788 100%)",
+                padding: "48px 32px 64px",
+                position: "relative",
+                overflow: "hidden",
+            }}>
                 <div style={{
                     position: "absolute", top: "-40px", right: "-40px",
                     width: "200px", height: "200px", borderRadius: "50%",
@@ -158,104 +204,190 @@ function Dashboard() {
 
             <div className="container" style={{ marginTop: "-32px", position: "relative", zIndex: 2, paddingBottom: "48px" }}>
 
-                {/* Admin View */}
+
                 {isAdmin && (
-                    <div className="row g-4 mt-1">
-                        {[
-                            { icon: "🥛", label: "Manage Subscriptions", desc: "Add, edit or remove milk subscription plans", color: "#1B4332", link: "/subscription" },
-                            { icon: "👥", label: "Manage Employees", desc: "View and manage all employee records", color: "#1e40af", link: "/employees" },
-                            { icon: "📋", label: "Leave Requests", desc: "Review and approve employee leave requests", color: "#92400e", link: "/leaverequest" },
-                        ].map((card, i) => (
-                            <div className="col-md-4" key={i}>
-                                <div
-                                    className="card border-0 h-100"
-                                    style={{
-                                        borderRadius: "16px",
-                                        boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                                        cursor: "pointer",
-                                        transition: "transform 0.2s, box-shadow 0.2s",
-                                    }}
-                                    onMouseEnter={e => {
-                                        (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
-                                        (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 30px rgba(0,0,0,0.15)";
-                                    }}
-                                    onMouseLeave={e => {
-                                        (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-                                        (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(0,0,0,0.08)";
-                                    }}
-                                    onClick={() => window.location.href = card.link}
-                                >
-                                    <div className="card-body p-4">
-                                        <div style={{
-                                            width: "48px", height: "48px", borderRadius: "12px",
-                                            background: card.color + "18",
-                                            display: "flex", alignItems: "center", justifyContent: "center",
-                                            fontSize: "1.4rem", marginBottom: "16px",
-                                        }}>
-                                            {card.icon}
+                    <>
+                        {loading ? (
+                            <div className="mt-4"><Loader /></div>
+                        ) : (
+                            <>
+
+                                <div className="row g-3 mb-4 mt-1">
+                                    {[
+                                        {
+                                            icon: "👥",
+                                            label: "Total Employees",
+                                            value: totalEmployees,
+                                            bg: "#1B4332",
+                                            light: "#e8f5e9",
+                                            link: "/employee",
+                                        },
+                                        {
+                                            icon: "✅",
+                                            label: "Active Employees",
+                                            value: activeEmployees,
+                                            bg: "#166534",
+                                            light: "#dcfce7",
+                                            link: "/employee",
+                                        },
+                                        {
+                                            icon: "📋",
+                                            label: "Today's Leaves",
+                                            value: todayLeaves,
+                                            bg: "#92400e",
+                                            light: "#fef3c7",
+                                            link: "/leave-request",
+                                        },
+                                        {
+                                            icon: "⏳",
+                                            label: "Pending Approvals",
+                                            value: pendingLeaves,
+                                            bg: "#1e40af",
+                                            light: "#dbeafe",
+                                            link: "/leave-request",
+                                        },
+                                    ].map((stat, i) => (
+                                        <div className="col-md-3 col-6" key={i}>
+                                            <div
+                                                className="card border-0 h-100"
+                                                style={{
+                                                    borderRadius: "16px",
+                                                    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                                                    cursor: "pointer",
+                                                    transition: "transform 0.2s",
+                                                }}
+                                                onClick={() => window.location.href = stat.link}
+                                                onMouseEnter={e => (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)"}
+                                                onMouseLeave={e => (e.currentTarget as HTMLElement).style.transform = "translateY(0)"}
+                                            >
+                                                <div className="card-body text-center p-4">
+                                                    <div style={{
+                                                        width: "48px", height: "48px",
+                                                        borderRadius: "12px",
+                                                        background: stat.light,
+                                                        display: "flex", alignItems: "center",
+                                                        justifyContent: "center",
+                                                        fontSize: "1.4rem",
+                                                        margin: "0 auto 12px",
+                                                    }}>
+                                                        {stat.icon}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: "2rem",
+                                                        fontWeight: 800,
+                                                        color: stat.bg,
+                                                        lineHeight: 1,
+                                                        marginBottom: "6px",
+                                                    }}>
+                                                        {stat.value}
+                                                    </div>
+                                                    <div style={{
+                                                        fontSize: "0.8rem",
+                                                        color: "#6b7280",
+                                                        fontWeight: 600,
+                                                    }}>
+                                                        {stat.label}
+                                                    </div>
+                                                </div>
+                                                <div style={{
+                                                    height: "4px",
+                                                    background: stat.bg,
+                                                    borderRadius: "0 0 16px 16px",
+                                                }} />
+                                            </div>
                                         </div>
-                                        <h6 style={{ fontWeight: 700, color: "#1a1a2e", marginBottom: "6px" }}>
-                                            {card.label}
-                                        </h6>
-                                        <p style={{ color: "#6b7280", fontSize: "0.85rem", margin: 0 }}>
-                                            {card.desc}
-                                        </p>
-                                    </div>
-                                    <div style={{
-                                        height: "4px",
-                                        background: card.color,
-                                        borderRadius: "0 0 16px 16px",
-                                    }} />
+                                    ))}
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+
+                                {/* Quick Actions */}
+                                <div className="row g-4">
+                                    {[
+                                        {
+                                            icon: "🥛",
+                                            label: "Manage Subscriptions",
+                                            desc: "Add, edit or remove milk subscription plans",
+                                            color: "#1B4332",
+                                            link: "/subscription",
+                                        },
+                                        {
+                                            icon: "👥",
+                                            label: "Manage Employees",
+                                            desc: "View and manage all employee records",
+                                            color: "#1e40af",
+                                            link: "/employee",
+                                        },
+                                        {
+                                            icon: "📋",
+                                            label: "Leave Requests",
+                                            desc: "Review and approve employee leave requests",
+                                            color: "#92400e",
+                                            link: "/leave-request",
+                                        },
+                                    ].map((card, i) => (
+                                        <div className="col-md-4" key={i}>
+                                            <div
+                                                className="card border-0 h-100"
+                                                style={{
+                                                    borderRadius: "16px",
+                                                    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                                                    cursor: "pointer",
+                                                    transition: "transform 0.2s, box-shadow 0.2s",
+                                                }}
+                                                onMouseEnter={e => {
+                                                    (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
+                                                    (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 30px rgba(0,0,0,0.15)";
+                                                }}
+                                                onMouseLeave={e => {
+                                                    (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+                                                    (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 20px rgba(0,0,0,0.08)";
+                                                }}
+                                                onClick={() => window.location.href = card.link}
+                                            >
+                                                <div className="card-body p-4">
+                                                    <div style={{
+                                                        width: "48px", height: "48px",
+                                                        borderRadius: "12px",
+                                                        background: card.color + "18",
+                                                        display: "flex", alignItems: "center",
+                                                        justifyContent: "center",
+                                                        fontSize: "1.4rem",
+                                                        marginBottom: "16px",
+                                                    }}>
+                                                        {card.icon}
+                                                    </div>
+                                                    <h6 style={{ fontWeight: 700, color: "#1a1a2e", marginBottom: "6px" }}>
+                                                        {card.label}
+                                                    </h6>
+                                                    <p style={{ color: "#6b7280", fontSize: "0.85rem", margin: 0 }}>
+                                                        {card.desc}
+                                                    </p>
+                                                </div>
+                                                <div style={{
+                                                    height: "4px",
+                                                    background: card.color,
+                                                    borderRadius: "0 0 16px 16px",
+                                                }} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </>
                 )}
 
-                {/* User View */}
+                {/* ✅ User View */}
                 {!isAdmin && (
                     <>
-                        {/* Stats Cards */}
                         <div className="row g-3 mb-4">
                             {[
-                                {
-                                    label: "Total",
-                                    value: userSubscriptions.length,
-                                    icon: "🥛",
-                                    bg: "#1B4332",
-                                    light: "#e8f5e9",
-                                },
-                                {
-                                    label: "Active",
-                                    value: activeCount,
-                                    icon: "✅",
-                                    bg: "#166534",
-                                    light: "#dcfce7",
-                                },
-                                {
-                                    label: "Inactive",
-                                    value: inactiveCount,
-                                    icon: "⏸️",
-                                    bg: "#991b1b",
-                                    light: "#fee2e2",
-                                },
-                                {
-                                    label: "Freeze",
-                                    value: freezeCount,
-                                    icon: "❄️",
-                                    bg: "#075985",
-                                    light: "#e0f2fe",
-                                },
+                                { label: "Total", value: userSubscriptions.length, icon: "🥛", bg: "#1B4332", light: "#e8f5e9" },
+                                { label: "Active", value: activeCount, icon: "✅", bg: "#166534", light: "#dcfce7" },
+                                { label: "Inactive", value: inactiveCount, icon: "⏸️", bg: "#991b1b", light: "#fee2e2" },
+                                { label: "Freeze", value: freezeCount, icon: "❄️", bg: "#075985", light: "#e0f2fe" },
                             ].map((stat, i) => (
                                 <div className="col-3" key={i}>
-                                    <div
-                                        className="card border-0 text-center"
-                                        style={{
-                                            borderRadius: "16px",
-                                            boxShadow: "0 4px 20px rgba(0,0,0,0.07)",
-                                            background: "#fff",
-                                        }}
-                                    >
+                                    <div className="card border-0 text-center" style={{ borderRadius: "16px", boxShadow: "0 4px 20px rgba(0,0,0,0.07)" }}>
                                         <div className="card-body py-3 px-2">
                                             <div style={{
                                                 width: "40px", height: "40px", borderRadius: "10px",
@@ -277,81 +409,45 @@ function Dashboard() {
                             ))}
                         </div>
 
-                        {/* Subscriptions Table Card */}
-                        <div
-                            className="card border-0"
-                            style={{
-                                borderRadius: "16px",
-                                boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-                                overflow: "hidden",
-                            }}
-                        >
-                            <div
-                                className="card-header border-0 d-flex align-items-center gap-2"
-                                style={{
-                                    background: "#fff",
-                                    padding: "20px 24px 16px",
-                                    borderBottom: "1px solid #f0f0f0",
-                                }}
-                            >
+                        <div className="card border-0" style={{ borderRadius: "16px", boxShadow: "0 4px 20px rgba(0,0,0,0.08)", overflow: "hidden" }}>
+                            <div className="card-header border-0 d-flex align-items-center gap-2" style={{ background: "#fff", padding: "20px 24px 16px", borderBottom: "1px solid #f0f0f0" }}>
                                 <span style={{ fontSize: "1.1rem" }}>🥛</span>
-                                <h6 style={{ margin: 0, fontWeight: 700, color: "#1a1a2e" }}>
-                                    My Subscriptions
-                                </h6>
+                                <h6 style={{ margin: 0, fontWeight: 700, color: "#1a1a2e" }}>My Subscriptions</h6>
                             </div>
-
                             <div className="card-body p-0">
                                 {loading ? (
-                                    <div className="p-4">
-                                        <Loader text="Loading Subscriptions..." />
-                                    </div>
+                                    <div className="p-4"><Loader /></div>
                                 ) : userSubscriptions.length === 0 ? (
                                     <div className="text-center py-5">
                                         <div style={{ fontSize: "3rem", marginBottom: "12px" }}>🍼</div>
-                                        <p style={{ color: "#9ca3af", fontWeight: 500 }}>
-                                            No subscriptions found.
-                                        </p>
+                                        <p style={{ color: "#9ca3af", fontWeight: 500 }}>No subscriptions found.</p>
                                     </div>
                                 ) : (
                                     <table className="table mb-0" style={{ fontSize: "0.9rem" }}>
                                         <thead>
                                             <tr style={{ background: "#f8fafc" }}>
-                                                <th style={{ padding: "12px 24px", color: "#6b7280", fontWeight: 600, border: "none", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                                                    Subscription
-                                                </th>
-                                                <th style={{ padding: "12px 24px", color: "#6b7280", fontWeight: 600, border: "none", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                                                    Quantity
-                                                </th>
-                                                <th style={{ padding: "12px 24px", color: "#6b7280", fontWeight: 600, border: "none", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                                                    Status
-                                                </th>
+                                                <th style={{ padding: "12px 24px", color: "#6b7280", fontWeight: 600, border: "none", fontSize: "0.8rem", textTransform: "uppercase" }}>Subscription</th>
+                                                <th style={{ padding: "12px 24px", color: "#6b7280", fontWeight: 600, border: "none", fontSize: "0.8rem", textTransform: "uppercase" }}>Quantity</th>
+                                                <th style={{ padding: "12px 24px", color: "#6b7280", fontWeight: 600, border: "none", fontSize: "0.8rem", textTransform: "uppercase" }}>Status</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {userSubscriptions.map((item: any, index: number) => {
                                                 const badge = getStatusBadge(item.status);
                                                 return (
-                                                    <tr
-                                                        key={item.employeeSubscriptionId || index}
-                                                        style={{ borderTop: "1px solid #f3f4f6" }}
-                                                    >
+                                                    <tr key={item.employeeSubscriptionId || index} style={{ borderTop: "1px solid #f3f4f6" }}>
                                                         <td style={{ padding: "14px 24px", border: "none", fontWeight: 600, color: "#1a1a2e" }}>
                                                             <span style={{ marginRight: "8px" }}>
                                                                 {getSubscriptionName(item.subscriptionId) === "Cow" ? "🐄" : "🐃"}
                                                             </span>
                                                             {getSubscriptionName(item.subscriptionId)}
                                                         </td>
-                                                        <td style={{ padding: "14px 24px", border: "none", color: "#374151" }}>
-                                                            {item.quantity} L
-                                                        </td>
+                                                        <td style={{ padding: "14px 24px", border: "none", color: "#374151" }}>{item.quantity} L</td>
                                                         <td style={{ padding: "14px 24px", border: "none" }}>
                                                             <span style={{
-                                                                padding: "4px 12px",
-                                                                borderRadius: "20px",
-                                                                fontSize: "0.78rem",
-                                                                fontWeight: 600,
-                                                                background: badge.bg,
-                                                                color: badge.color,
+                                                                padding: "4px 12px", borderRadius: "20px",
+                                                                fontSize: "0.78rem", fontWeight: 600,
+                                                                background: badge.bg, color: badge.color,
                                                             }}>
                                                                 {badge.label}
                                                             </span>

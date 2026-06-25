@@ -331,7 +331,7 @@ const Employee: React.FC = () => {
                         onClick={() => setShowModal(false)}
                     />
                     <div className="modal fade show d-block" tabIndex={-1}>
-                        <div className="modal-dialog modal-dialog-centered modal-lg">
+                        <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
                             <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                                 <div className="modal-header border-0 px-4 pt-4 pb-0">
                                     <h5 className="modal-title fw-bold">
