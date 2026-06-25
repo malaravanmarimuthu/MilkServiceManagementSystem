@@ -1,4 +1,5 @@
 import axiosInstance from "../Interceptors/axiosInstance";
+import type { updateEmployee } from "./EmployeeService";
 
 export interface MilkEntryDto {
     milkEntryID: number;
@@ -19,8 +20,16 @@ export const MilkEntryService = {
         const res = await axiosInstance.get(BASE);
         return res.data;
     },
+    getById: async (id:number): Promise<MilkEntryDto[]> => {
+        const res = await axiosInstance.get(`${BASE}/${id}`);
+        return res.data;
+    },
     create: async (dto: MilkEntryDto): Promise<boolean> => {
         const res = await axiosInstance.post(BASE, dto);
+        return res.data;
+    },
+    update: async (id: number, dto: MilkEntryDto): Promise<boolean> => {
+        const res = await axiosInstance.put(`${BASE}/${id}`,dto);
         return res.data;
     },
     delete: async (id: number): Promise<boolean> => {

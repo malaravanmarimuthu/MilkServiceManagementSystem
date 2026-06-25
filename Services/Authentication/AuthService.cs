@@ -153,6 +153,26 @@ namespace Services.Authentication
             }
         }
 
+        public async ValueTask<SuccessDto> ChangePasswordAsync(ChangePasswordDto dto)
+        {
+            var user = await _applicationUserService
+                .IsValidAppUserAsync(new LoginDto
+                {
+                    Mobile=dto.Mobile,
+                    Password = dto.OldPassword
+                });
+
+            if (user == null || user.ID == 0)
+                throw new Exception("Old password is incorrect");
+
+            await _applicationUserService.ChangePassword(user.ID, dto.NewPassword);
+
+            return new SuccessDto
+            {
+                Message = "Password changed successfully"
+            };
+        }
+
         public async ValueTask<UserTokenResponseDto> CreateUserTokenAsync(LoginDto req)
         {
             try

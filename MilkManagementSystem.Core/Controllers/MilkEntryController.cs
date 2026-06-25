@@ -29,12 +29,41 @@ namespace API.Controllers
             }
         }
 
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(long id)
+        {
+            try
+            {
+                var result = await _milkEntryService.GetById(id);
+                if (result == null) return NotFound("Entry not found");
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }       
+
         [HttpPost]
         public async Task<IActionResult> Create(MilkEntryDto dto)
         {
             try
             {
                 var result = await _milkEntryService.Create(dto);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(long id, MilkEntryDto dto)
+        {
+            try
+            {
+                var result = await _milkEntryService.Update(id, dto);
                 return Ok(result);
             }
             catch (Exception ex)

@@ -17,6 +17,8 @@ import EmployeeSubscription from "./Pages/EmployeeSubscription";
 import LeaveRequest from "./Pages/LeaveRequest";
 import MyProfile from "./Pages/MyProfile";
 import MilkEntry from "./Pages/MilkEntry";
+import ViewMilkEntry from "./Pages/ViewMilkEntry";
+
 
 
 function AppContent() {
@@ -57,6 +59,8 @@ function AppContent() {
                 <Route path="/leave-request" element={<ProtectedRoute> <LeaveRequest /></ProtectedRoute>} />
                 <Route path="/milk-entry" element={<ProtectedRoute><MilkEntry /></ProtectedRoute>} />
                 <Route path="/My-Profile" element={<ProtectedRoute> <MyProfile /></ProtectedRoute>} />
+                <Route path="/View-Milk-Entry" element={<ProtectedRoute><ViewMilkEntry /></ProtectedRoute>} />
+
 
 
             </Routes>

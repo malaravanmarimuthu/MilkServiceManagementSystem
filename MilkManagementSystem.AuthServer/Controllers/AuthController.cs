@@ -61,6 +61,25 @@ namespace api_authenticationservice.Controllers
                 ValidationSignup(request)
             );
         }
+        [HttpPost("changepassword")]
+        [AllowAnonymous]
+        public async ValueTask<IActionResult> ChangePassword([FromBody] ChangePasswordDto request)
+        {
+            return await _logger.TryCatchBlockAsync(
+                $"{_Name}.ChangePassword",
+                $"request {request.ToJson()}",
+                _apiResponse,
+                async () =>
+                {
+                    return _apiResponse.Ok(
+                        await _service.ChangePasswordAsync(request));
+                },
+                (() => request != null, MessageString.ParamMissing),
+                (() => request.Mobile.IsNotNullOrEmpty(), "Mobile is Mandatory"),
+                (() => request.OldPassword.IsNotNullOrEmpty(), "Old Password is Mandatory"),
+                (() => request.NewPassword.IsNotNullOrEmpty(), "New Password is Mandatory")
+            );
+        }
 
         [HttpPost("login")]
         [AllowAnonymous]
