@@ -95,27 +95,28 @@ const MilkEntry: React.FC = () => {
     const filteredSubs =
         selectedLocationID > 0
             ? activeSubscriptions.filter((s: any) => {
-
-                return (s.locationID ?? s.LocationID) == selectedLocationID;
+                const empId = s.employeeId ?? s.EmployeeId;
+                const employee = employees.find((e: any) => (e.id ?? e.ID) === empId);
+                const empLocationID = employee?.locationID ?? employee?.LocationID ?? 0;
+                return empLocationID === selectedLocationID;
             })
             : activeSubscriptions;
 
 
     const handleSave = async (sub: any, type: string, qty: number) => {
-        console.log("Selected Location:", selectedLocationID);
-        if (!selectedLocationID) {
-            setError("Please select a location.");
-            return;
-        }
-
         const empId = sub.employeeId ?? sub.EmployeeId;
+
+ 
+        const employee = employees.find((e: any) => (e.id ?? e.ID) === empId);
+        const empLocationID = employee?.locationID ?? employee?.LocationID ?? selectedLocationID;
+
         setSavingId(empId);
         setSavingType(type);
         try {
             await MilkEntryService.create({
                 milkEntryID: 0,
                 employeeID: empId,
-                locationID: selectedLocationID,
+                locationID: empLocationID,
                 entryDate: getTodayISO(),
                 entryType: type,
                 quantity: qty,
@@ -217,7 +218,7 @@ const MilkEntry: React.FC = () => {
                                                 <td>
                                                     {done ? (
                                                         <span className="text-success fw-semibold">
-                                                            ? Entry saved for today
+                                                             Entry saved for today
                                                         </span>
                                                     ) : (
                                                         <div className="d-flex gap-2 align-items-center flex-wrap">
@@ -282,42 +283,6 @@ const MilkEntry: React.FC = () => {
                                 )}
                             </tbody>
                         </table>
-                    </div>
-                )}
-
-                {/* Today's entries summary */}
-                {todayEntries.length > 0 && (
-                    <div className="mt-4">
-                        <h5 className="fw-bold">Today's Entries</h5>
-                        <div className="table-responsive">
-                            <table className="table table-bordered table-sm">
-                                <thead className="table-light">
-                                    <tr>
-                                        <th>Employee</th>
-                                        <th>Type</th>
-                                        <th>Qty (L)</th>
-                                        <th>Location</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {todayEntries.map((e) => (
-                                        <tr key={e.milkEntryID}>
-                                            <td>{e.employeeName}</td>
-                                            <td>
-                                                <span className={`badge ${e.entryType === "Actual" ? "bg-success" :
-                                                        e.entryType === "Leave" ? "bg-warning text-dark" :
-                                                            "bg-primary"
-                                                    }`}>
-                                                    {e.entryType}
-                                                </span>
-                                            </td>
-                                            <td>{e.quantity} L</td>
-                                            <td>{e.locationName}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
                     </div>
                 )}
             </div>
