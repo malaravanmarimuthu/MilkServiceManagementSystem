@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import axiosInstance from "../Interceptors/axiosInstance";
-import type { updateEmployee } from "./EmployeeService";
 
 export interface MilkEntryDto {
     milkEntryID: number;

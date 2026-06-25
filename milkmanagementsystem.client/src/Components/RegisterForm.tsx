@@ -21,7 +21,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
     const [emailId, setEmailId] = useState("");
     const [mobile, setMobile] = useState("");
     const [locationID, setLocationID] = useState(0);
-    const [locations, setLocations] = useState<any[]>([]);
+    const [, setLocations] = useState<any[]>([]);
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
