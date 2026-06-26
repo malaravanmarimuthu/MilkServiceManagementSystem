@@ -13,9 +13,8 @@ import Subscription from "../Pages/Subscription";
 import EmployeeSubscription from "../Pages/EmployeeSubscription";
 import LeaveRequest from "../Pages/LeaveRequest";
 import MyProfile from "../Pages/MyProfile";
-import ViewMilkEntry from "../Pages/ViewMilkEntry";
-
-
+import ViewPastConsumption from "../Pages/ViewPastConsumption";
+import MyConsumption from "../Pages/MyConsumption";
 
 
 function AppRoutes() {
@@ -111,10 +110,18 @@ function AppRoutes() {
                 }
             />
             <Route
-                path="/View-Milk-Entry"
+                path="/View-Past-Consumption"
                 element={
                     <ProtectedRoute>
-                        <ViewMilkEntry />
+                        <ViewPastConsumption />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/My-Consumption"
+                element={
+                    <ProtectedRoute>
+                        <MyConsumption />
                     </ProtectedRoute>
                 }
             />

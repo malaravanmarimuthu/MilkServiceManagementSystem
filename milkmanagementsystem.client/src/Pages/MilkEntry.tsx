@@ -10,6 +10,7 @@ import ErrorModal from "../Components/Common/ErrorModal";
 import SuccessModal from "../Components/Common/SuccessModal";
 import Loader from "../Components/Common/Loader";
 import { getEmployees } from "../Services/EmployeeService";
+import { LeaveRequestService } from "../Services/LeaveRequestService"; 
 
 const getTodayStr = () => {
     const d = new Date();
@@ -18,7 +19,7 @@ const getTodayStr = () => {
 
 const getTodayISO = () => new Date().toISOString().split("T")[0];
 
-const MilkEntry: React.FC = () => {
+const MilkConsumption: React.FC = () => {
     const [locations, setLocations] = useState<any[]>([]);
     const [empSubscriptions, setEmpSubscriptions] = useState<any[]>([]);
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -31,6 +32,7 @@ const MilkEntry: React.FC = () => {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [employees, setEmployees] = useState<any[]>([]);
+    const [leaveRequests, setLeaveRequests] = useState<any[]>([]); // ← ADD THIS STATE
 
     useEffect(() => {
         fetchAll();
@@ -39,19 +41,19 @@ const MilkEntry: React.FC = () => {
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [locData, empSubData, subData, entryData, empData] =
+            const [locData, empSubData, subData, entryData, empData, leaveData] =
                 await Promise.all([
                     getLocations(),
                     getEmployeeSubscriptions(),
                     getSubscriptions(),
                     MilkEntryService.getAll(),
                     getEmployees(),
+                    LeaveRequestService.getAll(), 
                 ]);
 
             const empArr = Array.isArray(empData.data)
                 ? empData.data
                 : empData.data?.$values ?? [];
-
             setEmployees(empArr);
 
             const locArr = Array.isArray(locData)
@@ -74,6 +76,13 @@ const MilkEntry: React.FC = () => {
                 : (entryData as any)?.$values ?? [];
             setEntries(entryArr);
 
+            
+            const leaveArr = Array.isArray(leaveData)
+                ? leaveData
+                : (leaveData as any)?.$values ?? (leaveData as any)?.data ?? [];
+            setLeaveRequests(leaveArr);
+            
+
         } catch {
             setError("Failed to load data.");
         } finally {
@@ -86,6 +95,27 @@ const MilkEntry: React.FC = () => {
             (s.subscriptionID ?? s.subscriptionId) === subId
         );
         return sub?.milkType ?? sub?.MilkType ?? "Unknown";
+    };
+
+    const isOnLeaveToday = (empId: number): boolean => {
+        const today = getTodayISO(); 
+        return leaveRequests.some((leave: any) => {
+            const leaveEmpId = leave.employeeId ?? leave.EmployeeId;
+            const status = (leave.status ?? leave.Status ?? "").toLowerCase();
+            const fromDate = (leave.fromDate ?? leave.FromDate ?? "").split("T")[0];
+            const toDate = leave.toDate ?? leave.ToDate;
+
+            const endDate = toDate && toDate !== "Ongoing"
+                ? toDate.split("T")[0]
+                : today; 
+
+            return (
+                leaveEmpId === empId &&
+                status === "approved" &&
+                today >= fromDate &&
+                today <= endDate
+            );
+        });
     };
 
     const activeSubscriptions = empSubscriptions.filter((s: any) =>
@@ -102,11 +132,8 @@ const MilkEntry: React.FC = () => {
             })
             : activeSubscriptions;
 
-
     const handleSave = async (sub: any, type: string, qty: number) => {
         const empId = sub.employeeId ?? sub.EmployeeId;
-
- 
         const employee = employees.find((e: any) => (e.id ?? e.ID) === empId);
         const empLocationID = employee?.locationID ?? employee?.LocationID ?? selectedLocationID;
 
@@ -146,7 +173,6 @@ const MilkEntry: React.FC = () => {
 
             <div className="container-fluid mt-3 px-4">
 
-                {/* Top bar */}
                 <div className="d-flex justify-content-between align-items-center mb-4">
                     <h4 className="fw-bold mb-0">Milk Entry</h4>
                     <div className="d-flex gap-3 align-items-center">
@@ -174,7 +200,6 @@ const MilkEntry: React.FC = () => {
                     </div>
                 </div>
 
-                {/* ? Custom Loader */}
                 {loading ? (
                     <Loader text="Loading milk entries..." />
                 ) : (
@@ -200,15 +225,36 @@ const MilkEntry: React.FC = () => {
                                         const empId = sub.employeeId ?? sub.EmployeeId;
                                         const subId = sub.subscriptionId ?? sub.SubscriptionId;
                                         const qty = sub.quantity ?? 0;
-                                        const employee = employees.find( (e: any) => (e.id ?? e.ID) === empId);
-                                        const empName = employee? `${employee.firstName ?? employee.FirstName} ${employee.lastName ?? employee.LastName}`: `Emp #${empId}`;
+                                        const employee = employees.find((e: any) => (e.id ?? e.ID) === empId);
+                                        const empName = employee
+                                            ? `${employee.firstName ?? employee.FirstName} ${employee.lastName ?? employee.LastName}`
+                                            : `Emp #${empId}`;
                                         const isSaving = savingId === empId;
                                         const done = hasEntry(empId);
+                                        const onLeave = isOnLeaveToday(empId); 
+
+                                        const rowBg = onLeave
+                                            ? "#ffe5e5"   
+                                            : done
+                                                ? "#f0fff4" 
+                                                : "";
 
                                         return (
-                                            <tr key={index} style={{ background: done ? "#f0fff4" : "" }}>
+                                            <tr key={index} style={{ background: rowBg }}>
                                                 <td>
-                                                    <div className="fw-semibold">{empName}</div>
+                                                    <div className="fw-semibold" style={{ color: onLeave ? "#c0392b" : "" }}>
+                                                        {empName}
+                                                        {/* ── LEAVE BADGE ───────────────── */}
+                                                        {onLeave && (
+                                                            <span
+                                                                className="ms-2 badge"
+                                                                style={{ background: "#c0392b", fontSize: "0.7rem" }}
+                                                            >
+                                                                On Leave
+                                                            </span>
+                                                        )}
+                                                        {/* ──────────────────────────────── */}
+                                                    </div>
                                                     <div className="text-muted" style={{ fontSize: "0.8rem" }}>
                                                         ID: {empId}
                                                     </div>
@@ -218,23 +264,24 @@ const MilkEntry: React.FC = () => {
                                                 <td>
                                                     {done ? (
                                                         <span className="text-success fw-semibold">
-                                                             Entry saved for today
+                                                            ✓ Entry saved for today
                                                         </span>
                                                     ) : (
                                                         <div className="d-flex gap-2 align-items-center flex-wrap">
-                                                            {/* Actual */}
-                                                            <button
-                                                                className="btn btn-success btn-sm"
-                                                                disabled={isSaving}
-                                                                onClick={() => handleSave(sub, "Actual", qty)}
-                                                            >
-                                                                {isSaving && savingType === "Actual"
-                                                                    ? <span className="spinner-border spinner-border-sm" />
-                                                                    : "Actual"
-                                                                }
-                                                            </button>
 
-                                                            {/* Leave */}
+                                                            {!onLeave && (
+                                                                <button
+                                                                    className="btn btn-success btn-sm"
+                                                                    disabled={isSaving}
+                                                                    onClick={() => handleSave(sub, "Actual", qty)}
+                                                                >
+                                                                    {isSaving && savingType === "Actual"
+                                                                        ? <span className="spinner-border spinner-border-sm" />
+                                                                        : "Actual"
+                                                                    }
+                                                                </button>
+                                                            )}
+
                                                             <button
                                                                 className="btn btn-warning btn-sm"
                                                                 disabled={isSaving}
@@ -246,34 +293,38 @@ const MilkEntry: React.FC = () => {
                                                                 }
                                                             </button>
 
-                                                            {/* Other */}
-                                                            <input
-                                                                type="number"
-                                                                className="form-control form-control-sm"
-                                                                style={{ width: "70px" }}
-                                                                placeholder="Other"
-                                                                value={otherValues[empId] ?? ""}
-                                                                min={0}
-                                                                onChange={(e) =>
-                                                                    setOtherValues((prev) => ({
-                                                                        ...prev,
-                                                                        [empId]: e.target.value,
-                                                                    }))
-                                                                }
-                                                            />
-                                                            <button
-                                                                className="btn btn-primary btn-sm"
-                                                                disabled={isSaving || !otherValues[empId]}
-                                                                onClick={() => {
-                                                                    handleSave(sub, "Other", Number(otherValues[empId]));
-                                                                    setOtherValues((prev) => ({ ...prev, [empId]: "" }));
-                                                                }}
-                                                            >
-                                                                {isSaving && savingType === "Other"
-                                                                    ? <span className="spinner-border spinner-border-sm" />
-                                                                    : "Submit"
-                                                                }
-                                                            </button>
+                                                            {!onLeave && (
+                                                                <>
+                                                                    <input
+                                                                        type="number"
+                                                                        className="form-control form-control-sm"
+                                                                        style={{ width: "70px" }}
+                                                                        placeholder="Other"
+                                                                        value={otherValues[empId] ?? ""}
+                                                                        min={0}
+                                                                        onChange={(e) =>
+                                                                            setOtherValues((prev) => ({
+                                                                                ...prev,
+                                                                                [empId]: e.target.value,
+                                                                            }))
+                                                                        }
+                                                                    />
+                                                                    <button
+                                                                        className="btn btn-primary btn-sm"
+                                                                        disabled={isSaving || !otherValues[empId]}
+                                                                        onClick={() => {
+                                                                            handleSave(sub, "Other", Number(otherValues[empId]));
+                                                                            setOtherValues((prev) => ({ ...prev, [empId]: "" }));
+                                                                        }}
+                                                                    >
+                                                                        {isSaving && savingType === "Other"
+                                                                            ? <span className="spinner-border spinner-border-sm" />
+                                                                            : "Submit"
+                                                                        }
+                                                                    </button>
+                                                                </>
+                                                            )}
+
                                                         </div>
                                                     )}
                                                 </td>
@@ -290,4 +341,4 @@ const MilkEntry: React.FC = () => {
     );
 };
 
-export default MilkEntry;
+export default MilkConsumption;
