@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/static-components */
 /* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState, useRef } from "react";
