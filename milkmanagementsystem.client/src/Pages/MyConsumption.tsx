@@ -92,6 +92,14 @@ const MyConsumption: React.FC = () => {
         return sub?.milkType ?? sub?.MilkType ?? "Unknown";
     };
 
+    // pricePerLiter field use பண்றோம்
+    const getSubPrice = (subId: number) => {
+        const sub = subscriptions.find((s: any) =>
+            (s.subscriptionID ?? s.subscriptionId) === subId
+        );
+        return sub?.pricePerLiter ?? sub?.PricePerLiter ?? 0;
+    };
+
     const getMySubscription = () => {
         return empSubscriptions.find((s: any) =>
             Number(s.employeeId ?? s.EmployeeId ?? s.employeeID ?? s.EmployeeID) === employeeID
@@ -138,9 +146,13 @@ const MyConsumption: React.FC = () => {
     const totalOtherQty  = otherEntries.reduce((sum, e) => sum + (e.quantity ?? 0), 0);
     const totalQty       = totalActualQty + totalOtherQty;
 
-    const mySub  = getMySubscription();
-    const subId  = mySub?.subscriptionId ?? mySub?.SubscriptionId ?? mySub?.subscriptionID;
-    const subQty = mySub?.quantity ?? 0;
+    const mySub    = getMySubscription();
+    const subId    = mySub?.subscriptionId ?? mySub?.SubscriptionId ?? mySub?.subscriptionID;
+    const subQty   = mySub?.quantity ?? 0;
+
+    // pricePerLiter use பண்ணி calculate
+    const subPrice   = subId ? getSubPrice(subId) : 0;
+    const totalPrice = totalQty * subPrice;
 
     return (
         <>
@@ -266,8 +278,8 @@ const MyConsumption: React.FC = () => {
                     <div className="col-6 col-md-3">
                         <div className="card text-center border-0 shadow-sm">
                             <div className="card-body py-3">
-                                <div className="fs-3 fw-bold text-success">{totalActualQty}L</div>
-                                <div className="text-muted small">Actual Received</div>
+                                <div className="fs-3 fw-bold text-success">{totalActualQty}</div>
+                                <div className="text-muted small">Actual Received (in ltrs)</div>
                             </div>
                         </div>
                     </div>
@@ -282,8 +294,8 @@ const MyConsumption: React.FC = () => {
                     <div className="col-6 col-md-3">
                         <div className="card text-center border-0 shadow-sm">
                             <div className="card-body py-3">
-                                <div className="fs-3 fw-bold text-primary">{totalOtherQty}L</div>
-                                <div className="text-muted small">Other Qty</div>
+                                <div className="fs-3 fw-bold text-primary">{totalOtherQty}</div>
+                                <div className="text-muted small">Other Qty (in ltrs)</div>
                             </div>
                         </div>
                     </div>
@@ -291,8 +303,8 @@ const MyConsumption: React.FC = () => {
                         <div className="card text-center border-0 shadow-sm"
                             style={{ background: "#1B4332" }}>
                             <div className="card-body py-3">
-                                <div className="fs-3 fw-bold text-white">{totalQty}L</div>
-                                <div className="text-white small">Total This Month</div>
+                                <div className="fs-3 fw-bold text-white">₹{totalPrice.toFixed(2)}</div>
+                                <div className="text-white small">Total Price This Month</div>
                             </div>
                         </div>
                     </div>
@@ -308,6 +320,7 @@ const MyConsumption: React.FC = () => {
                         <span>
                             <strong>Subscription:</strong> {getSubName(subId)} &nbsp;|&nbsp;
                             <strong>Daily Qty:</strong> {subQty} L &nbsp;|&nbsp;
+                            <strong>Price per Litre:</strong> ₹{subPrice} &nbsp;|&nbsp;
                             <strong>Status:</strong>{" "}
                             <span className={`badge ${(mySub?.status ?? "").toLowerCase() === "active"
                                 ? "bg-success" : "bg-secondary"}`}>
@@ -375,6 +388,12 @@ const MyConsumption: React.FC = () => {
                                         </td>
                                         <td className="fw-bold text-success">{totalQty} L</td>
                                     </tr>
+                                    {/*<tr style={{ background: "#e8f5e9" }}>*/}
+                                    {/*    <td colSpan={2} className="fw-bold text-end">*/}
+                                    {/*        Total Price:*/}
+                                    {/*    </td>*/}
+                                    {/*    <td className="fw-bold text-success">₹{totalPrice.toFixed(2)}</td>*/}
+                                    {/*</tr>*/}
                                 </tfoot>
                             )}
                         </table>

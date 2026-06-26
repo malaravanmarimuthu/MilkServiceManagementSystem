@@ -46,11 +46,9 @@ const ViewPastConsumption: React.FC = () => {
         .filter((e) => e.entryDate?.split("T")[0] === selectedDate)
         .sort((a, b) => {
 
-            // Leave employees first
             if (a.entryType === "Leave" && b.entryType !== "Leave") return -1;
             if (a.entryType !== "Leave" && b.entryType === "Leave") return 1;
 
-            // Sort by employee name (A-Z)
             const nameA = (a.employeeName ?? "").toLowerCase();
             const nameB = (b.employeeName ?? "").toLowerCase();
 
