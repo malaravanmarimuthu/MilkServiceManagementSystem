@@ -185,8 +185,7 @@ function MyProfile() {
     );
 
     return (
-        <>
-            <style>{`
+        <> <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
                 .profile-page {
                     min-height: 100vh;
@@ -409,7 +408,7 @@ function MyProfile() {
                             </div>
                             <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoChange} />
 
-                            <div className="profile-name">{fullName || "—"}</div>
+                            <div className="profile-name">{fullName || "â€”"}</div>
                             <div className="left-divider" />
 
                             <div className="left-stat">
@@ -420,7 +419,7 @@ function MyProfile() {
                                 </div>
                                 <div>
                                     <div className="left-stat-label">Mobile</div>
-                                    <div className="left-stat-value">{employee.mobile ?? employee.Mobile ?? "—"}</div>
+                                    <div className="left-stat-value">{employee.mobile ?? employee.Mobile ?? "â€”"}</div>
                                 </div>
                             </div>
 
@@ -432,7 +431,7 @@ function MyProfile() {
                                 </div>
                                 <div>
                                     <div className="left-stat-label">Location</div>
-                                    <div className="left-stat-value">{employee.locationName ?? "—"}</div>
+                                    <div className="left-stat-value">{employee.locationName ?? "â€”"}</div>
                                 </div>
                             </div>
 
@@ -444,7 +443,7 @@ function MyProfile() {
                                 </div>
                                 <div>
                                     <div className="left-stat-label">Email</div>
-                                    <div className="left-stat-value" style={{ fontSize: "0.75rem" }}>{employee.emailId ?? employee.EmailId ?? "—"}</div>
+                                    <div className="left-stat-value" style={{ fontSize: "0.75rem" }}>{employee.emailId ?? employee.EmailId ?? "â€”"}</div>
                                 </div>
                             </div>
 
@@ -488,35 +487,35 @@ function MyProfile() {
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                                         First Name
                                     </div>
-                                    <div className="info-item-value">{employee.firstName ?? employee.FirstName ?? "—"}</div>
+                                    <div className="info-item-value">{employee.firstName ?? employee.FirstName ?? "â€”"}</div>
                                 </div>
                                 <div className="info-item">
                                     <div className="info-item-label">
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                                         Last Name
                                     </div>
-                                    <div className="info-item-value">{employee.lastName ?? employee.LastName ?? "—"}</div>
+                                    <div className="info-item-value">{employee.lastName ?? employee.LastName ?? "â€”"}</div>
                                 </div>
                                 <div className="info-item full-width">
                                     <div className="info-item-label">
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
                                         Email Address
                                     </div>
-                                    <div className="info-item-value">{employee.emailId ?? employee.EmailId ?? "—"}</div>
+                                    <div className="info-item-value">{employee.emailId ?? employee.EmailId ?? "â€”"}</div>
                                 </div>
                                 <div className="info-item">
                                     <div className="info-item-label">
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92V19a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 3.18 2 2 0 014.11 1h2.08a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" /></svg>
                                         Mobile
                                     </div>
-                                    <div className="info-item-value">{employee.mobile ?? employee.Mobile ?? "—"}</div>
+                                    <div className="info-item-value">{employee.mobile ?? employee.Mobile ?? "â€”"}</div>
                                 </div>
                                 <div className="info-item">
                                     <div className="info-item-label">
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z" /><circle cx="12" cy="10" r="3" /></svg>
                                         Location
                                     </div>
-                                    <div className="info-item-value">{employee.locationName ?? "—"}</div>
+                                    <div className="info-item-value">{employee.locationName ?? "â€”"}</div>
                                 </div>
                             </div>
 
