@@ -251,13 +251,7 @@ function Navbar() {
                             ) : (
                                 <>
                                         {isAdmin ? (
-                                            <>
-                                                <li className="nav-item">
-                                                    <NavLink to="/my-profile" className="nav-link nav-link-fresh">
-                                                        My Profile
-                                                    </NavLink>
-                                                </li>
-
+                                            <>                                               
                                                 <li className="nav-item dropdown">
                                                     <a
                                                         className="nav-link dropdown-toggle nav-master-toggle"
@@ -281,6 +275,21 @@ function Navbar() {
                                                         <li>
                                                             <NavLink className="dropdown-item" to="/subscription">Subscription</NavLink>
                                                         </li>
+                                                        
+                                                    </ul>
+                                                </li>
+                                                <li className="nav-item dropdown">
+                                                    <a
+                                                        className="nav-link dropdown-toggle nav-master-toggle"
+                                                        href="#"
+                                                        role="button"
+                                                        data-bs-toggle="dropdown"
+                                                    >
+                                                        Consumption
+                                                    </a>
+
+                                                    <ul className="dropdown-menu nav-dropdown-fresh">
+                                                        
                                                         <li>
                                                             <NavLink className="dropdown-item" to="/employeesubscription">Employee Subscription</NavLink>
                                                         </li>
@@ -288,16 +297,22 @@ function Navbar() {
                                                             <NavLink className="dropdown-item" to="/leave-request">Leave Request</NavLink>
                                                         </li>
                                                         <li>
-                                                            <NavLink className="dropdown-item" to="/milk-entry">
-                                                                Milk Entry
+                                                            <NavLink className="dropdown-item" to="/milk-Consumption">
+                                                                Milk Consumption
                                                             </NavLink>
                                                         </li>
                                                         <li>
-                                                            <NavLink className="dropdown-item" to="/View-Milk-Entry">
-                                                               View Milk Entry
+                                                            <NavLink className="dropdown-item" to="/view-past-consumption">
+                                                                View Past Consumption
                                                             </NavLink>
                                                         </li>
                                                     </ul>
+                                                </li>
+
+                                                <li className="nav-item">
+                                                    <NavLink to="/my-profile" className="nav-link nav-link-fresh">
+                                                        My Profile
+                                                    </NavLink>
                                                 </li>
                                             </>
                                         ) : (
@@ -314,8 +329,8 @@ function Navbar() {
                                                 </NavLink>
                                             </li>
                                             <li className="nav-item">
-                                                <NavLink to="/subscription" className="nav-link nav-link-fresh">
-                                                    Subscription
+                                                        <NavLink to="/My-Consumption" className="nav-link nav-link-fresh">
+                                                            MyConsumption
                                                 </NavLink>
                                             </li>
                                         </>

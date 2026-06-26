@@ -16,8 +16,9 @@ import Subscription from "./Pages/Subscription";
 import EmployeeSubscription from "./Pages/EmployeeSubscription";
 import LeaveRequest from "./Pages/LeaveRequest";
 import MyProfile from "./Pages/MyProfile";
-import MilkEntry from "./Pages/MilkEntry";
-import ViewMilkEntry from "./Pages/ViewMilkEntry";
+import MilkConsumption from "./Pages/MilkEntry";
+import ViewPastConsumption from "./Pages/ViewPastConsumption";
+import MyConsumption from "./Pages/MyConsumption";
 
 
 
@@ -57,10 +58,10 @@ function AppContent() {
                 <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
                 <Route path="/EmployeeSubscription" element={<ProtectedRoute><EmployeeSubscription /></ProtectedRoute>} />
                 <Route path="/leave-request" element={<ProtectedRoute> <LeaveRequest /></ProtectedRoute>} />
-                <Route path="/milk-entry" element={<ProtectedRoute><MilkEntry /></ProtectedRoute>} />
+                <Route path="/milk-Consumption" element={<ProtectedRoute><MilkConsumption /></ProtectedRoute>} />
                 <Route path="/My-Profile" element={<ProtectedRoute> <MyProfile /></ProtectedRoute>} />
-                <Route path="/View-Milk-Entry" element={<ProtectedRoute><ViewMilkEntry /></ProtectedRoute>} />
-
+                <Route path="/View-Past-Consumption" element={<ProtectedRoute><ViewPastConsumption /></ProtectedRoute>} />
+                <Route path="/My-Consumption" element={<ProtectedRoute><MyConsumption /></ProtectedRoute>} />
 
 
             </Routes>
