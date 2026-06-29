@@ -16,7 +16,7 @@ import Subscription from "./Pages/Subscription";
 import EmployeeSubscription from "./Pages/EmployeeSubscription";
 import LeaveRequest from "./Pages/LeaveRequest";
 import MyProfile from "./Pages/MyProfile";
-import MilkConsumption from "./Pages/MilkEntry";
+import MilkConsumption from "./Pages/MilkConsumption";
 import ViewPastConsumption from "./Pages/ViewPastConsumption";
 import MyConsumption from "./Pages/MyConsumption";
 
