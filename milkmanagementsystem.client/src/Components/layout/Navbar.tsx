@@ -306,6 +306,11 @@ function Navbar() {
                                                                 View Past Consumption
                                                             </NavLink>
                                                         </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/My-consumption">
+                                                                Employee Consumption
+                                                            </NavLink>
+                                                        </li>
                                                     </ul>
                                                 </li>
 
