@@ -1,6 +1,5 @@
 import axiosInstance from "../Interceptors/axiosInstance";
 
-// Matches backend Entity (returned by GetAll / GetById)
 export interface SubscriptionType {
     subscriptionID: number;
     milkType: string;
@@ -8,7 +7,6 @@ export interface SubscriptionType {
     pricePerLiter: number;
 }
 
-// Matches backend SubscriptionDto (used for Create / Update body - no Id)
 export interface CreateSubscriptionDto {
     milkType: string;
     quantity: number;
