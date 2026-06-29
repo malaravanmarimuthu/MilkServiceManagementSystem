@@ -205,7 +205,7 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
                 {/* Selected range display */}
                 <div className="mt-2 text-muted" style={{ fontSize: "0.78rem" }}>
                     <i className="bi bi-calendar-range me-1" />
-                    Showing: <strong>{formatDate(fromDate)}</strong> — <strong>{formatDate(toDate)}</strong>
+                    Showing: <strong>{formatDate(fromDate)}</strong> To <strong>{formatDate(toDate)}</strong>
                 </div>
             </div>
 
