@@ -1,10 +1,43 @@
-body{
-  background-color: #f5f7fa;
-  margin: 0;
-  padding: 20px;
-  font-family: Arial, Helvetica, sans-serif;
-
-html{
-    scroll-behavior: smooth;
-  }
+body {
+    background-color: #f5f7fa;
+    margin: 0;
+    padding: 20px;
+    font-family: Arial, Helvetica, sans-serif;
 }
+
+html {
+    scroll-behavior: smooth;
+}
+
+
+.navbar-fresh,
+.footer-fresh {
+    animation-name: gradientShift;
+    animation-duration: 6s;
+    animation-timing-function: ease;
+    animation-iteration-count: infinite;
+    animation-delay: 0s !important;
+}
+
+
+.password-box {
+    position: relative;
+}
+
+    .password-box .form-control {
+        padding-right: 40px;
+    }
+
+.eye-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #6c757d;
+    z-index: 10;
+}
+
+    .eye-icon:hover {
+        color: #000;
+    }

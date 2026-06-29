@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { getLocations } from "../Services/LocationService";
@@ -42,6 +43,7 @@ const MilkConsumption: React.FC = () => {
     useEffect(() => { fetchAll(); }, []);
 
     const fetchAll = async () => {
+
         setLoading(true);
         try {
             const [locData, empSubData, subData, entryData, empData, leaveData, payData] =
@@ -82,16 +84,17 @@ const MilkConsumption: React.FC = () => {
     const isOnLeaveToday = (empId: number): boolean => {
         const today = getTodayISO();
         return leaveRequests.some((leave: any) => {
-            const leaveEmpId = leave.employeeId ?? leave.EmployeeId;
+            const leaveEmpId = leave.employeeID ?? leave.employeeId ?? leave.EmployeeId;
             const status = (leave.status ?? leave.Status ?? "").toLowerCase();
             const fromDate = (leave.fromDate ?? leave.FromDate ?? "").split("T")[0];
             const toDate = leave.toDate ?? leave.ToDate;
             const endDate = toDate && toDate !== "Ongoing" ? toDate.split("T")[0] : today;
-            return (
+            return(
                 leaveEmpId === empId &&
-                (status === "pending" || status === "approved") &&
+                (status === "pending" || status.trim() === "approved") &&
                 today >= fromDate &&
                 today <= endDate
+
             );
         });
     };
@@ -235,7 +238,7 @@ const MilkConsumption: React.FC = () => {
                                 <tr>
                                     <th>Employee</th>
                                     <th>Subscription</th>
-                                    <th>Qty (L)</th>
+                                    <th>Subscription Qty (L)</th>
                                     <th style={{ width: "360px" }}>Entry</th>
                                 </tr>
                             </thead>
@@ -258,7 +261,6 @@ const MilkConsumption: React.FC = () => {
                                     const done = hasEntry(empId);
                                     const paid = isPaidToday(empId);
                                     const todayEntry = getTodayEntry(empId);
-                                    const rate = getRatePerLiter(subId);
                                     const isSaving = savingId === empId;
                                     const isPaying = payingId === empId;
                                     const selectedType = rowType[empId] ?? "";
@@ -287,7 +289,7 @@ const MilkConsumption: React.FC = () => {
                                             <td className="fw-bold">{qty} L</td>
                                             <td>
                                                 {done ? (
-                                                    // ✅ Entry done
+
                                                     <div className="d-flex flex-column gap-1">
                                                         <div className="fw-semibold text-success"
                                                             style={{ fontSize: "0.85rem" }}>
@@ -300,7 +302,7 @@ const MilkConsumption: React.FC = () => {
                                                                     Paid ✓
                                                                 </span>
                                                             ) : (
-                                                                // ✅ Pay button with amount input
+
                                                                 <div className="d-flex gap-2 align-items-center mt-1">
                                                                     <input
                                                                         type="number"
@@ -332,7 +334,7 @@ const MilkConsumption: React.FC = () => {
                                                         )}
                                                     </div>
                                                 ) : (
-                                                    // ✅ Entry not done
+ 
                                                     <div className="d-flex flex-column gap-2">
                                                         <select
                                                             className="form-select form-select-sm"
@@ -348,7 +350,6 @@ const MilkConsumption: React.FC = () => {
                                                             {!onLeave && <option value="Other">Other (Custom)</option>}
                                                         </select>
 
-                                                        {/* ✅ Actual - manual amount */}
                                                         {selectedType === "Actual" && (
                                                             <div className="d-flex flex-column gap-2">
                                                                 <input
@@ -394,7 +395,6 @@ const MilkConsumption: React.FC = () => {
                                                             </div>
                                                         )}
 
-                                                        {/* ✅ Leave */}
                                                         {selectedType === "Leave" && (
                                                             <button
                                                                 className="btn btn-warning btn-sm"
@@ -406,9 +406,8 @@ const MilkConsumption: React.FC = () => {
                                                                     : "Confirm Leave"
                                                                 }
                                                             </button>
-                                                        )}
+                                                            )}
 
-                                                        {/* ✅ Other - qty + manual amount */}
                                                         {selectedType === "Other" && (
                                                             <div className="d-flex flex-column gap-2">
                                                                 <div className="d-flex gap-2 align-items-center">

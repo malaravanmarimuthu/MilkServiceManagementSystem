@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import ConfirmModal from "../Common/ConfirmModal";
+import logo from "../../assets/images/logo.jpg";
 
 const getRoleFromToken = (): string | null => {
     const token = localStorage.getItem("token");
@@ -17,7 +17,6 @@ const getRoleFromToken = (): string | null => {
 
 function Navbar() {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
-    const [] = useState(false);
     const token = localStorage.getItem("token");
     const isLoggedIn = !!token;
     const isAdmin = getRoleFromToken() === "Admin";
@@ -207,6 +206,15 @@ function Navbar() {
                 <div className="container navbar-inner">
 
                     <NavLink to="/" className="nav-brand-fresh">
+                        <img
+                            src={logo}
+                            alt="logo"
+                            style={{
+                                width: "70px",
+                                height: "70px",
+                                objectFit: "contain"
+                            }}
+                        />
                         4K FRESH
                     </NavLink>
 
@@ -251,7 +259,13 @@ function Navbar() {
                             ) : (
                                 <>
                                         {isAdmin ? (
-                                            <>                                               
+                                            <>
+                                                <li className="nav-item">
+                                                    <NavLink to="/dashboard" className="nav-link nav-link-fresh">
+                                                        Dashboard
+                                                    </NavLink>
+                                                </li>
+
                                                 <li className="nav-item dropdown">
                                                     <a
                                                         className="nav-link dropdown-toggle nav-master-toggle"
@@ -304,6 +318,11 @@ function Navbar() {
                                                         <li>
                                                             <NavLink className="dropdown-item" to="/view-past-consumption">
                                                                 View Past Consumption
+                                                            </NavLink>
+                                                        </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/payment-history">
+                                                                Payment History
                                                             </NavLink>
                                                         </li>
                                                     </ul>
