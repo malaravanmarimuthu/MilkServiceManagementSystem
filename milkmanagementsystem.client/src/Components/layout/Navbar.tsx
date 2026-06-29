@@ -323,6 +323,8 @@ function Navbar() {
                                                         <li>
                                                             <NavLink className="dropdown-item" to="/payment-history">
                                                                 Payment History
+                                                            <NavLink className="dropdown-item" to="/My-consumption">
+                                                                Employee Consumption
                                                             </NavLink>
                                                         </li>
                                                     </ul>

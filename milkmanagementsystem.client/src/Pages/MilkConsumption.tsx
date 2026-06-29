@@ -1,4 +1,5 @@
 /* eslint-disable react-hooks/immutability */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { getLocations } from "../Services/LocationService";
@@ -133,6 +134,7 @@ const MilkConsumption: React.FC = () => {
         if (leaveA !== leaveB) return leaveA - leaveB;
         return nameA.localeCompare(nameB);
     });
+
 
     const handleSave = async (
         sub: any,
@@ -290,6 +292,7 @@ const MilkConsumption: React.FC = () => {
                                             <td>
                                                 {done ? (
 
+                                                    
                                                     <div className="d-flex flex-column gap-1">
                                                         <div className="fw-semibold text-success"
                                                             style={{ fontSize: "0.85rem" }}>
