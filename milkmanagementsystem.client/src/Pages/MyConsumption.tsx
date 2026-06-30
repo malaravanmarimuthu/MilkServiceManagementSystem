@@ -23,6 +23,22 @@ interface JwtPayload {
     rolename: string;
 }
 
+// Helper: convert public/logo.jpg into base64 for jsPDF
+const getLogoBase64 = async (): Promise<string | null> => {
+    try {
+        const res = await fetch("/logo.jpg");
+        const blob = await res.blob();
+        return await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch {
+        return null;
+    }
+};
+
 const MyConsumption: React.FC = () => {
     const [entries, setEntries] = useState<MilkEntryDto[]>([]);
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -36,9 +52,6 @@ const MyConsumption: React.FC = () => {
     const pickerRef = useRef<HTMLDivElement>(null);
 
     const [adminEmpId, setAdminEmpId] = useState<number | "">("");
-    const [adminSearchTerm, setAdminSearchTerm] = useState("");
-    const [showEmpDropdown, setShowEmpDropdown] = useState(false);
-    const empDropdownRef = useRef<HTMLDivElement>(null);
 
     const token = localStorage.getItem("token");
     let isAdmin = false;
@@ -50,9 +63,10 @@ const MyConsumption: React.FC = () => {
             const decoded = jwtDecode<JwtPayload>(token);
             isAdmin = decoded.rolename?.toLowerCase() === "admin";
             loggedEmployeeID = Number(decoded.userid ?? 0);
-            loggedEmployeeName = `${decoded.firstname ?? ""} ${decoded.mobile ?? "" }`.trim();
-        } catch (error) {
-            console.log("Token:", error);
+            loggedEmployeeName = `${decoded.firstname ?? ""} ${decoded.mobile ?? ""}`.trim();
+        } catch (error)
+        {
+            console.log(error);
         }
     }
 
@@ -86,8 +100,6 @@ const MyConsumption: React.FC = () => {
         const handleClickOutside = (e: MouseEvent) => {
             if (pickerRef.current && !pickerRef.current.contains(e.target as Node))
                 setShowPicker(false);
-            if (empDropdownRef.current && !empDropdownRef.current.contains(e.target as Node))
-                setShowEmpDropdown(false);
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -156,13 +168,6 @@ const MyConsumption: React.FC = () => {
     ];
     const monthShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-    const filteredEmployees = employees.filter(emp => {
-        const fullName = `${emp.firstName} ${emp.lastName}`.toLowerCase();
-        const idStr = String(emp.id);
-        const term = adminSearchTerm.toLowerCase();
-        return fullName.includes(term) || idStr.includes(term);
-    });
-
     const myEntries = effectiveEmpId === 0 ? [] : entries.filter((e: any) => {
         const eEmpId = Number(e.employeeID ?? e.EmployeeID ?? e.employeeId ?? e.EmployeeId);
         if (eEmpId !== effectiveEmpId) return false;
@@ -170,7 +175,6 @@ const MyConsumption: React.FC = () => {
         return d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
     });
 
-    const leaveEntries = myEntries.filter(e => e.entryType === "Leave");
     const actualEntries = myEntries.filter(e => e.entryType === "Actual");
     const otherEntries = myEntries.filter(e => e.entryType === "Other");
 
@@ -194,35 +198,84 @@ const MyConsumption: React.FC = () => {
     const totalPaid = monthlyPayments.reduce((sum: number, p: any) =>
         sum + Number(p.totalAmount ?? p.TotalAmount ?? 0), 0
     );
-    const printEntries = [...myEntries]
-        .filter(e => e.entryType !== "Other")
-        .sort((a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime());
 
-    // PDF Export
-    const handleExportPDF = () => {
+    // Build printEntries: fill gap dates (no entry) as synthetic "Leave" rows
+    const buildPrintEntries = (): MilkEntryDto[] => {
+        const actualOrLeave = myEntries.filter(e => e.entryType !== "Other");
+
+        const entryByDate = new Map<string, MilkEntryDto>();
+        actualOrLeave.forEach(e => {
+            const d = new Date(e.entryDate);
+            const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+            entryByDate.set(key, e);
+        });
+
+        const isCurrentMonth = selectedMonth === currentMonth && selectedYear === currentYear;
+        const lastDay = isCurrentMonth
+            ? now.getDate()
+            : new Date(selectedYear, selectedMonth, 0).getDate();
+
+        const result: MilkEntryDto[] = [];
+
+        for (let day = 1; day <= lastDay; day++) {
+            const key = `${selectedYear}-${selectedMonth}-${day}`;
+            const existing = entryByDate.get(key);
+
+            if (existing) {
+                result.push(existing);
+            } else {
+                result.push({
+                    milkEntryID: -day,
+                    employeeID: effectiveEmpId,
+                    entryDate: new Date(selectedYear, selectedMonth - 1, day).toISOString(),
+                    entryType: "Leave",
+                    quantity: 0,
+                    locationID: 0,
+                } as MilkEntryDto);
+            }
+        }
+
+        return result;
+    };
+
+    const printEntries = effectiveEmpId === 0 ? [] : buildPrintEntries();
+
+    const leaveEntries = printEntries.filter(e => e.entryType === "Leave");
+
+    // Amount per row: Leave = 0, Actual/Other = Quantity x subPrice
+    const getRowAmount = (entry: MilkEntryDto) =>
+        entry.entryType === "Leave" ? 0 : entry.quantity * subPrice;
+
+    const handleExportPDF = async () => {
         const doc = new jsPDF();
         const monthLabel = `${monthNames[selectedMonth - 1]} ${selectedYear}`;
         const empLabel = effectiveEmpName || loggedEmployeeName;
         const subName = getSubName(subId);
-        console.log("subId", subId);
-        console.log("subName", subName);
 
-
-        // Header
+        // Header background
         doc.setFillColor(27, 67, 50);
         doc.rect(0, 0, 210, 28, "F");
+
+        // Logo
+        const logoBase64 = await getLogoBase64();
+        if (logoBase64) {
+            try {
+                doc.addImage(logoBase64, "JPEG", 14, 5, 18, 18);
+            } catch {
+                // ignore if image fails to embed
+            }
+        }
+
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(18);
         doc.setFont("helvetica", "bold");
-        doc.text("4K FRESH", 14, 12);
+        doc.text("4K FRESH", logoBase64 ? 36 : 14, 14);
         doc.setFontSize(11);
         doc.setFont("helvetica", "normal");
-        doc.text("Milk Consumption Report", 14, 22);
+        doc.text("Milk Consumption Report", logoBase64 ? 36 : 14, 22);
 
-        // Reset color
         doc.setTextColor(0, 0, 0);
 
-        // Employee & Month info
         doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
         doc.text(`Employee : `, 14, 38);
@@ -264,18 +317,20 @@ const MyConsumption: React.FC = () => {
         const tableRows = printEntries.map(entry => {
             const d = new Date(entry.entryDate);
             const dateStr = `${d.getDate().toString().padStart(2, "0")}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getFullYear()}`;
+            const amount = getRowAmount(entry);
             return [
                 dateStr,
                 entry.entryType,
-                entry.entryType === "Leave" ? "—" : `${entry.quantity} L`,
+                entry.entryType === "Leave" ? "0 L" : `${entry.quantity} L`,
+                `Rs.${amount.toFixed(2)}`,
             ];
         });
 
-        tableRows.push(["", "Total Received", `${totalQty} L`]);
+        tableRows.push([ "Total ","", `${totalQty} L`, `Rs.${totalPrice.toFixed(2)}`]);
 
         autoTable(doc, {
             startY: summaryY + 26,
-            head: [["Date", "Entry Type", "Quantity (L)"]],
+            head: [["Date", "Entry Type", "Quantity (L)", "Amount"]],
             body: tableRows,
             headStyles: {
                 fillColor: [27, 67, 50],
@@ -286,13 +341,14 @@ const MyConsumption: React.FC = () => {
             bodyStyles: { fontSize: 9 },
             alternateRowStyles: { fillColor: [245, 250, 246] },
             columnStyles: {
-                0: { cellWidth: 45 },
-                1: { cellWidth: 70 },
-                2: { cellWidth: 45 },
+                0: { cellWidth: 38 },
+                1: { cellWidth: 55 },
+                2: { cellWidth: 35 },
+                3: { cellWidth: 32 },
             },
             didParseCell: (data) => {
-                const lastTwo = tableRows.length - 2;
-                if (data.row.index >= lastTwo && data.section === "body") {
+                const lastRow = tableRows.length - 1;
+                if (data.row.index === lastRow && data.section === "body") {
                     data.cell.styles.fontStyle = "bold";
                     data.cell.styles.fillColor = [232, 245, 233];
                     data.cell.styles.textColor = [27, 67, 50];
@@ -300,7 +356,6 @@ const MyConsumption: React.FC = () => {
             },
         });
 
-        // Footer
         const pageHeight = doc.internal.pageSize.height;
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
@@ -334,7 +389,6 @@ const MyConsumption: React.FC = () => {
                     </div>
 
                     <div className="d-flex gap-2 align-items-center flex-wrap">
-                        {/* Export PDF Button */}
                         {effectiveEmpId !== 0 && myEntries.length > 0 && (
                             <button
                                 className="btn fw-semibold px-3 py-2"
@@ -351,7 +405,6 @@ const MyConsumption: React.FC = () => {
                             </button>
                         )}
 
-                        {/* Month Picker */}
                         <div className="position-relative" ref={pickerRef}>
                             <button
                                 className="btn d-flex align-items-center gap-2 fw-semibold px-3 py-2"
@@ -434,100 +487,23 @@ const MyConsumption: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Admin Employee Search */}
+                {/* Admin Employee Dropdown */}
                 {isAdmin && (
                     <div className="mb-4">
                         <label className="form-label fw-semibold">Select Employee</label>
-                        <div className="position-relative" ref={empDropdownRef}>
-                            <div style={{ position: "relative" }}>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Search by name or employee ID..."
-                                    value={adminSearchTerm}
-                                    onFocus={() => setShowEmpDropdown(true)}
-                                    onClick={() => setShowEmpDropdown(true)}
-                                    onChange={(e) => {
-                                        setAdminSearchTerm(e.target.value);
-                                        setShowEmpDropdown(true);
-                                        if (e.target.value === "") setAdminEmpId("");
-                                    }}
-                                    style={{
-                                        borderRadius: "8px",
-                                        paddingRight: adminSearchTerm ? "40px" : "12px"
-                                    }}
-                                />
-                                {adminSearchTerm && (
-                                    <button
-                                        type="button"
-                                        onMouseDown={(e) => {
-                                            e.preventDefault();
-                                            setAdminSearchTerm("");
-                                            setAdminEmpId("");
-                                            setShowEmpDropdown(true);
-                                        }}
-                                        style={{
-                                            position: "absolute",
-                                            right: "10px",
-                                            top: "50%",
-                                            transform: "translateY(-50%)",
-                                            border: "none",
-                                            background: "transparent",
-                                            fontSize: "16px",
-                                            color: "#888",
-                                            cursor: "pointer",
-                                            zIndex: 1100,
-                                            lineHeight: 1,
-                                            padding: "2px 4px",
-                                            borderRadius: "50%",
-                                        }}
-                                        title="Clear"
-                                    >✕</button>
-                                )}
-                            </div>
-
-                            {showEmpDropdown && filteredEmployees.length > 0 && (
-                                <div
-                                    className="position-absolute w-100 shadow-sm"
-                                    style={{
-                                        background: "#fff",
-                                        border: "1px solid #dee2e6",
-                                        borderRadius: "8px",
-                                        zIndex: 1050,
-                                        maxHeight: "220px",
-                                        overflowY: "auto",
-                                        top: "100%",
-                                        left: 0,
-                                        marginTop: "4px",
-                                    }}
-                                >
-                                    {filteredEmployees.map((emp) => (
-                                        <div
-                                            key={emp.id}
-                                            className="px-3 py-2"
-                                            style={{
-                                                cursor: "pointer",
-                                                borderBottom: "1px solid #f0f0f0",
-                                                background: Number(adminEmpId) === emp.id ? "#e8f5e9" : "#fff",
-                                            }}
-                                            onMouseEnter={e => (e.currentTarget.style.background = "#f1f8f4")}
-                                            onMouseLeave={e => (e.currentTarget.style.background = Number(adminEmpId) === emp.id ? "#e8f5e9" : "#fff")}
-                                            onMouseDown={(e) => {
-                                                e.preventDefault();
-                                                setAdminEmpId(emp.id);
-                                                setAdminSearchTerm(`${emp.firstName} ${emp.lastName} (ID: ${emp.id})`);
-                                                setShowEmpDropdown(false);
-                                            }}
-                                        >
-                                            <span className="fw-semibold">{emp.firstName} {emp.lastName}</span>
-                                            <span className="text-muted ms-2" style={{ fontSize: "0.82rem" }}>
-                                                ID: {emp.id}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        <select
+                            className="form-select"
+                            style={{ borderRadius: "8px", maxWidth: "400px" }}
+                            value={adminEmpId}
+                            onChange={(e) => setAdminEmpId(e.target.value === "" ? "" : Number(e.target.value))}
+                        >
+                            <option value="">-- Select Employee --</option>
+                            {employees.map((emp) => (
+                                <option key={emp.id} value={emp.id}>
+                                    {emp.firstName} {emp.lastName} (ID: {emp.id})
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 )}
 
@@ -586,12 +562,16 @@ const MyConsumption: React.FC = () => {
                                     <strong>Subscription:</strong> {getSubName(subId)} &nbsp;|&nbsp;
                                     <strong>Daily Qty:</strong> {subQty} L &nbsp;|&nbsp;
                                     <strong>Price per Litre:</strong> ₹{subPrice} &nbsp;|&nbsp;
-
+                                    <strong>Status:</strong>{" "}
+                                    <span className={`badge ${(mySub?.status ?? "").toLowerCase() === "active"
+                                        ? "bg-success" : "bg-secondary"}`}>
+                                        {mySub?.status ?? "N/A"}
+                                    </span>
                                 </span>
                             </div>
                         )}
 
-                        {/* Table — Actual + Leave only, no Other */}
+                        {/* Table */}
                         {loading ? (
                             <Loader text="Loading consumption..." />
                         ) : (
@@ -602,12 +582,13 @@ const MyConsumption: React.FC = () => {
                                             <th>Date</th>
                                             <th>Entry Type</th>
                                             <th>Quantity (L)</th>
+                                            <th>Amount</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {printEntries.length === 0 ? (
                                             <tr>
-                                                <td colSpan={3} className="text-center text-muted py-4">
+                                                <td colSpan={4} className="text-center text-muted py-4">
                                                     No entries found for {monthNames[selectedMonth - 1]} {selectedYear}.
                                                 </td>
                                             </tr>
@@ -619,6 +600,7 @@ const MyConsumption: React.FC = () => {
                                                     entry.entryType === "Actual" ? "bg-success" :
                                                         entry.entryType === "Leave" ? "bg-warning text-dark" :
                                                             "bg-primary";
+                                                const amount = getRowAmount(entry);
                                                 return (
                                                     <tr key={entry.milkEntryID}>
                                                         <td>{dateStr}</td>
@@ -628,22 +610,23 @@ const MyConsumption: React.FC = () => {
                                                             </span>
                                                         </td>
                                                         <td className="fw-bold">
-                                                            {entry.entryType === "Leave" ? "—" : `${entry.quantity} L`}
+                                                            {entry.entryType === "Leave" ? "0 L" : `${entry.quantity} L`}
                                                         </td>
+                                                        <td className="fw-bold">₹{amount.toFixed(2)}</td>
                                                     </tr>
                                                 );
                                             })
                                         )}
                                     </tbody>
-                                    {printEntries.length > 0 && (
-                                        <tfoot>
-                                            <tr style={{ background: "#f1f8f4" }}>
-                                                <td colSpan={2} className="fw-bold text-end">Total Received:</td>
-                                                <td className="fw-bold text-success">{totalQty} L</td>
-                                            </tr>
-
-                                        </tfoot>
-                                    )}
+                                            {printEntries.length > 0 && (
+                                                <tfoot>
+                                                    <tr style={{ background: "#e8f5e9" }}>
+                                                        <td colSpan={2} className="fw-bold text-end">Total:</td>
+                                                        <td className="fw-bold text-success">{totalQty} L</td>
+                                                        <td className="fw-bold text-success">₹{totalPrice.toFixed(2)}</td>
+                                                    </tr>
+                                                </tfoot>
+                                            )}
                                 </table>
                             </div>
                         )}
