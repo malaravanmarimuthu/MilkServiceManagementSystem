@@ -67,12 +67,6 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
         }
     };
 
-    const addMonths = (dateStr: string, months: number) => {
-        const d = new Date(dateStr);
-        d.setMonth(d.getMonth() + months);
-        return d.toISOString().split("T")[0];
-    };
-
     const handleFromChange = (val: string) => {
         setFromDate(val);
 
@@ -145,12 +139,6 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
             : `Emp #${id}`;
     };
 
-    const getMonthLabel = (ym: string) => {
-        const [y, m] = ym.split("-");
-        return new Date(Number(y), Number(m) - 1).toLocaleString("en-IN", {
-            month: "short", year: "numeric"
-        });
-    };
 
     return (
         <>
@@ -252,7 +240,7 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
                 ))}
             </div>
 
-            {/* Payment Table — full width */}
+            {/* Payment Table â€” full width */}
             <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
                 <div
                     className="card-header border-0 px-4 py-3"
