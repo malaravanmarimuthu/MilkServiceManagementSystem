@@ -16,9 +16,8 @@ const ITEMS_PER_PAGE = 10;
 
 const LEAVE_TYPES = [
     "Casual Leave",
-    "Vacation Leave",
-    "Inactive",
-    "Freeze",
+    "Vacation/Freeze Leave",
+    "Cancel",
     "Emergency Leave",
 ];
 
@@ -30,7 +29,7 @@ const getTomorrowStr = () => {
 
 const getTodayStr = () => new Date().toISOString().split("T")[0];
 
-const NO_TO_DATE_TYPES = ["Vacation Leave", "Inactive", "Freeze", "Emergency Leave"];
+const NO_TO_DATE_TYPES = ["Vacation/Freeze Leave", "Cancel", "Emergency Leave"];
 
 interface JwtPayload {
     userid: string;
@@ -615,8 +614,8 @@ const LeaveRequestPage: React.FC = () => {
                                                     <div className="alert alert-info py-2 px-3 mb-0 w-100">
                                                         {isEmergency
                                                             ? "🚨 Emergency Leave starts today and continues until cancelled."
-                                                            : formData.leaveType === "Freeze"
-                                                                ? "🔒 Freeze starts from selected date and continues until cancelled."
+                                                            : formData.leaveType === "Cancel"
+                                                                ? "❌ Cancel starts from selected date and continues until reactivated."
                                                                 : `📅 ${formData.leaveType} starts from selected date and continues automatically.`
                                                         }
                                                     </div>

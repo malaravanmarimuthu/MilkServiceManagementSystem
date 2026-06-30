@@ -1,5 +1,6 @@
 /* eslint-disable react-hooks/immutability */
 /* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
 import { PaymentService } from "../../Services/PaymentService";
@@ -21,17 +22,23 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
     const [selectedEmpID, setSelectedEmpID] = useState<number>(0);
 
     const getTodayISO = () => new Date().toISOString().split("T")[0];
+    const getCurrentMonthFirstDate = () => {
+        const today = new Date();
 
-    const getDefaultFrom = () => {
-        const d = new Date();
-        d.setMonth(d.getMonth() - 3);
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+
+        return `${year}-${month}-01`;
+    };
+
+    const getThreeMonthsLater = (dateStr: string) => {
+        const d = new Date(dateStr);
+        d.setMonth(d.getMonth() + 3);
         return d.toISOString().split("T")[0];
     };
 
-    const [fromDate, setFromDate] = useState<string>(getDefaultFrom());
-    const [toDate, setToDate] = useState<string>(getTodayISO());
-    const [fromError, setFromError] = useState("");
-    const [toError, setToError] = useState("");
+    const [fromDate, setFromDate] = useState(getCurrentMonthFirstDate());
+    const [toDate, setToDate] = useState(getTodayISO());
 
     useEffect(() => { fetchAll(); }, []);
 
@@ -60,34 +67,61 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
         }
     };
 
+    const addMonths = (dateStr: string, months: number) => {
+        const d = new Date(dateStr);
+        d.setMonth(d.getMonth() + months);
+        return d.toISOString().split("T")[0];
+    };
+
     const handleFromChange = (val: string) => {
-        setFromError("");
-        if (toDate && val > toDate) {
-            setFromError("From date cannot be after To date.");
-            return;
-        }
         setFromDate(val);
+
+        if (toDate < val) {
+            setToDate(val);
+        }
+
+        const maxDate = getThreeMonthsLater(val);
+
+        if (toDate > maxDate) {
+            setToDate(maxDate);
+        }
     };
 
     const handleToChange = (val: string) => {
-        setToError("");
-        if (fromDate && val < fromDate) {
-            setToError("To date cannot be before From date.");
-            return;
-        }
         setToDate(val);
+    };
+
+    const handleRefresh = async () => {
+        setSelectedEmpID(0);
+
+        setFromDate(getCurrentMonthFirstDate());
+        setToDate(getTodayISO());
+
+        await fetchAll();
     };
 
     const filtered = payments
         .filter((p) => {
             const pDate = (p.paidDate ?? "").split("T")[0];
+
             if (fromDate && pDate < fromDate) return false;
             if (toDate && pDate > toDate) return false;
-            if (!isAdmin && p.employeeID !== currentEmployeeID) return false;
-            if (isAdmin && selectedEmpID > 0 && p.employeeID !== selectedEmpID) return false;
+
+            if (!isAdmin && p.employeeID !== currentEmployeeID)
+                return false;
+
+            if (
+                isAdmin &&
+                selectedEmpID > 0 &&
+                p.employeeID !== selectedEmpID
+            )
+                return false;
+
             return true;
         })
-        .sort((a, b) => (b.paidDate ?? "").localeCompare(a.paidDate ?? ""));
+        .sort((a, b) =>
+            (b.paidDate ?? "").localeCompare(a.paidDate ?? "")
+        );
 
     const totalAmount = filtered.reduce((sum, p) => sum + (p.totalAmount ?? 0), 0);
     const totalQty = filtered.reduce((sum, p) => sum + (p.quantity ?? 0), 0);
@@ -114,7 +148,7 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
     const getMonthLabel = (ym: string) => {
         const [y, m] = ym.split("-");
         return new Date(Number(y), Number(m) - 1).toLocaleString("en-IN", {
-            month: "long", year: "numeric"
+            month: "short", year: "numeric"
         });
     };
 
@@ -126,7 +160,7 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
             <div className="card border-0 shadow-sm rounded-4 p-3 mb-4">
                 <div className="row g-3 align-items-end">
                     {isAdmin && (
-                        <div className="col-md-4">
+                        <div className="col-md-3">
                             <label className="form-label fw-semibold small text-muted">
                                 EMPLOYEE
                             </label>
@@ -148,64 +182,42 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
                             </select>
                         </div>
                     )}
-
-                    {/* FROM DATE */}
-                    <div className={isAdmin ? "col-md-3" : "col-md-5"}>
+                    <div className="col-md-3">
                         <label className="form-label fw-semibold small text-muted">
                             FROM DATE
                         </label>
+
                         <input
                             type="date"
-                            className={`form-control form-control-sm ${fromError ? "is-invalid" : ""}`}
+                            className="form-control form-control-sm"
                             value={fromDate}
-                            max={toDate || getTodayISO()}
                             onChange={(e) => handleFromChange(e.target.value)}
                         />
-                        {fromError && (
-                            <div className="invalid-feedback">{fromError}</div>
-                        )}
                     </div>
-
-                    {/* TO DATE */}
-                    <div className={isAdmin ? "col-md-3" : "col-md-5"}>
+                    <div className="col-md-3">
                         <label className="form-label fw-semibold small text-muted">
                             TO DATE
                         </label>
+
                         <input
                             type="date"
-                            className={`form-control form-control-sm ${toError ? "is-invalid" : ""}`}
+                            className="form-control form-control-sm"
                             value={toDate}
                             min={fromDate}
-                            max={getTodayISO()}
+                            max={getThreeMonthsLater(fromDate)}
                             onChange={(e) => handleToChange(e.target.value)}
                         />
-                        {toError && (
-                            <div className="invalid-feedback">{toError}</div>
-                        )}
                     </div>
-
-                    {/* RESET BUTTON */}
-                    <div className={isAdmin ? "col-md-2" : "col-md-2"}>
-                        <label className="form-label fw-semibold small text-muted d-block">&nbsp;</label>
+                    <div className={isAdmin ? "col-md-3" : "col-md-6"}>
                         <button
-                            className="btn btn-sm btn-outline-secondary w-100"
-                            onClick={() => {
-                                setFromDate(getDefaultFrom());
-                                setToDate(getTodayISO());
-                                setFromError("");
-                                setToError("");
-                            }}
+                            className="btn btn-success btn-sm d-flex align-items-center gap-2"
+                            onClick={handleRefresh}
+                            title="Refresh"
                         >
-                            <i className="bi bi-arrow-counterclockwise me-1" />
-                            Reset
+                            <i className="bi bi-arrow-clockwise"></i>
+                            Refresh
                         </button>
                     </div>
-                </div>
-
-                {/* Selected range display */}
-                <div className="mt-2 text-muted" style={{ fontSize: "0.78rem" }}>
-                    <i className="bi bi-calendar-range me-1" />
-                    Showing: <strong>{formatDate(fromDate)}</strong> To <strong>{formatDate(toDate)}</strong>
                 </div>
             </div>
 
@@ -240,138 +252,103 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
                 ))}
             </div>
 
-            {/* Monthly Breakdown + Table */}
-            <div className="row g-4">
-                {Object.keys(monthlyMap).length > 0 && (
-                    <div className="col-md-4">
-                        <div className="card border-0 shadow-sm rounded-4 h-100">
-                            <div className="card-header border-0 px-4 pt-4 pb-2">
-                                <h6 className="fw-bold mb-0" style={{ color: "#1B4332" }}>
-                                    <i className="bi bi-calendar3 me-2" />
-                                    Monthly Breakdown
-                                </h6>
-                            </div>
-                            <div className="card-body px-4 pb-4">
-                                {Object.entries(monthlyMap)
-                                    .sort((a, b) => b[0].localeCompare(a[0]))
-                                    .map(([month, amt]) => (
-                                        <div
-                                            key={month}
-                                            className="d-flex justify-content-between align-items-center py-2"
-                                            style={{ borderBottom: "1px solid #f0f0f0" }}
+            {/* Payment Table — full width */}
+            <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div
+                    className="card-header border-0 px-4 py-3"
+                    style={{ background: "#1B4332" }}
+                >
+                    <h6 className="mb-0 fw-bold text-white">
+                        <i className="bi bi-list-ul me-2" />
+                        Payment Records
+                    </h6>
+                </div>
+
+                {loading ? (
+                    <div className="p-4"><Loader /></div>
+                ) : (
+                    <div className="table-responsive">
+                        <table className="table table-hover mb-0 align-middle">
+                            <thead style={{ background: "#f8fafc" }}>
+                                <tr>
+                                    {isAdmin && (
+                                        <th style={{ padding: "12px 16px", fontSize: "0.8rem", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>
+                                            Employee
+                                        </th>
+                                    )}
+                                    <th style={{ padding: "12px 16px", fontSize: "0.8rem", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>
+                                        Date
+                                    </th>
+                                    <th style={{ padding: "12px 16px", fontSize: "0.8rem", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>
+                                        Qty (L)
+                                    </th>
+                                    <th style={{ padding: "12px 16px", fontSize: "0.8rem", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>
+                                        Amount
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filtered.length === 0 ? (
+                                    <tr>
+                                        <td
+                                            colSpan={isAdmin ? 4 : 3}
+                                            className="text-center text-muted py-5"
                                         >
-                                            <span style={{ fontSize: "0.88rem", color: "#374151" }}>
-                                                {getMonthLabel(month)}
-                                            </span>
-                                            <span style={{ fontWeight: 700, color: "#1B4332", fontSize: "0.95rem" }}>
-                                                Rs. {amt.toFixed(2)}
-                                            </span>
-                                        </div>
-                                    ))}
-                            </div>
-                        </div>
+                                            <i className="bi bi-inbox" style={{ fontSize: "2rem", display: "block", marginBottom: 8 }} />
+                                            No payment records found for this period.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filtered.map((p, i) => (
+                                        <tr key={p.paymentID ?? i}>
+                                            {isAdmin && (
+                                                <td style={{ padding: "12px 16px" }}>
+                                                    <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>
+                                                        {p.employeeName ?? getEmpName(p.employeeID)}
+                                                    </div>
+                                                    <div className="text-muted" style={{ fontSize: "0.78rem" }}>
+                                                        ID: {p.employeeID}
+                                                    </div>
+                                                </td>
+                                            )}
+                                            <td style={{ padding: "12px 16px", fontSize: "0.9rem" }}>
+                                                {formatDate(p.paidDate)}
+                                            </td>
+                                            <td style={{ padding: "12px 16px" }}>
+                                                <span className="badge" style={{ background: "#dbeafe", color: "#1e40af", fontWeight: 600 }}>
+                                                    {p.quantity} L
+                                                </span>
+                                            </td>
+                                            <td style={{ padding: "12px 16px" }}>
+                                                <span style={{ fontWeight: 700, color: "#1B4332", fontSize: "0.95rem" }}>
+                                                    Rs. {p.totalAmount}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                            {filtered.length > 0 && (
+                                <tfoot>
+                                    <tr style={{ background: "#f0fdf4" }}>
+                                        {isAdmin && (
+                                            <td style={{ padding: "12px 16px", fontWeight: 700 }}>Total</td>
+                                        )}
+                                        <td style={{ padding: "12px 16px", fontWeight: 700 }}>
+                                            {!isAdmin && "Total"}
+                                        </td>
+                                        <td style={{ padding: "12px 16px", fontWeight: 700 }}>
+                                            {totalQty.toFixed(1)} L
+                                        </td>
+                                        <td style={{ padding: "12px 16px", fontWeight: 700, color: "#1B4332" }}>
+                                            Rs. {totalAmount.toFixed(2)}
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            )}
+                        </table>
                     </div>
                 )}
-
-                <div className={Object.keys(monthlyMap).length > 0 ? "col-md-8" : "col-12"}>
-                    <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
-                        <div
-                            className="card-header border-0 px-4 py-3"
-                            style={{ background: "#1B4332" }}
-                        >
-                            <h6 className="mb-0 fw-bold text-white">
-                                <i className="bi bi-list-ul me-2" />
-                                Payment Records
-                            </h6>
-                        </div>
-
-                        {loading ? (
-                            <div className="p-4"><Loader /></div>
-                        ) : (
-                            <div className="table-responsive">
-                                <table className="table table-hover mb-0 align-middle">
-                                    <thead style={{ background: "#f8fafc" }}>
-                                        <tr>
-                                            {isAdmin && (
-                                                <th style={{ padding: "12px 16px", fontSize: "0.8rem", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>
-                                                    Employee
-                                                </th>
-                                            )}
-                                            <th style={{ padding: "12px 16px", fontSize: "0.8rem", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>
-                                                Date
-                                            </th>
-                                            <th style={{ padding: "12px 16px", fontSize: "0.8rem", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>
-                                                Qty (L)
-                                            </th>
-                                            <th style={{ padding: "12px 16px", fontSize: "0.8rem", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>
-                                                Amount
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filtered.length === 0 ? (
-                                            <tr>
-                                                <td
-                                                    colSpan={isAdmin ? 4 : 3}
-                                                    className="text-center text-muted py-5"
-                                                >
-                                                    <i className="bi bi-inbox" style={{ fontSize: "2rem", display: "block", marginBottom: 8 }} />
-                                                    No payment records found.
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            filtered.map((p, i) => (
-                                                <tr key={p.paymentID ?? i}>
-                                                    {isAdmin && (
-                                                        <td style={{ padding: "12px 16px" }}>
-                                                            <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>
-                                                                {p.employeeName ?? getEmpName(p.employeeID)}
-                                                            </div>
-                                                            <div className="text-muted" style={{ fontSize: "0.78rem" }}>
-                                                                ID: {p.employeeID}
-                                                            </div>
-                                                        </td>
-                                                    )}
-                                                    <td style={{ padding: "12px 16px", fontSize: "0.9rem" }}>
-                                                        {formatDate(p.paidDate)}
-                                                    </td>
-                                                    <td style={{ padding: "12px 16px" }}>
-                                                        <span className="badge" style={{ background: "#dbeafe", color: "#1e40af", fontWeight: 600 }}>
-                                                            {p.quantity} L
-                                                        </span>
-                                                    </td>
-                                                    <td style={{ padding: "12px 16px" }}>
-                                                        <span style={{ fontWeight: 700, color: "#1B4332", fontSize: "0.95rem" }}>
-                                                            Rs. {p.totalAmount}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                    {filtered.length > 0 && (
-                                        <tfoot>
-                                            <tr style={{ background: "#f0fdf4" }}>
-                                                {isAdmin && (
-                                                    <td style={{ padding: "12px 16px", fontWeight: 700 }}>Total</td>
-                                                )}
-                                                <td style={{ padding: "12px 16px", fontWeight: 700 }}>
-                                                    {!isAdmin && "Total"}
-                                                </td>
-                                                <td style={{ padding: "12px 16px", fontWeight: 700 }}>
-                                                    {totalQty.toFixed(1)} L
-                                                </td>
-                                                <td style={{ padding: "12px 16px", fontWeight: 700, color: "#1B4332" }}>
-                                                    Rs. {totalAmount.toFixed(2)}
-                                                </td>
-                                            </tr>
-                                        </tfoot>
-                                    )}
-                                </table>
-                            </div>
-                        )}
-                    </div>
-                </div>
             </div>
         </>
     );
