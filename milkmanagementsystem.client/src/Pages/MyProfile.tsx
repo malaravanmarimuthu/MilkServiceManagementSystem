@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { getEmployees, updateEmployee, changePassword } from "../Services/EmployeeService";
 import { getLocations } from "../Services/LocationService";
+import { uploadProfilePhoto, getProfilePhotoUrl } from "../Services/ProfilePhotoService";
 import Loader from "../Components/Common/Loader";
 import ErrorModal from "../Components/Common/ErrorModal";
 import SuccessModal from "../Components/Common/SuccessModal";
@@ -30,6 +31,7 @@ function MyProfile() {
     const [locations, setLocations] = useState<any[]>([]);
     const [saving, setSaving] = useState(false);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [photoUploading, setPhotoUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [firstName, setFirstName] = useState("");
@@ -63,8 +65,15 @@ function MyProfile() {
             const arr = Array.isArray(data) ? data : data?.$values ?? data?.data ?? [];
             const myProfile = arr.find((emp: any) => (emp.id ?? emp.ID ?? emp.Id) === userId);
             setEmployee(myProfile ?? null);
-            const savedPhoto = localStorage.getItem(`profile_photo_${userId}`);
-            if (savedPhoto) setPhotoPreview(savedPhoto);
+
+            // Azure Blob la photo fetch பண்றோம்
+            try {
+                const photoUrl = await getProfilePhotoUrl(userId);
+                setPhotoPreview(photoUrl);
+            } catch {
+                setPhotoPreview(null);
+            }
+
         } catch {
             setError("Failed to load profile.");
         } finally {
@@ -93,16 +102,27 @@ function MyProfile() {
 
     const closeChangeModal = () => setShowChangeModal(false);
 
-    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+
+        // உடனே local preview காட்டு
         const reader = new FileReader();
-        reader.onload = () => {
-            const base64 = reader.result as string;
-            setPhotoPreview(base64);
-            localStorage.setItem(`profile_photo_${userId}`, base64);
-        };
+        reader.onload = () => setPhotoPreview(reader.result as string);
         reader.readAsDataURL(file);
+
+        setPhotoUploading(true);
+        try {
+            const result = await uploadProfilePhoto(userId, file);
+            setPhotoPreview(result.url); // Azure URL
+            setSuccessMessage("Profile photo updated!");
+        } catch {
+            setError("Failed to upload photo. Please try again.");
+        } finally {
+            setPhotoUploading(false);
+            // Reset file input
+            if (fileInputRef.current) fileInputRef.current.value = "";
+        }
     };
 
     const handleSave = async () => {
@@ -203,15 +223,38 @@ function MyProfile() {
                             <div className="avatar-wrap">
                                 <div className="avatar-ring">
                                     <div className="avatar-inner">
-                                        {photoPreview
-                                            ? <img src={photoPreview} alt="Profile" />
-                                            : getInitial()}
+                                        {photoUploading ? (
+                                            // Uploading spinner
+                                            <div style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                width: "100%",
+                                                height: "100%",
+                                                background: "rgba(0,0,0,0.3)",
+                                                borderRadius: "50%",
+                                            }}>
+                                                <span style={{
+                                                    width: 28, height: 28,
+                                                    border: "3px solid rgba(255,255,255,0.3)",
+                                                    borderTopColor: "#fff",
+                                                    borderRadius: "50%",
+                                                    display: "inline-block",
+                                                    animation: "spin 0.7s linear infinite"
+                                                }} />
+                                            </div>
+                                        ) : photoPreview ? (
+                                            <img src={photoPreview} alt="Profile" />
+                                        ) : (
+                                            getInitial()
+                                        )}
                                     </div>
                                 </div>
                                 <div
                                     className="avatar-edit-btn"
-                                    onClick={() => fileInputRef.current?.click()}
+                                    onClick={() => !photoUploading && fileInputRef.current?.click()}
                                     title="Change photo"
+                                    style={{ cursor: photoUploading ? "not-allowed" : "pointer", opacity: photoUploading ? 0.5 : 1 }}
                                 >
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
@@ -292,6 +335,7 @@ function MyProfile() {
                             </div>
                         </div>
 
+                        {/* RIGHT PANEL */}
                         <div className="profile-right">
                             <div className="section-eyebrow">Account Overview</div>
                             <div className="section-title">Profile Details</div>
@@ -331,16 +375,6 @@ function MyProfile() {
                                     <div className="info-item-value">{employee.emailId ?? employee.EmailId ?? "—"}</div>
                                 </div>
 
-                                {/*<div className="info-item">*/}
-                                {/*    <div className="info-item-label">*/}
-                                {/*        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">*/}
-                                {/*            <path d="M22 16.92V19a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6A19.79 19.79 0 012.12 3.18 2 2 0 014.11 1h2.08a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L7.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z" />*/}
-                                {/*        </svg>*/}
-                                {/*        Mobile*/}
-                                {/*    </div>*/}
-                                {/*    <div className="info-item-value">{employee.mobile ?? employee.Mobile ?? "—"}</div>*/}
-                                {/*</div>*/}
-
                                 <div className="info-item">
                                     <div className="info-item-label">
                                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -369,6 +403,7 @@ function MyProfile() {
                     </div>
                 )}
 
+                {/* Edit Profile Modal */}
                 {showChangeModal && (
                     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) closeChangeModal(); }}>
                         <div className="modal-box">
@@ -387,21 +422,20 @@ function MyProfile() {
                                 <div className="modal-row">
                                     <div className="field-group">
                                         <label className="field-label">First Name</label>
-                                        <input className="field-input" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                                        <input className="field-input" type="text" value={firstName}
+                                            onChange={(e) => setFirstName(e.target.value)} />
                                     </div>
                                     <div className="field-group">
                                         <label className="field-label">Last Name</label>
-                                        <input className="field-input" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                                        <input className="field-input" type="text" value={lastName}
+                                            onChange={(e) => setLastName(e.target.value)} />
                                     </div>
                                 </div>
                                 <div className="modal-row">
-                                    {/*<div className="field-group">*/}
-                                    {/*    <label className="field-label">Mobile</label>*/}
-                                    {/*    <input className="field-input" type="text" value={employee.mobile ?? employee.Mobile ?? ""} readOnly />*/}
-                                    {/*</div>*/}
                                     <div className="field-group">
                                         <label className="field-label">Location</label>
-                                        <select className="field-input" value={locationID} onChange={(e) => setLocationID(Number(e.target.value))}>
+                                        <select className="field-input" value={locationID}
+                                            onChange={(e) => setLocationID(Number(e.target.value))}>
                                             <option value={0}>-- Select --</option>
                                             {locations.map((loc: any) => {
                                                 const id = loc.locationID ?? loc.LocationID;
@@ -413,11 +447,14 @@ function MyProfile() {
                                 </div>
                                 <div className="field-group">
                                     <label className="field-label">Email Address</label>
-                                    <input className="field-input" type="email" value={emailId} onChange={(e) => setEmailId(e.target.value)} />
+                                    <input className="field-input" type="email" value={emailId}
+                                        onChange={(e) => setEmailId(e.target.value)} />
                                 </div>
                             </div>
                             <div className="modal-footer">
-                                <button className="modal-btn-cancel" onClick={closeChangeModal} disabled={saving}>Cancel</button>
+                                <button className="modal-btn-cancel" onClick={closeChangeModal} disabled={saving}>
+                                    Cancel
+                                </button>
                                 <button className="modal-btn-save" onClick={handleSave} disabled={saving}>
                                     {saving ? (
                                         <><Spinner /> Saving...</>
@@ -434,6 +471,8 @@ function MyProfile() {
                         </div>
                     </div>
                 )}
+
+                {/* Change Password Modal */}
                 {showPasswordModal && (
                     <div className="modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) setShowPasswordModal(false); }}>
                         <div className="modal-box">

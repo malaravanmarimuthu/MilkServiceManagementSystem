@@ -23,7 +23,6 @@ interface JwtPayload {
     rolename: string;
 }
 
-// Helper: convert public/logo.jpg into base64 for jsPDF
 const getLogoBase64 = async (): Promise<string | null> => {
     try {
         const res = await fetch("/logo.jpg");
@@ -50,9 +49,7 @@ const MyConsumption: React.FC = () => {
     const [showPicker, setShowPicker] = useState(false);
     const [pickerYear, setPickerYear] = useState(0);
     const pickerRef = useRef<HTMLDivElement>(null);
-
     const [adminEmpId, setAdminEmpId] = useState<number | "">("");
-
     const token = localStorage.getItem("token");
     let isAdmin = false;
     let loggedEmployeeID = 0;
@@ -199,7 +196,6 @@ const MyConsumption: React.FC = () => {
         sum + Number(p.totalAmount ?? p.TotalAmount ?? 0), 0
     );
 
-    // Build printEntries: fill gap dates (no entry) as synthetic "Leave" rows
     const buildPrintEntries = (): MilkEntryDto[] => {
         const actualOrLeave = myEntries.filter(e => e.entryType !== "Other");
 
@@ -242,7 +238,6 @@ const MyConsumption: React.FC = () => {
 
     const leaveEntries = printEntries.filter(e => e.entryType === "Leave");
 
-    // Amount per row: Leave = 0, Actual/Other = Quantity x subPrice
     const getRowAmount = (entry: MilkEntryDto) =>
         entry.entryType === "Leave" ? 0 : entry.quantity * subPrice;
 
@@ -252,7 +247,6 @@ const MyConsumption: React.FC = () => {
         const empLabel = effectiveEmpName || loggedEmployeeName;
         const subName = getSubName(subId);
 
-        // Header background
         doc.setFillColor(27, 67, 50);
         doc.rect(0, 0, 210, 28, "F");
 
