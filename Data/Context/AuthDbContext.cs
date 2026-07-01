@@ -14,7 +14,6 @@ namespace Data.Context
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            // TODO: Fluent API registration for Relationship Mappings
         }
 
         public DbSet<Employee> Employees { get; set; }
@@ -26,5 +25,6 @@ namespace Data.Context
         public DbSet<LeaveRequest> LeaveRequests { get; set; }
         public DbSet<MilkEntry> MilkEntries { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
     }
 }

@@ -19,6 +19,8 @@ import MyProfile from "./Pages/MyProfile";
 import MilkConsumption from "./Pages/MilkConsumption";
 import ViewPastConsumption from "./Pages/ViewPastConsumption";
 import MyConsumption from "./Pages/MyConsumption";
+import PaymentHistory from "./Pages/PaymentHistory";
+import Invoice from "./Pages/Invoice";
 import PaymentHistory from "./Pages/PaymentHistory"; 
 import MonthlySalesHistory from "./Pages/MonthlySalesHistory";
 
@@ -67,6 +69,9 @@ function AppContent() {
                 <Route path="/payment-history" element={<ProtectedRoute><PaymentHistory /></ProtectedRoute>} />
                 <Route path="/Monthly-Sales-History" element={<ProtectedRoute><MonthlySalesHistory /></ProtectedRoute>} />
 
+                <Route path="/My-Consumption" element={<ProtectedRoute><MyConsumption /></ProtectedRoute>} />
+                <Route path="/payment-history" element={<ProtectedRoute><PaymentHistory /></ProtectedRoute>} />
+                <Route path="/invoice" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
 
 
             </Routes>

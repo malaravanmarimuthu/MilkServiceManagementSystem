@@ -4,6 +4,7 @@ using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    partial class AuthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260701074044_AddInvoiceTable")]
+    partial class AddInvoiceTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -117,11 +120,11 @@ namespace Data.Migrations
 
             modelBuilder.Entity("Data.Entities.Invoice", b =>
                 {
-                    b.Property<long>("InvoiceID")
+                    b.Property<int>("InvoiceID")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
+                        .HasColumnType("int");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("InvoiceID"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("InvoiceID"));
 
                     b.Property<decimal>("AmountPaid")
                         .HasColumnType("decimal(65,30)");
@@ -129,8 +132,8 @@ namespace Data.Migrations
                     b.Property<decimal>("BalanceDue")
                         .HasColumnType("decimal(65,30)");
 
-                    b.Property<long>("EmployeeID")
-                        .HasColumnType("bigint");
+                    b.Property<int>("EmployeeID")
+                        .HasColumnType("int");
 
                     b.Property<string>("EmployeeName")
                         .IsRequired()
