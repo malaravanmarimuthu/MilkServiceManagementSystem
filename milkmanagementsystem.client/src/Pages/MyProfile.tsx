@@ -66,9 +66,8 @@ function MyProfile() {
             const myProfile = arr.find((emp: any) => (emp.id ?? emp.ID ?? emp.Id) === userId);
             setEmployee(myProfile ?? null);
 
-            // Azure Blob la photo fetch பண்றோம்
             try {
-                const photoUrl = await getProfilePhotoUrl(userId);
+                const photoUrl = await getProfilePhotoUrl();
                 setPhotoPreview(photoUrl);
             } catch {
                 setPhotoPreview(null);
@@ -106,21 +105,20 @@ function MyProfile() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // உடனே local preview காட்டு
+        // udane local preview kaatu
         const reader = new FileReader();
         reader.onload = () => setPhotoPreview(reader.result as string);
         reader.readAsDataURL(file);
 
         setPhotoUploading(true);
         try {
-            const result = await uploadProfilePhoto(userId, file);
+            const result = await uploadProfilePhoto(file);
             setPhotoPreview(result.url); // Azure URL
             setSuccessMessage("Profile photo updated!");
         } catch {
             setError("Failed to upload photo. Please try again.");
         } finally {
             setPhotoUploading(false);
-            // Reset file input
             if (fileInputRef.current) fileInputRef.current.value = "";
         }
     };
@@ -224,7 +222,6 @@ function MyProfile() {
                                 <div className="avatar-ring">
                                     <div className="avatar-inner">
                                         {photoUploading ? (
-                                            // Uploading spinner
                                             <div style={{
                                                 display: "flex",
                                                 alignItems: "center",
@@ -273,7 +270,6 @@ function MyProfile() {
                             <div className="profile-name">{fullName || "—"}</div>
                             <div className="left-divider" />
 
-                            {/* Mobile */}
                             <div className="left-stat">
                                 <div className="left-stat-icon">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -286,7 +282,6 @@ function MyProfile() {
                                 </div>
                             </div>
 
-                            {/* Location */}
                             <div className="left-stat">
                                 <div className="left-stat-icon">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -300,7 +295,6 @@ function MyProfile() {
                                 </div>
                             </div>
 
-                            {/* Email */}
                             <div className="left-stat">
                                 <div className="left-stat-icon">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -1,3 +1,6 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from "react";
 import { MilkEntryService } from "../Services/MilkEntryService";
@@ -370,8 +373,8 @@ const MonthlySalesHistory: React.FC = () => {
                                                 <td className="fw-semibold">{d.date}</td>
                                                 <td>
                                                     {d.totalQty === 0
-                                                        ? <span className="text-muted">0 L</span>
-                                                        : `${d.totalQty} L`}
+                                                        ? <span className="text-muted">0 </span>
+                                                        : `${d.totalQty} `}
                                                 </td>
                                                 <td>
                                                     {d.totalAmount === 0
@@ -424,8 +427,8 @@ const MonthlySalesHistory: React.FC = () => {
                                             return (
                                                 <tr key={i}>
                                                     <td className="fw-semibold">{emp.empName}</td>
-                                                    <td>{emp.actualQty} L</td>
-                                                    <td>{emp.otherQty} L</td>
+                                                    <td>{emp.actualQty} </td>
+                                                    <td>{emp.otherQty} </td>
                                                     <td>
                                                         <span className={`badge ${emp.leaveDays > 0 ? "bg-warning text-dark" : "bg-secondary"}`}>
                                                             {emp.leaveDays}
