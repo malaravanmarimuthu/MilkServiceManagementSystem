@@ -31,6 +31,18 @@ const getTodayStr = () => new Date().toISOString().split("T")[0];
 
 const NO_TO_DATE_TYPES = ["Vacation/Freeze Leave", "Cancel", "Emergency Leave"];
 
+const INFINITY_DATE = "9999-12-31";
+
+const getRange = (fromDate: string, toDate: string, leaveType: string) => {
+    const from = fromDate?.split("T")[0] ?? fromDate;
+    const ongoing = NO_TO_DATE_TYPES.includes(leaveType);
+    const to = ongoing ? INFINITY_DATE : (toDate?.split("T")[0] ?? toDate ?? from);
+    return { from, to };
+};
+
+const rangesOverlap = (aFrom: string, aTo: string, bFrom: string, bTo: string) =>
+    aFrom <= bTo && bFrom <= aTo;
+
 interface JwtPayload {
     userid: string;
     firstname: string;
@@ -248,6 +260,22 @@ const LeaveRequestPage: React.FC = () => {
         }
         if (!formData.reason.trim()) {
             setFormError("Reason is required.");
+            return;
+        }
+
+        const newRange = getRange(formData.fromDate, formData.toDate, formData.leaveType);
+        const conflict = leaveList.find((l) => {
+            if (l.employeeID !== formData.employeeID) return false;
+            if (editingLeave && l.leaveRequestID === editingLeave.leaveRequestID) return false;
+            if (l.status === "Rejected") return false;
+            const exRange = getRange(l.fromDate, l.toDate, l.leaveType);
+            return rangesOverlap(newRange.from, newRange.to, exRange.from, exRange.to);
+        });
+
+        if (conflict) {
+            setFormError(
+                "You already have a leave request covering one or more of these dates. Only one request per day is allowed."
+            );
             return;
         }
 

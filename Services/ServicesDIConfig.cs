@@ -42,6 +42,7 @@ namespace Services
             services.AddScoped<ILeaveRequestService, LeaveRequestService>();
             services.AddScoped(typeof(IApiMessage<>), typeof(ApiMessage<>));
             services.AddScoped<IMilkEntryService, MilkEntryService>();
+            services.AddScoped<IInvoiceService, InvoiceService>();
 
         }
 
