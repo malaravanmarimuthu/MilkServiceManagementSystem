@@ -3,12 +3,6 @@ using Azure.Storage.Blobs.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 
-public interface IProfilePhotoService
-{
-    Task<string> UploadAsync(int employeeId, IFormFile file);
-    Task<string?> GetPhotoUrlAsync(int employeeId);
-    Task DeleteAsync(int employeeId);
-}
 
 public class ProfilePhotoService : IProfilePhotoService
 {
@@ -73,6 +67,25 @@ public class ProfilePhotoService : IProfilePhotoService
             throw new Exception($"Upload error: {ex.Message} | {ex.InnerException?.Message}");
         }
     }
+    public async Task<string> UpdateAsync(int employeeId, IFormFile file)
+    {
+        try
+        {
+            var existing = await GetPhotoUrlAsync(employeeId);
+            if (existing == null)
+                throw new ArgumentException("No existing photo found to update. Please upload a photo first.");
+
+            return await UploadAsync(employeeId, file);
+        }
+        catch (ArgumentException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Update error: {ex.Message} | {ex.InnerException?.Message}");
+        }
+    }
 
     public async Task<string?> GetPhotoUrlAsync(int employeeId)
     {
@@ -91,11 +104,17 @@ public class ProfilePhotoService : IProfilePhotoService
     public async Task DeleteAsync(int employeeId)
     {
         var container = GetContainerClient();
+        bool anyDeleted = false;
 
         foreach (var ext in AllowedExtensions)
         {
             var blob = container.GetBlobClient($"employee_{employeeId}{ext}");
-            await blob.DeleteIfExistsAsync();
+            var result = await blob.DeleteIfExistsAsync();
+            if (result.Value) anyDeleted = true;
         }
+
+        if (!anyDeleted)
+            throw new ArgumentException("No photo found to delete.");
     }
+
 }
