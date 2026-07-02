@@ -16,6 +16,8 @@ export interface InvoiceDto {
     balanceDue: number;
     status: string;
     notes?: string;
+    lastMonthQuantity: number;
+    lastMonthAmount: number;
 }
 
 export interface CreateInvoiceRequest {
@@ -28,13 +30,17 @@ export interface CreateInvoiceRequest {
 const BASE = `${config.AUTH_URL}/api/Invoice`;
 
 export const InvoiceService = {
+
     getAll: () => axios.get<InvoiceDto[]>(BASE).then(r => r.data),
+
     getById: (id: number) => axios.get<InvoiceDto>(`${BASE}/${id}`).then(r => r.data),
-    getByEmployee: (empId: number) =>
-        axios.get<InvoiceDto[]>(`${BASE}/employee/${empId}`).then(r => r.data),
-    create: (req: CreateInvoiceRequest) =>
-        axios.post<InvoiceDto>(BASE, req).then(r => r.data),
+
+    getByEmployee: (empId: number) => axios.get<InvoiceDto[]>(`${BASE}/employee/${empId}`).then(r => r.data),
+
+    create: (req: CreateInvoiceRequest) => axios.post<InvoiceDto>(BASE, req).then(r => r.data),
+
     delete: (id: number) => axios.delete(`${BASE}/${id}`),
-    getLastBalance: (empId: number) =>
-        axios.get<number>(`${BASE}/lastbalance/${empId}`).then(r => r.data),
+
+    getLastBalance: (empId: number) => axios.get<number>(`${BASE}/lastbalance/${empId}`).then(r => r.data),
+
 };

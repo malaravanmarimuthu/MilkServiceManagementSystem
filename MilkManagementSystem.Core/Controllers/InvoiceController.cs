@@ -51,6 +51,6 @@ namespace API.Controllers
 
         [HttpGet("lastbalance/{empId}")]
         public async Task<IActionResult> GetLastBalance(long empId) =>
-             Ok(await _svc.GetLastBalanceAsync(empId));
+            Ok(await _svc.GetLastBalanceAsync(empId));
     }
 }

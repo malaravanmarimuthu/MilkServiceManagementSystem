@@ -6,6 +6,6 @@ public interface IInvoiceService
     Task<InvoiceDto?> GetByIdAsync(long id);
     Task<List<InvoiceDto>> GetByEmployeeAsync(long empId);
     Task<InvoiceDto> CreateAsync(CreateInvoiceRequest req);
-    Task <bool>DeleteAsync(long id);
+    Task<bool> DeleteAsync(long id);
     Task<decimal> GetLastBalanceAsync(long empId);
 }
