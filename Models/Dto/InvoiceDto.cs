@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Models.Dto
+﻿namespace Models.Dto
 {
     public class InvoiceDto
     {
@@ -22,6 +16,9 @@ namespace Models.Dto
         public decimal BalanceDue { get; set; }
         public string Status { get; set; } = "";
         public string? Notes { get; set; }
+
+        public decimal LastMonthQuantity { get; set; }
+        public decimal LastMonthAmount { get; set; } 
     }
 
     public class CreateInvoiceRequest
