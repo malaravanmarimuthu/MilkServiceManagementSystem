@@ -15,6 +15,7 @@ import LeaveRequest from "../Pages/LeaveRequest";
 import MyProfile from "../Pages/MyProfile";
 import ViewPastConsumption from "../Pages/ViewPastConsumption";
 import MyConsumption from "../Pages/MyConsumption";
+import MyBills from "../Pages/MyBills";
 
 
 function AppRoutes() {
@@ -108,6 +109,12 @@ function AppRoutes() {
                         <MyProfile />
                     </ProtectedRoute>
                 }
+            />
+            <Route path="/my-bills" element={
+                <ProtectedRoute>
+                    <MyBills />
+                </ProtectedRoute>
+            }
             />
             <Route
                 path="/View-Past-Consumption"
