@@ -14,11 +14,20 @@ public class ProfilePhotoService : IProfilePhotoService
 {
     private readonly string _connectionString;
     private readonly string _containerName;
+    private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
+
+    private readonly BlobServiceClient _blobserviceClient;
+    private readonly BlobContainerClient _blobContainerClient;
 
     public ProfilePhotoService(IConfiguration config)
     {
-        _connectionString = config["AzureBlob:ConnectionString"]!;
-        _containerName = config["AzureBlob:ContainerName"]!;
+        _connectionString = config["AzureBlob:ConnectionString"]
+            ?? throw new InvalidOperationException("AzureBlob:ConnectionString missing in configuration.");
+
+        _blobserviceClient = new BlobServiceClient(_connectionString);
+        _containerName = config["AzureBlob:ContainerName"]
+            ?? throw new InvalidOperationException("AzureBlob:ContainerName missing in configuration.");
+        _blobContainerClient = _blobserviceClient.GetBlobContainerClient(_containerName);
     }
 
     private BlobContainerClient GetContainerClient()
@@ -31,18 +40,21 @@ public class ProfilePhotoService : IProfilePhotoService
         try
         {
             var ext = Path.GetExtension(file.FileName).ToLower();
-            var allowed = new[] { ".jpg", ".jpeg", ".png", ".webp" };
 
-            if (!allowed.Contains(ext))
-                throw new ArgumentException("Invalid file type.");
+            if (!AllowedExtensions.Contains(ext))
+                throw new ArgumentException("Invalid file type. Allowed: jpg, jpeg, png, webp.");
 
             var container = GetContainerClient();
             await container.CreateIfNotExistsAsync(PublicAccessType.Blob);
 
+            foreach (var oldExt in AllowedExtensions)
+            {
+                var oldBlob = container.GetBlobClient($"employee_{employeeId}{oldExt}");
+                await oldBlob.DeleteIfExistsAsync();
+            }
+
             var blobName = $"employee_{employeeId}{ext}";
             var blob = container.GetBlobClient(blobName);
-
-            await blob.DeleteIfExistsAsync();
 
             using var stream = file.OpenReadStream();
             await blob.UploadAsync(stream, new BlobHttpHeaders
@@ -51,6 +63,10 @@ public class ProfilePhotoService : IProfilePhotoService
             });
 
             return blob.Uri.ToString();
+        }
+        catch (ArgumentException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -61,9 +77,8 @@ public class ProfilePhotoService : IProfilePhotoService
     public async Task<string?> GetPhotoUrlAsync(int employeeId)
     {
         var container = GetContainerClient();
-        var extensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
 
-        foreach (var ext in extensions)
+        foreach (var ext in AllowedExtensions)
         {
             var blob = container.GetBlobClient($"employee_{employeeId}{ext}");
             if (await blob.ExistsAsync())
@@ -76,9 +91,8 @@ public class ProfilePhotoService : IProfilePhotoService
     public async Task DeleteAsync(int employeeId)
     {
         var container = GetContainerClient();
-        var extensions = new[] { ".jpg", ".jpeg", ".png", ".webp" };
 
-        foreach (var ext in extensions)
+        foreach (var ext in AllowedExtensions)
         {
             var blob = container.GetBlobClient($"employee_{employeeId}{ext}");
             await blob.DeleteIfExistsAsync();

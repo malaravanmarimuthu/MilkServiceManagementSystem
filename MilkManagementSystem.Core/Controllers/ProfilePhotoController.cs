@@ -1,18 +1,24 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Common.Helper;
+using Microsoft.AspNetCore.Mvc;
+using Services.Authentication;
+using System.IdentityModel.Tokens.Jwt;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ProfilePhotoController : ControllerBase
 {
     private readonly IProfilePhotoService _photoService;
+    private readonly IAppAuthHelper _authHelper;
 
-    public ProfilePhotoController(IProfilePhotoService photoService)
+    public ProfilePhotoController(IProfilePhotoService photoService, IAppAuthHelper authHelper)
     {
         _photoService = photoService;
+        _authHelper = authHelper;
     }
 
-    [HttpPost("upload/{employeeId}")]
-    public async Task<IActionResult> Upload(int employeeId, IFormFile file)
+    [HttpPost("upload")]
+    public async Task<IActionResult> Upload(IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "No file provided." });
@@ -22,14 +28,19 @@ public class ProfilePhotoController : ControllerBase
 
         try
         {
+            var employeeId = _authHelper.GetCurrentUserId();
             var url = await _photoService.UploadAsync(employeeId, file);
             return Ok(new { url });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
         }
         catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return StatusCode(500, new { message = ex.Message });
         }
