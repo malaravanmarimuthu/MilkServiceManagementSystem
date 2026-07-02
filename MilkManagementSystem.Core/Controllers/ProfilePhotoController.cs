@@ -1,6 +1,7 @@
 ﻿using Common.Helper;
 using Microsoft.AspNetCore.Mvc;
 using Services.Authentication;
+using Services.Contracts;
 using System.IdentityModel.Tokens.Jwt;
 
 [ApiController]
@@ -45,6 +46,34 @@ public class ProfilePhotoController : ControllerBase
             return StatusCode(500, new { message = ex.Message });
         }
     }
+    [HttpPut("update")]
+    public async Task<IActionResult> Update(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "No file provided." });
+
+        if (file.Length > 5 * 1024 * 1024)
+            return BadRequest(new { message = "File size must be under 5MB." });
+
+        try
+        {
+            var employeeId = _authHelper.GetCurrentUserId();
+            var url = await _photoService.UpdateAsync(employeeId, file);
+            return Ok(new { url });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
 
     [HttpGet("{employeeId}")]
     public async Task<IActionResult> GetPhoto(int employeeId)
@@ -67,6 +96,10 @@ public class ProfilePhotoController : ControllerBase
         {
             await _photoService.DeleteAsync(employeeId);
             return Ok(new { message = "Photo deleted." });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch
         {

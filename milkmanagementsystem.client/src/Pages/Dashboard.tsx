@@ -1,4 +1,4 @@
-﻿/* eslint-disable react-hooks/immutability */
+/* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { jwtDecode } from "jwt-decode";
 import { useEffect, useState } from "react";
@@ -6,6 +6,7 @@ import { getEmployeeSubscriptions } from "../Services/EmployeeSubscriptionServic
 import { getSubscriptions } from "../Services/SubscriptionService";
 import { getEmployees } from "../Services/EmployeeService";
 import { LeaveRequestService } from "../Services/LeaveRequestService";
+import { getProfilePhotoUrl } from "../Services/ProfilePhotoService";
 import Loader from "../Components/Common/Loader";
 
 interface JwtPayload {
@@ -32,14 +33,14 @@ function Dashboard() {
     const [userSubscriptions, setUserSubscriptions] = useState<any[]>([]);
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-
-    // Admin stats
+    const [photoUrl, setPhotoUrl] = useState<string | null>(null);
     const [totalEmployees, setTotalEmployees] = useState(0);
     const [activeEmployees, setActiveEmployees] = useState(0);
     const [todayLeaves, setTodayLeaves] = useState(0);
     const [pendingLeaves, setPendingLeaves] = useState(0);
 
     useEffect(() => {
+        loadProfilePhoto();
         if (isAdmin) {
             loadAdminStats();
         } else {
@@ -47,20 +48,27 @@ function Dashboard() {
         }
     }, []);
 
+    const loadProfilePhoto = async () => {
+        try {
+            const url = await getProfilePhotoUrl(userId);
+            setPhotoUrl(url ? `${url}?t=${Date.now()}` : null);
+        } catch {
+            setPhotoUrl(null);
+        }
+    };
+
     const loadAdminStats = async () => {
         try {
             setLoading(true);
 
-            // Employees
             const empRes: any = await getEmployees();
             const empData = empRes?.data;
             const empArr = Array.isArray(empData)
                 ? empData
                 : empData?.$values ?? empData?.data ?? [];
             setTotalEmployees(empArr.length);
-            setActiveEmployees(empArr.length); // all employees active
+            setActiveEmployees(empArr.length); 
 
-            // Leave Requests
             const leaveData: any = await LeaveRequestService.getAll();
             const leaveArr = Array.isArray(leaveData)
                 ? leaveData
@@ -172,8 +180,17 @@ function Dashboard() {
                             border: "2px solid rgba(255,255,255,0.4)",
                             display: "flex", alignItems: "center", justifyContent: "center",
                             fontSize: "1.5rem", fontWeight: 700, color: "#fff",
+                            overflow: "hidden",
                         }}>
-                            {firstName?.[0]?.toUpperCase() ?? "U"}
+                            {photoUrl ? (
+                                <img
+                                    src={photoUrl}
+                                    alt="Profile"
+                                    style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+                                />
+                            ) : (
+                                firstName?.[0]?.toUpperCase() ?? "U"
+                            )}
                         </div>
                         <div>
                             <p style={{ color: "rgba(255,255,255,0.7)", margin: 0, fontSize: "0.9rem" }}>

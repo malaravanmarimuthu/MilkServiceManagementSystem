@@ -7,10 +7,11 @@ import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { getEmployees, updateEmployee, changePassword } from "../Services/EmployeeService";
 import { getLocations } from "../Services/LocationService";
-import { uploadProfilePhoto, getProfilePhotoUrl } from "../Services/ProfilePhotoService";
+import { uploadProfilePhoto, updateProfilePhoto, getProfilePhotoUrl, deleteProfilePhoto } from "../Services/ProfilePhotoService";
 import Loader from "../Components/Common/Loader";
 import ErrorModal from "../Components/Common/ErrorModal";
 import SuccessModal from "../Components/Common/SuccessModal";
+import ConfirmModal from "../Components/Common/ConfirmModal";
 import "./MyProfile.css";
 
 interface JwtPayload {
@@ -32,6 +33,11 @@ function MyProfile() {
     const [saving, setSaving] = useState(false);
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [photoUploading, setPhotoUploading] = useState(false);
+    const [photoUpdating, setPhotoUpdating] = useState(false);
+    const [photoDeleting, setPhotoDeleting] = useState(false);
+    const [avatarHover, setAvatarHover] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [firstName, setFirstName] = useState("");
@@ -68,7 +74,7 @@ function MyProfile() {
 
             try {
                 const photoUrl = await getProfilePhotoUrl(userId);
-                setPhotoPreview(photoUrl);
+                setPhotoPreview(photoUrl ? `${photoUrl}?t=${Date.now()}` : null);
             } catch {
                 setPhotoPreview(null);
             }
@@ -105,21 +111,45 @@ function MyProfile() {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // udane local preview kaatu
+        const hasExistingPhoto = !!photoPreview;
+
         const reader = new FileReader();
         reader.onload = () => setPhotoPreview(reader.result as string);
         reader.readAsDataURL(file);
 
-        setPhotoUploading(true);
+        if (hasExistingPhoto) {
+            setPhotoUpdating(true);
+        } else {
+            setPhotoUploading(true);
+        }
+
         try {
-            const result = await uploadProfilePhoto(file);
-            setPhotoPreview(result.url); // Azure URL
-            setSuccessMessage("Profile photo updated!");
+            const result = hasExistingPhoto
+                ? await updateProfilePhoto(file)
+                : await uploadProfilePhoto(file);
+            setPhotoPreview(`${result.url}?t=${Date.now()}`);
+            setSuccessMessage(hasExistingPhoto ? "Profile photo updated!" : "Profile photo uploaded!");
         } catch {
-            setError("Failed to upload photo. Please try again.");
+            setError(hasExistingPhoto ? "Failed to update photo. Please try again." : "Failed to upload photo. Please try again.");
+            await loadProfile();
         } finally {
             setPhotoUploading(false);
+            setPhotoUpdating(false);
             if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+    };
+
+    const handlePhotoDeleteConfirmed = async () => {
+        setPhotoDeleting(true);
+        try {
+            await deleteProfilePhoto(userId);
+            setPhotoPreview(null);
+            setSuccessMessage("Profile photo deleted!");
+        } catch {
+            setError("Failed to delete photo. Please try again.");
+        } finally {
+            setPhotoDeleting(false);
+            setShowDeleteConfirm(false);
         }
     };
 
@@ -201,6 +231,8 @@ function MyProfile() {
         }} />
     );
 
+    const photoBusy = photoUploading || photoUpdating || photoDeleting;
+
     return (
         <>
             <div className="profile-page">
@@ -218,10 +250,15 @@ function MyProfile() {
 
                         {/* LEFT PANEL */}
                         <div className="profile-left">
-                            <div className="avatar-wrap">
+                            <div
+                                className="avatar-wrap"
+                                style={{ position: "relative" }}
+                                onMouseEnter={() => setAvatarHover(true)}
+                                onMouseLeave={() => setAvatarHover(false)}
+                            >
                                 <div className="avatar-ring">
                                     <div className="avatar-inner">
-                                        {photoUploading ? (
+                                        {(photoUploading || photoUpdating) ? (
                                             <div style={{
                                                 display: "flex",
                                                 alignItems: "center",
@@ -249,15 +286,43 @@ function MyProfile() {
                                 </div>
                                 <div
                                     className="avatar-edit-btn"
-                                    onClick={() => !photoUploading && fileInputRef.current?.click()}
-                                    title="Change photo"
-                                    style={{ cursor: photoUploading ? "not-allowed" : "pointer", opacity: photoUploading ? 0.5 : 1 }}
+                                    onClick={() => !photoBusy && fileInputRef.current?.click()}
+                                    title={photoPreview ? "Update photo" : "Add photo"}
+                                    style={{ cursor: photoBusy ? "not-allowed" : "pointer", opacity: photoBusy ? 0.5 : 1 }}
                                 >
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                                         <circle cx="12" cy="13" r="4" />
                                     </svg>
                                 </div>
+
+                                {photoPreview && avatarHover && !photoBusy && (
+                                    <div
+                                        className="avatar-delete-btn"
+                                        onClick={() => setShowDeleteConfirm(true)}
+                                        title="Remove photo"
+                                        style={{
+                                            cursor: "pointer",
+                                            position: "absolute",
+                                            bottom: 0,
+                                            left: 0,
+                                            background: "#e53935",
+                                            borderRadius: "50%",
+                                            width: 22,
+                                            height: 22,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            opacity: 0.92,
+                                            transition: "opacity 0.15s ease",
+                                        }}
+                                    >
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="3 6 5 6 21 6" />
+                                            <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                                        </svg>
+                                    </div>
+                                )}
                             </div>
                             <input
                                 ref={fileInputRef}
@@ -540,6 +605,18 @@ function MyProfile() {
                             </div>
                         </div>
                     </div>
+                )}
+
+                {/* Delete Photo Confirmation */}
+                {showDeleteConfirm && (
+                    <ConfirmModal
+                        title="Remove Profile Photo"
+                        message="Are you sure you want to remove your profile photo?"
+                        confirmText={photoDeleting ? "Deleting..." : "Delete"}
+                        isLoading={photoDeleting}
+                        onConfirm={handlePhotoDeleteConfirmed}
+                        onClose={() => !photoDeleting && setShowDeleteConfirm(false)}
+                    />
                 )}
             </div>
         </>
