@@ -2,15 +2,15 @@ import axiosInstance from "../Interceptors/axiosInstance";
 
 const API = "/api/ProfilePhoto";
 
-export const uploadProfilePhoto = async (employeeId: number, file: File) => {
+export const uploadProfilePhoto = async (file: File) => {
     const formData = new FormData();
     formData.append("file", file);
     const res = await axiosInstance.post(
-        `${API}/upload/${employeeId}`,
+        `${API}/upload`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
     );
-    return res.data;
+    return res.data; 
 };
 
 export const getProfilePhotoUrl = async (employeeId: number): Promise<string | null> => {

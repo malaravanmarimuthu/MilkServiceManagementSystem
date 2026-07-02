@@ -60,6 +60,7 @@ app.ExtUseConfigureMiddleware(builder.Configuration, true, true);
 app.UseHttpsRedirection();
 // Enable CORS middleware, applying the named policy
 app.UseCors(corsPolicyName); // Use the name of your defined policy
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 //app.MapHub<api_truckcompanyservice.Hubs.ChatHub>("/chatHub");

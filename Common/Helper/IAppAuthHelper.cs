@@ -7,5 +7,6 @@
         string GetAuthToken();
         string GetClient();
         string GetTokenType();
+        int GetCurrentUserId();
     }
 }
