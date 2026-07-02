@@ -16,12 +16,18 @@ public class ProfilePhotoService : IProfilePhotoService
     private readonly string _containerName;
     private static readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".webp" };
 
+    private readonly BlobServiceClient _blobserviceClient;
+    private readonly BlobContainerClient _blobContainerClient;
+
     public ProfilePhotoService(IConfiguration config)
     {
         _connectionString = config["AzureBlob:ConnectionString"]
             ?? throw new InvalidOperationException("AzureBlob:ConnectionString missing in configuration.");
+
+        _blobserviceClient = new BlobServiceClient(_connectionString);
         _containerName = config["AzureBlob:ContainerName"]
             ?? throw new InvalidOperationException("AzureBlob:ContainerName missing in configuration.");
+        _blobContainerClient = _blobserviceClient.GetBlobContainerClient(_containerName);
     }
 
     private BlobContainerClient GetContainerClient()

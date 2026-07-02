@@ -10,14 +10,14 @@ export const uploadProfilePhoto = async (file: File) => {
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
     );
-    return res.data;
+    return res.data; 
 };
 
-export const getProfilePhotoUrl = async (): Promise<string | null> => {
-    const res = await axiosInstance.get(`${API}/me`);
+export const getProfilePhotoUrl = async (employeeId: number): Promise<string | null> => {
+    const res = await axiosInstance.get(`${API}/${employeeId}`);
     return res.data?.url ?? null;
 };
 
-export const deleteProfilePhoto = async (): Promise<void> => {
-    await axiosInstance.delete(`${API}/me`);
+export const deleteProfilePhoto = async (employeeId: number): Promise<void> => {
+    await axiosInstance.delete(`${API}/${employeeId}`);
 };

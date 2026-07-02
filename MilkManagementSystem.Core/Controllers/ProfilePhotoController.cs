@@ -1,37 +1,20 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Common.Helper;
 using Microsoft.AspNetCore.Mvc;
+using Services.Authentication;
 using System.IdentityModel.Tokens.Jwt;
 
 [ApiController]
 [Route("api/[controller]")]
-[AllowAnonymous]
+[Authorize]
 public class ProfilePhotoController : ControllerBase
 {
     private readonly IProfilePhotoService _photoService;
+    private readonly IAppAuthHelper _authHelper;
 
-    public ProfilePhotoController(IProfilePhotoService photoService)
+    public ProfilePhotoController(IProfilePhotoService photoService, IAppAuthHelper authHelper)
     {
         _photoService = photoService;
-    }
-
-    private int GetCurrentUserId()
-    {
-        var authHeader = Request.Headers["Authorization"].ToString();
-
-        if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
-            throw new UnauthorizedAccessException("Missing or invalid Authorization header.");
-
-        var token = authHeader.Substring("Bearer ".Length).Trim();
-
-        var handler = new JwtSecurityTokenHandler();
-        var jwtToken = handler.ReadJwtToken(token);
-
-        var userIdClaim = jwtToken.Claims.FirstOrDefault(c => c.Type == "userid")?.Value;
-
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
-            throw new UnauthorizedAccessException("userid claim not found in token.");
-
-        return userId;
+        _authHelper = authHelper;
     }
 
     [HttpPost("upload")]
@@ -45,7 +28,7 @@ public class ProfilePhotoController : ControllerBase
 
         try
         {
-            var employeeId = GetCurrentUserId();
+            var employeeId = _authHelper.GetCurrentUserId();
             var url = await _photoService.UploadAsync(employeeId, file);
             return Ok(new { url });
         }
@@ -63,19 +46,13 @@ public class ProfilePhotoController : ControllerBase
         }
     }
 
-    [HttpGet("me")]
-    [AllowAnonymous]
-    public async Task<IActionResult> GetMyPhoto()
+    [HttpGet("{employeeId}")]
+    public async Task<IActionResult> GetPhoto(int employeeId)
     {
         try
         {
-            var employeeId = GetCurrentUserId();
             var url = await _photoService.GetPhotoUrlAsync(employeeId);
             return Ok(new { url });
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(new { message = ex.Message });
         }
         catch
         {
@@ -83,18 +60,13 @@ public class ProfilePhotoController : ControllerBase
         }
     }
 
-    [HttpDelete("me")]
-    public async Task<IActionResult> DeleteMyPhoto()
+    [HttpDelete("{employeeId}")]
+    public async Task<IActionResult> DeletePhoto(int employeeId)
     {
         try
         {
-            var employeeId = GetCurrentUserId();
             await _photoService.DeleteAsync(employeeId);
             return Ok(new { message = "Photo deleted." });
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(new { message = ex.Message });
         }
         catch
         {

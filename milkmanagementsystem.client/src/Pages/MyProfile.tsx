@@ -67,7 +67,7 @@ function MyProfile() {
             setEmployee(myProfile ?? null);
 
             try {
-                const photoUrl = await getProfilePhotoUrl();
+                const photoUrl = await getProfilePhotoUrl(userId);
                 setPhotoPreview(photoUrl);
             } catch {
                 setPhotoPreview(null);

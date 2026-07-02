@@ -34,7 +34,7 @@ namespace Common.Helper
             {
                 return userId;
             }
-            
+
             return string.Empty;
         }
 
@@ -107,7 +107,7 @@ namespace Common.Helper
             SecurityToken decodetoken = tokenHandler.ReadToken(GetAuthToken());
             var jwtSecurityDecodeToken = (JwtSecurityToken)decodetoken;
             return jwtSecurityDecodeToken.Claims.First(x => x.Type == "client").Value.ToLower();
-            
+
         }
 
         public string GetTokenType()
@@ -117,6 +117,24 @@ namespace Common.Helper
             var jwtSecurityDecodeToken = (JwtSecurityToken)decodetoken;
             return jwtSecurityDecodeToken.Claims.First(x => x.Type == "type").Value.ToLower();
 
+        }
+
+        public int GetCurrentUserId()
+        {
+            var token = GetAuthToken();
+
+            if (string.IsNullOrEmpty(token))
+                throw new UnauthorizedAccessException("Missing or invalid Authorization header.");
+
+            var handler = new JwtSecurityTokenHandler();
+            var jwtToken = handler.ReadJwtToken(token);
+            var userIdClaim = jwtToken.Claims
+                .FirstOrDefault(c => c.Type == "userid")?.Value;
+
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                throw new UnauthorizedAccessException("userid claim not found in token.");
+
+            return userId;
         }
     }
 }
