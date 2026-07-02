@@ -43,12 +43,7 @@ namespace Services
             services.AddScoped<ILeaveRequestService, LeaveRequestService>();
             services.AddScoped(typeof(IApiMessage<>), typeof(ApiMessage<>));
             services.AddScoped<IMilkEntryService, MilkEntryService>();
-            services.AddScoped<IProfilePhotoService,ProfilePhotoService>();
-            services.Configure<FormOptions>(options =>
-            {
-                options.MultipartBodyLengthLimit = 5 * 1024 * 1024;
-            });
-
+            services.AddScoped<IInvoiceService, InvoiceService>();
 
         }
 
