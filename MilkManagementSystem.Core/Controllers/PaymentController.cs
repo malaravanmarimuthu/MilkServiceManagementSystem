@@ -59,5 +59,41 @@ namespace MilkManagementSystem.Server.Controllers
             await _context.SaveChangesAsync();
             return Ok(payment);
         }
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] PaymentDto dto)
+        {
+            var payment = await _context.Payments.FindAsync(id);
+
+            if (payment == null)
+            {
+                payment = await _context.Payments
+                    .FirstOrDefaultAsync(p => p.EmployeeID == id
+                        && p.PaidDate.Date == dto.PaidDate.Date);
+            }
+
+            if (payment == null)
+                return NotFound($"No payment found for id={id} (tried as PaymentID and EmployeeID+Date).");
+
+            payment.EmployeeID = dto.EmployeeID;
+            payment.MilkEntryID = dto.MilkEntryID;
+            payment.Quantity = dto.Quantity;
+            payment.RatePerLiter = dto.RatePerLiter;
+            payment.TotalAmount = dto.TotalAmount;
+            payment.PaidDate = dto.PaidDate;
+
+            await _context.SaveChangesAsync();
+            return Ok(payment);
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var payment = await _context.Payments.FindAsync(id);
+            if (payment == null) return NotFound();
+
+            _context.Payments.Remove(payment);
+            await _context.SaveChangesAsync();
+            return Ok();
+        }
     }
 }

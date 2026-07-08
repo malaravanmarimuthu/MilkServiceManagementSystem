@@ -61,8 +61,7 @@ const MyConsumption: React.FC = () => {
             isAdmin = decoded.rolename?.toLowerCase() === "admin";
             loggedEmployeeID = Number(decoded.userid ?? 0);
             loggedEmployeeName = `${decoded.firstname ?? ""} ${decoded.mobile ?? ""}`.trim();
-        } catch (error)
-        {
+        } catch (error) {
             console.log(error);
         }
     }
@@ -197,7 +196,7 @@ const MyConsumption: React.FC = () => {
     );
 
     const buildPrintEntries = (): MilkEntryDto[] => {
-        const actualOrLeave = myEntries.filter(e => e.entryType !== "Other");
+        const actualOrLeave = myEntries;
 
         const entryByDate = new Map<string, MilkEntryDto>();
         actualOrLeave.forEach(e => {
@@ -250,13 +249,13 @@ const MyConsumption: React.FC = () => {
         doc.setFillColor(27, 67, 50);
         doc.rect(0, 0, 210, 28, "F");
 
-        // Logo
         const logoBase64 = await getLogoBase64();
         if (logoBase64) {
             try {
                 doc.addImage(logoBase64, "JPEG", 14, 5, 18, 18);
-            } catch {
-                // ignore if image fails to embed
+            } catch (err)
+            {
+                console.error(err);
             }
         }
 
@@ -320,7 +319,7 @@ const MyConsumption: React.FC = () => {
             ];
         });
 
-        tableRows.push([ "Total ","", `${totalQty} L`, `Rs.${totalPrice.toFixed(2)}`]);
+        tableRows.push(["Total ", "", `${totalQty} L`, `Rs.${totalPrice.toFixed(2)}`]);
 
         autoTable(doc, {
             startY: summaryY + 26,
@@ -612,15 +611,15 @@ const MyConsumption: React.FC = () => {
                                             })
                                         )}
                                     </tbody>
-                                            {printEntries.length > 0 && (
-                                                <tfoot>
-                                                    <tr style={{ background: "#e8f5e9" }}>
-                                                        <td colSpan={2} className="fw-bold text-end">Total:</td>
-                                                        <td className="fw-bold text-success">{totalQty} L</td>
-                                                        <td className="fw-bold text-success">₹{totalPrice.toFixed(2)}</td>
-                                                    </tr>
-                                                </tfoot>
-                                            )}
+                                    {printEntries.length > 0 && (
+                                        <tfoot>
+                                            <tr style={{ background: "#e8f5e9" }}>
+                                                <td colSpan={2} className="fw-bold text-end">Total:</td>
+                                                <td className="fw-bold text-success">{totalQty} L</td>
+                                                <td className="fw-bold text-success">₹{totalPrice.toFixed(2)}</td>
+                                            </tr>
+                                        </tfoot>
+                                    )}
                                 </table>
                             </div>
                         )}
