@@ -20,4 +20,11 @@ export const PaymentService = {
         const res = await axiosInstance.post("/api/Payment", dto);
         return res.data;
     },
+    update: async (id: number, dto: PaymentDto): Promise<PaymentDto> => {
+        const res = await axiosInstance.put(`/api/Payment/${id}`, dto);
+        return res.data;
+    },
+    delete: async (id: number): Promise<void> => {
+        await axiosInstance.delete(`/api/Payment/${id}`);
+    },
 };

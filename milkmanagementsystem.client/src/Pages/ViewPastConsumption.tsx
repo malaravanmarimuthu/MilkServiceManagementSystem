@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { MilkEntryService } from "../Services/MilkEntryService";
 import type { MilkEntryDto } from "../Services/MilkEntryService";
+import { getEmployeeSubscriptions } from "../Services/EmployeeSubscriptionService";
+import { getEmployees } from "../Services/EmployeeService";
+import { PaymentService } from "../Services/PaymentService";
 import ErrorModal from "../Components/Common/ErrorModal";
 import SuccessModal from "../Components/Common/SuccessModal";
 import ConfirmModal from "../Components/Common/ConfirmModal";
@@ -10,31 +13,44 @@ import Loader from "../Components/Common/Loader";
 
 const getTodayISO = () => new Date().toISOString().split("T")[0];
 
+const ENTRY_TYPES = ["Actual", "Leave", "Other"];
+
 const ViewPastConsumption: React.FC = () => {
     const [allEntries, setAllEntries] = useState<MilkEntryDto[]>([]);
+    const [empSubscriptions, setEmpSubscriptions] = useState<any[]>([]);
+    const [employees, setEmployees] = useState<any[]>([]);
+    const [payments, setPayments] = useState<any[]>([]);
     const [selectedDate, setSelectedDate] = useState<string>(getTodayISO());
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
     const [editingId, setEditingId] = useState<number | null>(null);
-    const [editQty, setEditQty] = useState("");
+    const [editQty, setEditQty] = useState<string>("");
+    const [editPayment, setEditPayment] = useState<string>("");
+    const [editType, setEditType] = useState<string>("Actual");
     const [saving, setSaving] = useState(false);
 
     const [showConfirm, setShowConfirm] = useState(false);
     const [deleteId, setDeleteId] = useState<number | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    useEffect(() => {
-        fetchEntries();
-    }, []);
+    useEffect(() => { fetchAll(); }, []);
 
-    const fetchEntries = async () => {
+    const fetchAll = async () => {
         setLoading(true);
         try {
-            const data = await MilkEntryService.getAll();
-            const arr = Array.isArray(data) ? data : (data as any)?.$values ?? [];
-            setAllEntries(arr);
+            const [entryData, empSubData, empData, payData] = await Promise.all([
+                MilkEntryService.getAll(),
+                getEmployeeSubscriptions(),
+                getEmployees(),
+                PaymentService.getAll(),
+            ]);
+
+            setAllEntries(Array.isArray(entryData) ? entryData : (entryData as any)?.$values ?? []);
+            setEmpSubscriptions(Array.isArray(empSubData) ? empSubData : (empSubData as any)?.$values ?? (empSubData as any)?.data ?? []);
+            setEmployees(Array.isArray(empData.data) ? empData.data : empData.data?.$values ?? []);
+            setPayments(Array.isArray(payData) ? payData : (payData as any)?.$values ?? []);
         } catch {
             setError("Failed to load entries.");
         } finally {
@@ -42,58 +58,174 @@ const ViewPastConsumption: React.FC = () => {
         }
     };
 
-    const filteredEntries = allEntries
-        .filter((e) => e.entryDate?.split("T")[0] === selectedDate)
-        .sort((a, b) => {
+    const activeSubscriptions = empSubscriptions.filter((s: any) =>
+        (s.status ?? "").toLowerCase() === "active"
+    );
 
-            if (a.entryType === "Leave" && b.entryType !== "Leave") return -1;
-            if (a.entryType !== "Leave" && b.entryType === "Leave") return 1;
-
-            const nameA = (a.employeeName ?? "").toLowerCase();
-            const nameB = (b.employeeName ?? "").toLowerCase();
-
-            return nameA.localeCompare(nameB);
+    const getPaymentForDate = (empId: number): number => {
+        const p = payments.find((p: any) => {
+            const pEmpId = Number(p.employeeID ?? p.EmployeeID ?? p.employeeId);
+            const pDate = (p.paidDate ?? p.PaidDate ?? "").split("T")[0];
+            return pEmpId === empId && pDate === selectedDate;
         });
+        return p ? Number(p.totalAmount ?? p.TotalAmount ?? 0) : 0;
+    };
 
-    const startEdit = (entry: MilkEntryDto) => {
-        setEditingId(entry.milkEntryID);
-        setEditQty(String(entry.quantity));
+    const getPaymentId = (empId: number): number | null => {
+        const p = payments.find((p: any) => {
+            const pEmpId = Number(p.employeeID ?? p.EmployeeID ?? p.employeeId);
+            const pDate = (p.paidDate ?? p.PaidDate ?? "").split("T")[0];
+            return pEmpId === empId && pDate === selectedDate;
+        });
+        return p ? (p.paymentID ?? p.PaymentID ?? null) : null;
+    };
+
+    const getEmployeeLocationID = (empId: number): number | null => {
+        const emp = employees.find((e: any) => Number(e.id ?? e.ID) === empId);
+        const fromEmployee = emp?.locationID ?? emp?.LocationID;
+        if (fromEmployee) return Number(fromEmployee);
+
+        const existingLocationEntry = allEntries.find(
+            (e: any) => Number(e.employeeID) === empId
+        );
+        const fromEntry = existingLocationEntry?.locationID ?? (existingLocationEntry as any)?.LocationID;
+        return fromEntry ? Number(fromEntry) : null;
+    };
+
+    const tableRows = activeSubscriptions
+        .map((sub: any) => {
+            const empId = Number(sub.employeeId ?? sub.EmployeeId ?? sub.employeeID);
+            const emp = employees.find((e: any) => Number(e.id ?? e.ID) === empId);
+            const empName = emp
+                ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
+                : `Emp #${empId}`;
+
+            const entry = allEntries.find((e) =>
+                Number(e.employeeID) === empId &&
+                e.entryDate?.split("T")[0] === selectedDate
+            ) ?? null;
+
+            const paymentAmount = getPaymentForDate(empId);
+
+            return {
+                empId,
+                empName,
+                entry,
+                qty: entry?.quantity ?? 0,
+                entryType: entry?.entryType ?? "—",
+                paymentAmount,
+                milkEntryID: entry?.milkEntryID ?? -empId,
+                hasEntry: !!entry,
+            };
+        })
+        .sort((a, b) => a.empName.localeCompare(b.empName));
+
+    const startEdit = (row: typeof tableRows[0]) => {
+        setEditingId(row.empId);
+        setEditQty(String(row.qty));
+        setEditPayment(String(row.paymentAmount));
+        setEditType(row.hasEntry ? row.entryType : "Actual");
     };
 
     const cancelEdit = () => {
         setEditingId(null);
         setEditQty("");
+        setEditPayment("");
+        setEditType("Actual");
     };
 
-    const handleUpdate = async (entry: MilkEntryDto) => {
+    const handleUpdate = async (row: typeof tableRows[0]) => {
         setSaving(true);
         try {
-            await MilkEntryService.update(entry.milkEntryID, {
-                ...entry,
-                quantity: Number(editQty),
-            });
-            setSuccess("Entry updated successfully!");
+            const newQty = editQty === "Leave" ? 0 : Number(editQty);
+            let savedMilkEntryID = row.entry?.milkEntryID ?? 0;
+
+            if (row.hasEntry && row.entry) {
+                await MilkEntryService.update(row.entry.milkEntryID, {
+                    ...row.entry,
+                    quantity: newQty,
+                    entryType: editType,
+                });
+            } else {
+                const resolvedLocationID = getEmployeeLocationID(row.empId);
+
+                if (!resolvedLocationID) {
+                    setError("Cannot determine location for this employee. Please contact admin.");
+                    setSaving(false);
+                    return;
+                }
+
+                const created: any = await MilkEntryService.create({
+                    employeeID: row.empId,
+                    entryDate: selectedDate,
+                    entryType: editType,
+                    quantity: newQty,
+                    locationID: resolvedLocationID,
+                } as any);
+
+                savedMilkEntryID =
+                    created?.milkEntryID ??
+                    created?.data?.milkEntryID ??
+                    created?.MilkEntryID ??
+                    created?.data?.MilkEntryID ??
+                    0;
+            }
+
+            const newPayment = Number(editPayment);
+            const paymentId = getPaymentId(row.empId);
+
+            if (newPayment > 0) {
+                if (paymentId === null) {
+                    await PaymentService.create({
+                        employeeID: row.empId,
+                        milkEntryID: savedMilkEntryID,
+                        quantity: newQty,
+                        ratePerLiter: 0,
+                        totalAmount: newPayment,
+                        paidDate: selectedDate,
+                    });
+                } else if (newPayment !== row.paymentAmount) {
+                    await PaymentService.update(paymentId, {
+                        paymentID: paymentId,
+                        employeeID: row.empId,
+                        milkEntryID: savedMilkEntryID,
+                        quantity: newQty,
+                        ratePerLiter: 0,
+                        totalAmount: newPayment,
+                        paidDate: selectedDate,
+                    });
+                }
+            } else if (paymentId !== null) {
+                await PaymentService.delete(paymentId);
+            }
+
+            setSuccess("Updated successfully!");
             cancelEdit();
-            fetchEntries();
+            await fetchAll();
         } catch {
-            setError("Failed to update entry.");
+            setError("Failed to update.");
         } finally {
             setSaving(false);
         }
     };
 
-    const confirmDelete = (id: number) => {
-        setDeleteId(id);
+    const confirmDelete = (milkEntryID: number) => {
+        setDeleteId(milkEntryID);
         setShowConfirm(true);
     };
 
     const handleDelete = async () => {
-        if (deleteId === null) return;
+        if (deleteId === null || deleteId < 0) {
+            setError("Invalid entry — nothing to delete.");
+            setShowConfirm(false);
+            setDeleteId(null);
+            return;
+        }
         setDeleting(true);
         try {
             await MilkEntryService.delete(deleteId);
             setSuccess("Entry deleted successfully!");
-            fetchEntries();
+            await fetchAll();
         } catch {
             setError("Failed to delete entry.");
         } finally {
@@ -103,10 +235,11 @@ const ViewPastConsumption: React.FC = () => {
         }
     };
 
-    const getRowStyle = (entry: MilkEntryDto, isEditing: boolean): React.CSSProperties => {
+    const getRowStyle = (row: typeof tableRows[0], isEditing: boolean): React.CSSProperties => {
         if (isEditing) return { background: "#fffbe6" };
-        if (entry.entryType === "Leave") return { background: "#ffe5e5" };
-        if (entry.entryType === "Actual") return { background: "#f0fff4" };
+        if (!row.hasEntry) return { background: "#f8f9fa" };
+        if (row.entryType === "Leave") return { background: "#ffe5e5" };
+        if (row.entryType === "Actual") return { background: "#f0fff4" };
         return {};
     };
 
@@ -114,6 +247,9 @@ const ViewPastConsumption: React.FC = () => {
         const [y, m, d] = iso.split("-");
         return `${d}-${m}-${y}`;
     };
+
+    const totalQty = tableRows.reduce((sum, r) => sum + r.qty, 0);
+    const totalPayment = tableRows.reduce((sum, r) => sum + r.paymentAmount, 0);
 
     return (
         <>
@@ -160,109 +296,148 @@ const ViewPastConsumption: React.FC = () => {
 
                 {loading ? (
                     <Loader text="Loading entries..." />
-                ) : filteredEntries.length === 0 ? (
-                    <div className="text-center text-muted py-5">
-                        <div style={{ fontSize: "2rem" }}>??</div>
-                        No entries found for {formatDisplayDate(selectedDate)}.
-                    </div>
                 ) : (
                     <>
                         <div className="table-responsive">
                             <table className="table table-bordered align-middle">
                                 <thead className="table-dark">
                                     <tr>
-                                        <th style={{ width: "100px" }}>Emp ID</th>
+                                        <th style={{ width: "80px" }}>Emp ID</th>
                                         <th>Employee Name</th>
-                                        <th>Location</th>
-                                        <th style={{ width: "150px" }}>Qty (L)</th>
-                                        <th style={{ width: "160px" }}>Actions</th>
+                                        <th style={{ width: "150px" }}>Entry Type</th>
+                                        <th style={{ width: "140px" }}>Qty (L)</th>
+                                        <th style={{ width: "160px" }}>Payment (₹)</th>
+                                        <th style={{ width: "180px" }}>Actions</th>
                                     </tr>
                                 </thead>
 
                                 <tbody>
-                                    {filteredEntries.map((e) => {
-                                        const isEditing = editingId === e.milkEntryID;
+                                    {tableRows.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={6} className="text-center text-muted py-4">
+                                                No active subscriptions found.
+                                            </td>
+                                        </tr>
+                                    ) : tableRows.map((row) => {
+                                        const isEditing = editingId === row.empId;
 
                                         return (
                                             <tr
-                                                key={e.milkEntryID}
+                                                key={row.empId}
                                                 style={{
-                                                    ...getRowStyle(e, isEditing),
+                                                    ...getRowStyle(row, isEditing),
                                                     transition: "background 0.2s"
                                                 }}
                                             >
-                                                <td
-                                                    className="text-muted fw-semibold"
-                                                    style={{ fontSize: "0.85rem" }}
-                                                >
-                                                    {e.employeeID}
+                                                <td className="text-muted fw-semibold" style={{ fontSize: "0.85rem" }}>
+                                                    {row.empId}
                                                 </td>
 
                                                 <td>
-                                                    <div className="fw-semibold">
-                                                        {e.employeeName ?? `Emp #${e.employeeID}`}
-                                                    </div>
-
-                                                    {e.entryType === "Leave" && (
-                                                        <span
-                                                            className="badge mt-1"
-                                                            style={{
-                                                                background: "#dc3545",
-                                                                fontSize: "0.68rem"
-                                                            }}
-                                                        >
+                                                    <div className="fw-semibold">{row.empName}</div>
+                                                    {!isEditing && row.entryType === "Leave" && (
+                                                        <span className="badge mt-1" style={{ background: "#dc3545", fontSize: "0.68rem" }}>
                                                             On Leave
                                                         </span>
                                                     )}
-
-                                                    {e.entryType === "Other" && (
-                                                        <span
-                                                            className="badge mt-1 bg-primary"
-                                                            style={{ fontSize: "0.68rem" }}
-                                                        >
+                                                    {!isEditing && row.entryType === "Other" && (
+                                                        <span className="badge mt-1 bg-primary" style={{ fontSize: "0.68rem" }}>
                                                             Other
+                                                        </span>
+                                                    )}
+                                                    {!isEditing && !row.hasEntry && (
+                                                        <span className="badge mt-1 bg-secondary" style={{ fontSize: "0.68rem" }}>
+                                                            No Entry
                                                         </span>
                                                     )}
                                                 </td>
 
-                                                <td>{e.locationName}</td>
+                                                <td>
+                                                    {isEditing ? (
+                                                        <select
+                                                            className="form-select form-select-sm"
+                                                            style={{ minWidth: "110px" }}
+                                                            value={editType}
+                                                            onChange={(ev) => {
+                                                                const newType = ev.target.value;
+                                                                setEditType(newType);
+                                                                if (newType === "Leave") {
+                                                                    setEditQty("0");
+                                                                    setEditPayment("0");
+                                                                }
+                                                            }}
+                                                        >
+                                                            {ENTRY_TYPES.map((t) => (
+                                                                <option key={t} value={t}>{t}</option>
+                                                            ))}
+                                                        </select>
+                                                    ) : row.hasEntry ? (
+                                                        <span className={`badge ${row.entryType === "Actual" ? "bg-success" :
+                                                                row.entryType === "Leave" ? "bg-danger" :
+                                                                    "bg-primary"
+                                                            }`}>
+                                                            {row.entryType}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted">—</span>
+                                                    )}
+                                                </td>
 
-                                                {/* Qty Column */}
                                                 <td>
                                                     {isEditing ? (
                                                         <div className="d-flex align-items-center gap-1">
                                                             <input
                                                                 type="number"
                                                                 className="form-control form-control-sm"
-                                                                style={{ width: "80px" }}
-                                                                value={editQty}
+                                                                style={{ width: "75px" }}
+                                                                value={editType === "Leave" ? "0" : editQty}
                                                                 min={0}
-                                                                autoFocus
+                                                                disabled={editType === "Leave"}
                                                                 onChange={(ev) => setEditQty(ev.target.value)}
                                                             />
                                                             <span className="text-muted">L</span>
                                                         </div>
                                                     ) : (
-                                                        <span className="fw-bold">{e.quantity} L</span>
+                                                        <span className={`fw-bold ${!row.hasEntry ? "text-muted" : ""}`}>
+                                                            {row.qty} L
+                                                        </span>
                                                     )}
                                                 </td>
 
-                                                {/* Actions Column */}
+                                                <td>
+                                                    {isEditing ? (
+                                                        <div className="d-flex align-items-center gap-1">
+                                                            <span className="text-muted">₹</span>
+                                                            <input
+                                                                type="number"
+                                                                className="form-control form-control-sm"
+                                                                style={{ width: "100px" }}
+                                                                value={editType === "Leave" ? "0" : editPayment}
+                                                                min={0}
+                                                                disabled={editType === "Leave"}
+                                                                onChange={(ev) => setEditPayment(ev.target.value)}
+                                                            />
+                                                        </div>
+                                                    ) : (
+                                                        <span className={`fw-bold ${row.paymentAmount > 0 ? "text-success" : "text-muted"}`}>
+                                                            ₹{row.paymentAmount.toFixed(2)}
+                                                        </span>
+                                                    )}
+                                                </td>
+
                                                 <td>
                                                     {isEditing ? (
                                                         <div className="d-flex gap-2">
                                                             <button
                                                                 className="btn btn-sm btn-success"
-                                                                onClick={() => handleUpdate(e)}
+                                                                onClick={() => handleUpdate(row)}
                                                                 disabled={saving}
                                                             >
-                                                                {saving ? (
-                                                                    <span className="spinner-border spinner-border-sm" />
-                                                                ) : (
-                                                                    "Save"
-                                                                )}
+                                                                {saving
+                                                                    ? <span className="spinner-border spinner-border-sm" />
+                                                                    : "Save"
+                                                                }
                                                             </button>
-
                                                             <button
                                                                 className="btn btn-sm btn-secondary"
                                                                 onClick={cancelEdit}
@@ -275,17 +450,18 @@ const ViewPastConsumption: React.FC = () => {
                                                         <div className="d-flex gap-2">
                                                             <button
                                                                 className="btn btn-sm btn-warning"
-                                                                onClick={() => startEdit(e)}
+                                                                onClick={() => startEdit(row)}
                                                             >
                                                                 Edit
                                                             </button>
-
-                                                            <button
-                                                                className="btn btn-sm btn-danger"
-                                                                onClick={() => confirmDelete(e.milkEntryID)}
-                                                            >
-                                                                Delete
-                                                            </button>
+                                                            {row.hasEntry && (
+                                                                <button
+                                                                    className="btn btn-sm btn-danger"
+                                                                    onClick={() => confirmDelete(row.milkEntryID)}
+                                                                >
+                                                                    Delete
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     )}
                                                 </td>
@@ -296,15 +472,9 @@ const ViewPastConsumption: React.FC = () => {
 
                                 <tfoot>
                                     <tr className="table-secondary fw-bold">
-                                        <td colSpan={3} className="text-end">
-                                            Total Qty:
-                                        </td>
-                                        <td>
-                                            {filteredEntries
-                                                .reduce((sum, e) => sum + (e.quantity ?? 0), 0)
-                                                .toFixed(1)}{" "}
-                                            L
-                                        </td>
+                                        <td colSpan={3} className="text-end">Total:</td>
+                                        <td>{totalQty.toFixed(1)} L</td>
+                                        <td>₹{totalPayment.toFixed(2)}</td>
                                         <td></td>
                                     </tr>
                                 </tfoot>
@@ -321,8 +491,8 @@ const ViewPastConsumption: React.FC = () => {
                                 <small className="text-muted">Leave</small>
                             </div>
                             <div className="d-flex align-items-center gap-1">
-                                <div style={{ width: 14, height: 14, background: "#fff", border: "1px solid #ccc", borderRadius: 3 }} />
-                                <small className="text-muted">Other</small>
+                                <div style={{ width: 14, height: 14, background: "#f8f9fa", border: "1px solid #ccc", borderRadius: 3 }} />
+                                <small className="text-muted">No Entry</small>
                             </div>
                         </div>
                     </>
