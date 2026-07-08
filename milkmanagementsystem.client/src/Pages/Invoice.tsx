@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from "react";
@@ -21,6 +23,11 @@ const Invoice: React.FC = () => {
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
     const printRef = useRef<HTMLDivElement>(null);
 
+    const [bulkLoading, setBulkLoading] = useState(false);
+    const [showBulkForm, setShowBulkForm] = useState(false);
+    const [bulkMonthYear, setBulkMonthYear] = useState("");
+    const [bulkResult, setBulkResult] = useState<{ success: number; failed: number; skipped: number } | null>(null);
+
     const currentMonthYear = new Date().toISOString().slice(0, 7);
 
     const [form, setForm] = useState<CreateInvoiceRequest>({
@@ -30,7 +37,10 @@ const Invoice: React.FC = () => {
         notes: "",
     });
 
-    useEffect(() => { fetchAll(); }, []);
+    useEffect(() => {
+        fetchAll();
+        setBulkMonthYear(currentMonthYear);
+    }, []);
 
     const fetchAll = async () => {
         setLoading(true);
@@ -82,6 +92,24 @@ const Invoice: React.FC = () => {
             setError("Failed to generate invoice. Check if data exists for selected month.");
         } finally {
             setGenLoading(false);
+        }
+    };
+
+    const handleGenerateAll = async () => {
+        if (!bulkMonthYear) return setError("Please select month & year for bulk generation.");
+
+        setBulkLoading(true);
+        setBulkResult(null);
+        try {
+            const res = await InvoiceService.generateAll(bulkMonthYear);
+            setBulkResult({ success: res.successCount, failed: res.failedCount, skipped: res.skippedCount });
+            setSuccess(`Bulk generation done: ${res.successCount} created, ${res.skippedCount} skipped, ${res.failedCount} failed.`);
+        } catch {
+            setError("Bulk generation failed.");
+        } finally {
+            setBulkLoading(false);
+            setShowBulkForm(false);
+            fetchAll();
         }
     };
 
@@ -142,6 +170,20 @@ const Invoice: React.FC = () => {
         );
     };
 
+    const advanceBadge = (balanceDue: number) => {
+        if (balanceDue >= 0) return null;
+        return (
+            <span style={{
+                background: "#ede9fe", color: "#6d28d9",
+                padding: "3px 10px", borderRadius: 20,
+                fontSize: 11, fontWeight: 700, marginLeft: 6,
+                whiteSpace: "nowrap"
+            }}>
+                Advance Rs. {Math.abs(balanceDue).toFixed(2)}
+            </span>
+        );
+    };
+
     return (
         <div className="container-fluid mt-4 px-4 pb-5">
             <ErrorModal message={error} onClose={() => setError("")} />
@@ -155,7 +197,6 @@ const Invoice: React.FC = () => {
                 isLoading={deleteLoading}
             />
 
-            {/* Header */}
             <div className="d-flex align-items-center justify-content-between mb-4">
                 <div className="d-flex align-items-center gap-3">
                     <div style={{
@@ -173,27 +214,94 @@ const Invoice: React.FC = () => {
                         </div>
                     </div>
                 </div>
-                <button
-                    className="btn btn-sm fw-semibold text-white px-3"
-                    style={{ background: "#1B4332", borderRadius: 10 }}
-                    onClick={() => {
-                        setShowForm(!showForm);
-                        setSelectedInvoice(null);
-                    }}
-                >
-                    <i className={`bi bi-${showForm ? "x" : "plus-circle"} me-2`} />
-                    {showForm ? "Cancel" : "Generate Invoice"}
-                </button>
+                <div className="d-flex gap-2">
+                    <button
+                        className="btn btn-sm fw-semibold text-white px-3"
+                        style={{ background: "#845ec2", borderRadius: 10 }}
+                        onClick={() => {
+                            setShowBulkForm(!showBulkForm);
+                            setShowForm(false);
+                            setSelectedInvoice(null);
+                        }}
+                    >
+                        <i className={`bi bi-${showBulkForm ? "x" : "people-fill"} me-2`} />
+                        {showBulkForm ? "Cancel" : "Generate for All"}
+                    </button>
+                    <button
+                        className="btn btn-sm fw-semibold text-white px-3"
+                        style={{ background: "#1B4332", borderRadius: 10 }}
+                        onClick={() => {
+                            setShowForm(!showForm);
+                            setShowBulkForm(false);
+                            setSelectedInvoice(null);
+                        }}
+                    >
+                        <i className={`bi bi-${showForm ? "x" : "plus-circle"} me-2`} />
+                        {showForm ? "Cancel" : "Generate Invoice"}
+                    </button>
+                </div>
             </div>
 
-            {/* Generate Form */}
+            {showBulkForm && (
+                <div className="card border-0 shadow-sm rounded-4 p-4 mb-4" style={{ borderLeft: "4px solid #845ec2" }}>
+                    <h6 className="fw-bold mb-3" style={{ color: "#845ec2" }}>
+                        <i className="bi bi-people-fill me-2" />Generate Invoices for All Employees
+                    </h6>
+                    <div className="row g-3 align-items-end">
+                        <div className="col-md-4">
+                            <label className="form-label fw-semibold small text-muted">
+                                MONTH & YEAR *
+                            </label>
+                            <input
+                                type="month"
+                                className="form-control form-control-sm"
+                                value={bulkMonthYear}
+                                max={currentMonthYear}
+                                onChange={e => setBulkMonthYear(e.target.value)}
+                            />
+                        </div>
+                        <div className="col-md-3">
+                            <button
+                                className="btn btn-sm w-100 fw-semibold text-white"
+                                style={{ background: "#845ec2", borderRadius: 8 }}
+                                onClick={handleGenerateAll}
+                                disabled={bulkLoading || employees.length === 0}
+                            >
+                                {bulkLoading
+                                    ? <><span className="spinner-border spinner-border-sm me-1" />Generating...</>
+                                    : <><i className="bi bi-lightning-fill me-1" />Generate for {employees.length} Employees</>
+                                }
+                            </button>
+                        </div>
+                    </div>
+                    <div className="text-muted mt-2" style={{ fontSize: "0.78rem" }}>
+                        Employees who already have an invoice for the selected month will be skipped automatically.
+                    </div>
+                    {bulkResult && (
+                        <div className="mt-3 p-3 rounded-3" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                            <span className="fw-semibold" style={{ color: "#15803d" }}>
+                                ✓ {bulkResult.success} created
+                            </span>
+                            {" · "}
+                            <span className="fw-semibold" style={{ color: "#92400e" }}>
+                                {bulkResult.skipped} skipped
+                            </span>
+                            {" · "}
+                            <span className="fw-semibold" style={{ color: "#dc2626" }}>
+                                {bulkResult.failed} failed
+                            </span>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {showForm && (
                 <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
                     <h6 className="fw-bold mb-3" style={{ color: "#1B4332" }}>
                         <i className="bi bi-file-earmark-plus me-2" />New Invoice
                     </h6>
                     <div className="row g-3 align-items-end">
-                        {/* Employee */}
+
                         <div className="col-md-4">
                             <label className="form-label fw-semibold small text-muted">
                                 EMPLOYEE *
@@ -229,7 +337,6 @@ const Invoice: React.FC = () => {
                             />
                         </div>
 
-                        {/* Notes */}
                         <div className="col-md-3">
                             <label className="form-label fw-semibold small text-muted">
                                 NOTES (Optional)
@@ -243,7 +350,6 @@ const Invoice: React.FC = () => {
                             />
                         </div>
 
-                        {/* Generate Button */}
                         <div className="col-md-2">
                             <button
                                 className="btn btn-sm w-100 fw-semibold text-white"
@@ -262,7 +368,6 @@ const Invoice: React.FC = () => {
                 </div>
             )}
 
-            {/* Invoice List Table */}
             <div className="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
                 <div className="card-header border-0 px-4 py-3"
                     style={{ background: "#1B4332" }}>
@@ -356,8 +461,9 @@ const Invoice: React.FC = () => {
                                         }}>
                                             {inv.generatedDate}
                                         </td>
-                                        <td style={{ padding: "12px 16px" }}>
+                                        <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
                                             {statusBadge(inv.status)}
+                                            {advanceBadge(inv.balanceDue)}
                                         </td>
                                         <td style={{ padding: "12px 16px" }}>
                                             <div className="d-flex gap-2"
@@ -392,7 +498,6 @@ const Invoice: React.FC = () => {
                 )}
             </div>
 
-            {/* Invoice Detail — modal popup */}
             {selectedInvoice && (
                 <>
                     <div
@@ -449,11 +554,14 @@ const Invoice: React.FC = () => {
     );
 };
 
-/* ── Invoice Detail Print View ── */
 export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }) => {
     const grandTotal = invoice.totalAmount + invoice.previousArrears;
+
     const isDue = invoice.balanceDue > 0;
-    const balColor = isDue ? "#dc2626" : "#15803d";
+    const isAdvance = invoice.balanceDue < 0;
+    const advanceAmount = isAdvance ? Math.abs(invoice.balanceDue) : 0;
+
+    const balColor = isDue ? "#dc2626" : isAdvance ? "#6d28d9" : "#15803d";
 
     const th: React.CSSProperties = {
         padding: "11px 18px", color: "white", fontWeight: 700,
@@ -486,8 +594,16 @@ export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }
             value: `Rs. ${invoice.amountPaid.toFixed(2)}`,
         },
         {
-            label: isDue ? "Balance Due (Still Pending)" : "Balance Due (Cleared)",
-            value: `Rs. ${Math.max(invoice.balanceDue, 0).toFixed(2)}`,
+            label: isDue
+                ? "Balance Due (Still Pending)"
+                : isAdvance
+                    ? "Advance Paid (Extra Amount)"
+                    : "Balance Due (Cleared)",
+            value: isDue
+                ? `Rs. ${invoice.balanceDue.toFixed(2)}`
+                : isAdvance
+                    ? `Rs. ${advanceAmount.toFixed(2)}`
+                    : `Rs. 0.00`,
             isBalance: true,
         },
     ];
@@ -497,7 +613,7 @@ export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }
             padding: "40px 48px", fontFamily: "Arial, sans-serif",
             maxWidth: 860, margin: "0 auto"
         }}>
-            {/* Company Header */}
+
             <div style={{
                 display: "flex", justifyContent: "space-between",
                 alignItems: "flex-start", paddingBottom: 24,
@@ -548,11 +664,20 @@ export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }
                         }}>
                             {invoice.status === "Partial" ? "PARTIAL PAID" : invoice.status.toUpperCase()}
                         </span>
+                        {isAdvance && (
+                            <span style={{
+                                background: "#ede9fe", color: "#6d28d9",
+                                padding: "4px 14px", borderRadius: 20,
+                                fontSize: 13, fontWeight: 800, letterSpacing: 1,
+                                marginLeft: 8, display: "inline-block", marginTop: 6
+                            }}>
+                                ADVANCE PAID
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
 
-            {/* TABLE 1: Employee & Invoice Info */}
             <div style={{
                 marginBottom: 10, fontSize: 11, fontWeight: 700,
                 color: "#1B4332", textTransform: "uppercase", letterSpacing: 1
@@ -609,7 +734,6 @@ export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }
                 </tbody>
             </table>
 
-            {/* TABLE 2: Full Payment Details */}
             <div style={{
                 marginBottom: 10, fontSize: 11, fontWeight: 700,
                 color: "#1B4332", textTransform: "uppercase", letterSpacing: 1
@@ -632,7 +756,7 @@ export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }
                     {paymentRows.map((row, i) => (
                         <tr key={i} style={{
                             background: row.isBalance
-                                ? (isDue ? "#fff1f2" : "#f0fdf4")
+                                ? (isDue ? "#fff1f2" : isAdvance ? "#f5f3ff" : "#f0fdf4")
                                 : "#ffffff",
                             borderBottom: "1px solid #e5e7eb"
                         }}>
@@ -656,7 +780,6 @@ export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }
                 </tbody>
             </table>
 
-            {/* Notes */}
             {invoice.notes && invoice.notes !== "string" && (
                 <div style={{
                     background: "#fef3c7", borderRadius: 10,
@@ -674,7 +797,6 @@ export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }
                 </div>
             )}
 
-            {/* Footer */}
             <div style={{
                 borderTop: "1px solid #e5e7eb", paddingTop: 20,
                 display: "flex", justifyContent: "space-between",
@@ -691,7 +813,9 @@ export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }
                     }}>
                         {isDue
                             ? `Balance: Rs. ${invoice.balanceDue.toFixed(2)}`
-                            : "FULLY PAID"
+                            : isAdvance
+                                ? `Advance Paid: Rs. ${advanceAmount.toFixed(2)}`
+                                : "FULLY PAID"
                         }
                     </div>
                 </div>

@@ -18,7 +18,7 @@
         public string? Notes { get; set; }
 
         public decimal LastMonthQuantity { get; set; }
-        public decimal LastMonthAmount { get; set; } 
+        public decimal LastMonthAmount { get; set; }
     }
 
     public class CreateInvoiceRequest
@@ -27,5 +27,18 @@
         public string MonthYear { get; set; } = "";
         public decimal PreviousArrears { get; set; }
         public string? Notes { get; set; }
+    }
+
+    public class BulkInvoiceRequest
+    {
+        public string MonthYear { get; set; } = "";
+    }
+
+    public class BulkInvoiceResultDto
+    {
+        public int SuccessCount { get; set; }
+        public int SkippedCount { get; set; }
+        public int FailedCount { get; set; }
+        public List<string> Errors { get; set; } = new();
     }
 }

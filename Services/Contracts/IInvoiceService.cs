@@ -8,4 +8,5 @@ public interface IInvoiceService
     Task<InvoiceDto> CreateAsync(CreateInvoiceRequest req);
     Task<bool> DeleteAsync(long id);
     Task<decimal> GetLastBalanceAsync(long empId);
+    Task<BulkInvoiceResultDto> CreateAllAsync(string monthYear);
 }

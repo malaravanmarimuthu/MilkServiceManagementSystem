@@ -34,6 +34,13 @@ namespace API.Controllers
             catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
+        [HttpPost("generate-all")]
+        public async Task<IActionResult> CreateAll([FromBody] BulkInvoiceRequest req)
+        {
+            try { return Ok(await _svc.CreateAllAsync(req.MonthYear)); }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {

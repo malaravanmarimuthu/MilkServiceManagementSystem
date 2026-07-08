@@ -30,6 +30,14 @@ public class InvoiceService : IInvoiceService
         var emp = await _db.Employees.FindAsync(req.EmployeeID)
             ?? throw new Exception("Employee not found");
 
+        var monthLabel = fromDate.ToString("MMMM yyyy");
+        var alreadyExists = await _db.Invoices
+            .AnyAsync(i => i.EmployeeID == req.EmployeeID && i.MonthYear == monthLabel);
+        if (alreadyExists)
+        {
+            throw new Exception($"Invoice already exists for {emp.FirstName} {emp.LastName} for {monthLabel}");
+        }
+
         var entries = await _db.MilkEntries
             .Where(c => c.EmployeeID == req.EmployeeID
                 && c.EntryDate >= fromDate
@@ -64,7 +72,7 @@ public class InvoiceService : IInvoiceService
             EmployeeID = req.EmployeeID,
             EmployeeName = $"{emp.FirstName} {emp.LastName}".Trim(),
             GeneratedDate = DateTime.Today,
-            MonthYear = fromDate.ToString("MMMM yyyy"),
+            MonthYear = monthLabel,
             TotalQuantity = totalQty,
             RatePerLitre = rate,
             TotalAmount = totalAmt,
@@ -78,6 +86,132 @@ public class InvoiceService : IInvoiceService
         _db.Invoices.Add(invoice);
         await _db.SaveChangesAsync();
         return await MapDtoAsync(invoice);
+    }
+
+    public async Task<BulkInvoiceResultDto> CreateAllAsync(string monthYear)
+    {
+        var result = new BulkInvoiceResultDto();
+
+        if (!DateTime.TryParseExact(
+                monthYear + "-01", "yyyy-MM-dd", null,
+                System.Globalization.DateTimeStyles.None,
+                out DateTime parsedDate))
+        {
+            throw new Exception($"Invalid MonthYear format: '{monthYear}'. Use YYYY-MM (e.g. 2026-06)");
+        }
+
+        var fromDate = new DateTime(parsedDate.Year, parsedDate.Month, 1);
+        var toDate = fromDate.AddMonths(1).AddDays(-1);
+        var monthLabel = fromDate.ToString("MMMM yyyy");
+
+        // Fetch EVERYTHING once, up front
+        var employees = await _db.Employees.ToListAsync();
+
+        var existingInvoiceEmpIds = await _db.Invoices
+            .Where(i => i.MonthYear == monthLabel)
+            .Select(i => i.EmployeeID)
+            .ToHashSetAsync();
+
+        var allMilkEntries = await _db.MilkEntries
+            .Where(e => e.EntryDate <= toDate)
+            .ToListAsync();
+
+        var allSubscriptions = await _db.EmployeeSubscriptions
+            .Include(s => s.Subscription)
+            .Where(s => s.Status == "Active")
+            .ToListAsync();
+
+        var allPayments = await _db.Payments.ToListAsync();
+
+        var allInvoices = await _db.Invoices.ToListAsync();
+
+        var newInvoices = new List<Invoice>();
+        var year = DateTime.Now.Year;
+        int invoiceCounter = _db.Invoices.Count(i => i.GeneratedDate.Year == year);
+
+        foreach (var emp in employees)
+        {
+            if (existingInvoiceEmpIds.Contains(emp.ID))
+            {
+                result.SkippedCount++;
+                continue;
+            }
+
+            try
+            {
+                var empEntries = allMilkEntries
+                    .Where(e => e.EmployeeID == emp.ID && e.EntryDate >= fromDate && e.EntryDate <= toDate)
+                    .ToList();
+                var totalQty = empEntries.Sum(e => e.Quantity);
+
+                var empSub = allSubscriptions.FirstOrDefault(s => s.EmployeeId == emp.ID);
+                var rate = empSub?.Subscription?.PricePerLiter ?? 0;
+                var totalAmt = totalQty * rate;
+
+                var paid = allPayments
+                    .Where(p => p.EmployeeID == emp.ID && p.PaidDate >= fromDate && p.PaidDate <= toDate)
+                    .Sum(p => p.TotalAmount);
+
+                // Pending balance calculated from in-memory data (no extra DB calls)
+                var priorEntries = allMilkEntries.Where(e => e.EmployeeID == emp.ID && e.EntryDate < fromDate).ToList();
+                var monthGroups = priorEntries
+                    .GroupBy(e => new { e.EntryDate.Year, e.EntryDate.Month })
+                    .Select(g => new { g.Key.Year, g.Key.Month, Qty = g.Sum(x => x.Quantity) })
+                    .ToList();
+
+                var empInvoices = allInvoices.Where(i => i.EmployeeID == emp.ID).ToList();
+                decimal totalBilled = 0;
+                foreach (var g in monthGroups)
+                {
+                    var gLabel = new DateTime(g.Year, g.Month, 1).ToString("MMMM yyyy");
+                    var matchingInvoice = empInvoices
+                        .Where(inv => inv.MonthYear == gLabel)
+                        .OrderByDescending(inv => inv.InvoiceID)
+                        .FirstOrDefault();
+                    totalBilled += matchingInvoice != null ? matchingInvoice.TotalAmount : g.Qty * rate;
+                }
+
+                var totalPaidBefore = allPayments
+                    .Where(p => p.EmployeeID == emp.ID && p.PaidDate < fromDate)
+                    .Sum(p => p.TotalAmount);
+
+                var previousArrears = Math.Max(totalBilled - totalPaidBefore, 0);
+
+                var grandTotal = totalAmt + previousArrears;
+                var balance = grandTotal - paid;
+
+                invoiceCounter++;
+                var invoice = new Invoice
+                {
+                    InvoiceNumber = $"INV-{year}-{invoiceCounter:D4}",
+                    EmployeeID = emp.ID,
+                    EmployeeName = $"{emp.FirstName} {emp.LastName}".Trim(),
+                    GeneratedDate = DateTime.Today,
+                    MonthYear = monthLabel,
+                    TotalQuantity = totalQty,
+                    RatePerLitre = rate,
+                    TotalAmount = totalAmt,
+                    PreviousArrears = previousArrears,
+                    AmountPaid = paid,
+                    BalanceDue = balance,
+                    Status = balance <= 0 ? "Paid" : paid > 0 ? "Partial" : "Unpaid",
+                    Notes = ""
+                };
+
+                newInvoices.Add(invoice);
+                result.SuccessCount++;
+            }
+            catch (Exception ex)
+            {
+                result.FailedCount++;
+                result.Errors.Add($"{emp.FirstName} {emp.LastName} (#{emp.ID}): {ex.Message}");
+            }
+        }
+
+        _db.Invoices.AddRange(newInvoices);
+        await _db.SaveChangesAsync();
+
+        return result;
     }
 
     private string GenerateInvoiceNumber()
@@ -94,9 +228,67 @@ public class InvoiceService : IInvoiceService
             .ThenByDescending(i => i.InvoiceID)
             .ToListAsync();
 
+        if (invoices.Count == 0) return new List<InvoiceDto>();
+
+        // Fetch everything once
+        var allEmployeeIds = invoices.Select(i => i.EmployeeID).Distinct().ToList();
+
+        var allMilkEntries = await _db.MilkEntries
+            .Where(e => allEmployeeIds.Contains(e.EmployeeID))
+            .ToListAsync();
+
+        var allInvoicesForTheseEmployees = await _db.Invoices
+            .Where(i => allEmployeeIds.Contains(i.EmployeeID))
+            .ToListAsync();
+
         var result = new List<InvoiceDto>();
-        foreach (var inv in invoices)
-            result.Add(await MapDtoAsync(inv));
+
+        foreach (var i in invoices)
+        {
+            DateTime.TryParseExact(
+                i.MonthYear, "MMMM yyyy",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None,
+                out DateTime invoiceMonth);
+
+            var lastMonthStart = invoiceMonth.AddMonths(-1);
+            var lastMonthFrom = new DateTime(lastMonthStart.Year, lastMonthStart.Month, 1);
+            var lastMonthTo = lastMonthFrom.AddMonths(1).AddDays(-1);
+            var lastMonthLabel = lastMonthFrom.ToString("MMMM yyyy");
+
+            var lastMonthQty = allMilkEntries
+                .Where(e => e.EmployeeID == i.EmployeeID && e.EntryDate >= lastMonthFrom && e.EntryDate <= lastMonthTo)
+                .Sum(e => e.Quantity);
+
+            var lastMonthInvoice = allInvoicesForTheseEmployees
+                .Where(x => x.EmployeeID == i.EmployeeID && x.MonthYear == lastMonthLabel)
+                .OrderByDescending(x => x.InvoiceID)
+                .FirstOrDefault();
+
+            var lastMonthAmt = lastMonthInvoice != null
+                ? lastMonthInvoice.TotalAmount
+                : lastMonthQty * i.RatePerLitre;
+
+            result.Add(new InvoiceDto
+            {
+                InvoiceID = i.InvoiceID,
+                InvoiceNumber = i.InvoiceNumber,
+                EmployeeID = i.EmployeeID,
+                EmployeeName = i.EmployeeName,
+                GeneratedDate = i.GeneratedDate.ToString("dd-MM-yyyy"),
+                MonthYear = i.MonthYear,
+                TotalQuantity = i.TotalQuantity,
+                RatePerLitre = i.RatePerLitre,
+                TotalAmount = i.TotalAmount,
+                PreviousArrears = i.PreviousArrears,
+                AmountPaid = i.AmountPaid,
+                BalanceDue = i.BalanceDue,
+                Status = i.Status,
+                Notes = i.Notes,
+                LastMonthQuantity = lastMonthQty,
+                LastMonthAmount = lastMonthAmt
+            });
+        }
 
         return result;
     }
