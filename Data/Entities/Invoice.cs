@@ -52,4 +52,5 @@ namespace Data.Entities
         [MaxLength(500)]
         public string? Notes { get; set; }
     }
+
 }

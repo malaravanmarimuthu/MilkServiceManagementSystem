@@ -27,6 +27,13 @@ export interface CreateInvoiceRequest {
     notes?: string;
 }
 
+export interface BulkInvoiceResult {
+    successCount: number;
+    skippedCount: number;
+    failedCount: number;
+    errors: string[];
+}
+
 const BASE = `${config.AUTH_URL}/api/Invoice`;
 
 export const InvoiceService = {
@@ -38,6 +45,9 @@ export const InvoiceService = {
     getByEmployee: (empId: number) => axios.get<InvoiceDto[]>(`${BASE}/employee/${empId}`).then(r => r.data),
 
     create: (req: CreateInvoiceRequest) => axios.post<InvoiceDto>(BASE, req).then(r => r.data),
+
+    generateAll: (monthYear: string) =>
+        axios.post<BulkInvoiceResult>(`${BASE}/generate-all`, { monthYear }).then(r => r.data),
 
     delete: (id: number) => axios.delete(`${BASE}/${id}`),
 

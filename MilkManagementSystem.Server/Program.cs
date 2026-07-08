@@ -33,7 +33,13 @@ builder.Services.AddControllers();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "4K Fresh"
+    });
+});
 
 builder.Services.Configure<AuthSettings>(
     builder.Configuration.GetSection("AuthAPI:AuthSettings"));
@@ -52,7 +58,10 @@ app.UseRouting();
 //if (app.Environment.IsDevelopment())
 //{
     app.UseSwagger();
-    app.UseSwaggerUI();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "4K Fresh");
+});
 //}
 
 app.UseHttpsRedirection();
