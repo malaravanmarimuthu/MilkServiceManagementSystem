@@ -125,19 +125,19 @@ const Invoice: React.FC = () => {
     };
 
     const statusBadge = (s: string) => {
-        const cfg: Record<string, { bg: string; color: string }> = {
-            Paid: { bg: "#dcfce7", color: "#15803d" },
-            Partial: { bg: "#fef3c7", color: "#92400e" },
-            Unpaid: { bg: "#fee2e2", color: "#dc2626" },
+        const cfg: Record<string, { bg: string; color: string; label: string }> = {
+            Paid: { bg: "#dcfce7", color: "#15803d", label: "Paid" },
+            Partial: { bg: "#fef3c7", color: "#92400e", label: "Partial Paid" },
+            Unpaid: { bg: "#fee2e2", color: "#dc2626", label: "Unpaid" },
         };
-        const c = cfg[s] ?? { bg: "#f3f4f6", color: "#6b7280" };
+        const c = cfg[s] ?? { bg: "#f3f4f6", color: "#6b7280", label: s };
         return (
             <span style={{
                 background: c.bg, color: c.color,
                 padding: "3px 10px", borderRadius: 20,
                 fontSize: 12, fontWeight: 700
             }}>
-                {s}
+                {c.label}
             </span>
         );
     };
@@ -450,7 +450,7 @@ const Invoice: React.FC = () => {
 };
 
 /* ── Invoice Detail Print View ── */
-const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }) => {
+export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }) => {
     const grandTotal = invoice.totalAmount + invoice.previousArrears;
     const isDue = invoice.balanceDue > 0;
     const balColor = isDue ? "#dc2626" : "#15803d";
@@ -466,31 +466,19 @@ const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }) => {
 
     const paymentRows: { label: string; value: string; isBalance?: boolean }[] = [
         {
-            label: "Last Month — Milk Bought",
-            value: `${invoice.lastMonthQuantity.toFixed(2)} Litres`,
-        },
-        {
-            label: "Last Month — Amount Billed",
-            value: `Rs. ${invoice.lastMonthAmount.toFixed(2)}`,
-        },
-        {
-            label: "This Month — Milk Bought",
+            label: "Milk Purchased",
             value: `${invoice.totalQuantity.toFixed(2)} Litres`,
         },
         {
-            label: "Rate Per Litre",
-            value: `Rs. ${invoice.ratePerLitre.toFixed(2)}`,
-        },
-        {
-            label: "This Month — Amount Billed",
+            label: "Bill Amount",
             value: `Rs. ${invoice.totalAmount.toFixed(2)}`,
         },
         {
-            label: "Total Pending (All Previous Months)",
+            label: "Previous Amount (Pending)",
             value: `Rs. ${invoice.previousArrears.toFixed(2)}`,
         },
         {
-            label: "Grand Total Payable (This Month + All Pending)",
+            label: "Total Payable (Current + pending Amount)",
             value: `Rs. ${grandTotal.toFixed(2)}`,
         },
         {
@@ -555,10 +543,10 @@ const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }) => {
                                 : invoice.status === "Partial" ? "#fef3c7" : "#fee2e2",
                             color: invoice.status === "Paid" ? "#15803d"
                                 : invoice.status === "Partial" ? "#92400e" : "#dc2626",
-                            padding: "5px 16px", borderRadius: 20,
-                            fontSize: 12, fontWeight: 800, letterSpacing: 1
+                            padding: "4px 14px", borderRadius: 20,
+                            fontSize: 13, fontWeight: 800, letterSpacing: 1
                         }}>
-                            {invoice.status.toUpperCase()}
+                            {invoice.status === "Partial" ? "PARTIAL PAID" : invoice.status.toUpperCase()}
                         </span>
                     </div>
                 </div>

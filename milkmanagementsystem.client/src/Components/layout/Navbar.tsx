@@ -373,6 +373,12 @@ function Navbar() {
                                                             Payment History
                                                         </NavLink>
                                                     </li>
+                                                    <li className="nav-item">
+                                                        <NavLink to="/my-bills" className="nav-link nav-link-fresh">
+                                                            My Bills
+                                                        </NavLink>
+                                                    </li>
+
                                         </>
                                     )}
 

@@ -15,7 +15,6 @@ import SuccessModal from "../Components/Common/SuccessModal";
 import { handleApiSuccess } from "../Helpers/successHandler";
 import Loader from "../Components/Common/Loader";
 import Pagination from "../Components/Common/Pagination";
-//import { Navigate } from "react-router-dom";
 
 function Location() {
     const [locations, setLocations] = useState<LocationType[]>([]);
@@ -84,11 +83,11 @@ function Location() {
 
     const openAddModal = () => {
         clearForm();
+        setFormError("");
         setShowFormModal(true);
     };
 
     const openEditModal = (location: LocationType) => {
-        console.log(location);
         setEditId(location.locationID);
         setLocationName(location.locationName);
         setStreet(location.street);
@@ -102,18 +101,19 @@ function Location() {
 
     const closeFormModal = () => {
         clearForm();
+        setFormError("");
         setShowFormModal(false);
     };
 
     const handleSubmit = async () => {
+        // All validation errors now show INSIDE the modal (formError)
+        // instead of closing the modal + showing the global ErrorModal.
         if (!locationName.trim() || !street.trim() || !pinCode.trim()) {
-            closeFormModal();
-            setErrorMessage("All fields are required.");
+            setFormError("All fields are required.");
             return;
         }
         if (!/^\d{6}$/.test(pinCode)) {
-            closeFormModal();
-            setErrorMessage("Pincode must be 6 digits.");
+            setFormError("Pincode must be 6 digits.");
             return;
         }
         if (
@@ -125,52 +125,37 @@ function Location() {
             setFormError("Please update at least one field.");
             return;
         }
-        // Location Name Duplicate
+
         const isLocationNameDuplicate = locations.some(
             (x) =>
                 x.locationName.toLowerCase().trim() ===
                 locationName.toLowerCase().trim() &&
                 x.locationID !== editId
         );
-
         if (isLocationNameDuplicate) {
-            closeFormModal();
-            setErrorMessage("Location name already exists.");
+            setFormError("Location name already exists.");
             return;
         }
 
-        // Street Duplicate
         const isStreetDuplicate = locations.some(
             (x) =>
-                x.street.toLowerCase().trim() ===
-                street.toLowerCase().trim() &&
+                x.street.toLowerCase().trim() === street.toLowerCase().trim() &&
                 x.locationID !== editId
         );
-
         if (isStreetDuplicate) {
-            closeFormModal();
-            setErrorMessage("Street already exists.");
+            setFormError("Street already exists.");
             return;
         }
 
-        // Pincode Duplicate
         const isPinCodeDuplicate = locations.some(
-            (x) =>
-                x.pinCode.trim() === pinCode.trim() &&
-                x.locationID !== editId
+            (x) => x.pinCode.trim() === pinCode.trim() && x.locationID !== editId
         );
-
         if (isPinCodeDuplicate) {
-            closeFormModal();
-            setErrorMessage("Pincode already exists.");
+            setFormError("Pincode already exists.");
             return;
         }
 
-        const locationData = {
-            locationName,
-            street,
-            pinCode,
-        };
+        const locationData = { locationName, street, pinCode };
 
         setLoading(true);
 
@@ -186,6 +171,7 @@ function Location() {
             closeFormModal();
             await loadLocations();
         } catch (error) {
+            // Only real API/server errors close the modal + show global popup
             closeFormModal();
             setErrorMessage(handleApiError(error));
         } finally {
@@ -221,7 +207,6 @@ function Location() {
         }
     };
 
-
     return (
         <div className="container mt-4">
             <ErrorModal
@@ -237,17 +222,13 @@ function Location() {
             <div className="d-flex justify-content-between align-items-center mb-3">
                 <h2>Location Management</h2>
                 <div className="d-flex gap-2">
-
                     <button
                         className="btn btn-danger me-2"
                         onClick={() => Navigate("/dashboard")}
                     >
                         Cancel
                     </button>
-                    <button
-                        className="btn btn-primary"
-                        onClick={openAddModal}
-                    >
+                    <button className="btn btn-primary" onClick={openAddModal}>
                         Add Location
                     </button>
                 </div>
@@ -267,10 +248,9 @@ function Location() {
             </div>
 
             {loading ? (
-                <Loader text="Loading Loacation..." />
+                <Loader text="Loading Location..." />
             ) : (
                 <>
-
                     <table className="table table-bordered table-striped">
                         <thead>
                             <tr>
@@ -282,7 +262,7 @@ function Location() {
                         </thead>
 
                         <tbody>
-                            {locations.length === 0 ? (
+                            {currentLocations.length === 0 ? (
                                 <tr>
                                     <td colSpan={4} className="text-center">
                                         No locations found.
@@ -330,7 +310,6 @@ function Location() {
                 >
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content">
-
                             <div className="modal-header">
                                 <h5 className="modal-title">
                                     {editId === null ? "Add Location" : "Edit Location"}
@@ -358,8 +337,7 @@ function Location() {
                                         onChange={(e) => {
                                             setLocationName(e.target.value);
                                             setFormError("");
-                                        }
-                                        }
+                                        }}
                                     />
                                 </div>
 
@@ -372,8 +350,7 @@ function Location() {
                                         onChange={(e) => {
                                             setStreet(e.target.value);
                                             setFormError("");
-                                        }
-                                        }
+                                        }}
                                     />
                                 </div>
 
@@ -386,8 +363,7 @@ function Location() {
                                         onChange={(e) => {
                                             setPinCode(e.target.value);
                                             setFormError("");
-                                        }
-                                        }
+                                        }}
                                     />
                                 </div>
                             </div>
@@ -413,7 +389,6 @@ function Location() {
                                             : "Update"}
                                 </button>
                             </div>
-
                         </div>
                     </div>
                 </div>
@@ -427,7 +402,6 @@ function Location() {
                 >
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content">
-
                             <div className="modal-header">
                                 <h5 className="modal-title">Delete Location</h5>
 
@@ -460,7 +434,6 @@ function Location() {
                                     {loading ? "Deleting..." : "Delete"}
                                 </button>
                             </div>
-
                         </div>
                     </div>
                 </div>
