@@ -20,7 +20,6 @@ import Pagination from "../Components/Common/Pagination";
 
 type FormErrors = {
     milkType?: string;
-    quantity?: string;
     pricePerLiter?: string;
 };
 
@@ -38,7 +37,6 @@ function Subscription() {
     const Navigate = useNavigate();
 
     const [milkType, setMilkType] = useState("");
-    const [quantity, setQuantity] = useState("");
     const [pricePerLiter, setPricePerLiter] = useState("");
 
     const [editId, setEditId] = useState<number | null>(null);
@@ -50,7 +48,6 @@ function Subscription() {
     const [errors, setErrors] = useState<FormErrors>({});
 
     const [oldMilkType, setOldMilkType] = useState("");
-    const [oldQuantity, setOldQuantity] = useState("");
     const [oldPricePerLiter, setOldPricePerLiter] = useState("");
 
     const [currentPage, setCurrentPage] = useState<number>(1);
@@ -93,13 +90,11 @@ function Subscription() {
 
     const clearForm = () => {
         setMilkType("");
-        setQuantity("");
         setPricePerLiter("");
         setEditId(null);
         setFormError("");
         setErrors({});
         setOldMilkType("");
-        setOldQuantity("");
         setOldPricePerLiter("");
     };
 
@@ -111,11 +106,9 @@ function Subscription() {
     const openEditModal = (subscription: SubscriptionType) => {
         setEditId(subscription.subscriptionID);
         setMilkType(subscription.milkType);
-        setQuantity(subscription.quantity.toString());
         setPricePerLiter(subscription.pricePerLiter.toString());
 
         setOldMilkType(subscription.milkType);
-        setOldQuantity(subscription.quantity.toString());
         setOldPricePerLiter(subscription.pricePerLiter.toString());
 
         setFormError("");
@@ -133,10 +126,6 @@ function Subscription() {
 
         if (!milkType.trim()) {
             newErrors.milkType = "Milk Type is required.";
-        }
-
-        if (!quantity.trim()) {
-            newErrors.quantity = "Quantity is required.";
         }
 
         if (!pricePerLiter.trim()) {
@@ -160,7 +149,6 @@ function Subscription() {
         if (
             editId !== null &&
             milkType === oldMilkType &&
-            quantity === oldQuantity &&
             pricePerLiter === oldPricePerLiter
         ) {
             setFormError("Please update at least one field.");
@@ -274,7 +262,7 @@ function Subscription() {
                         </thead>
 
                         <tbody>
-                            {subscriptions.length === 0 ? (
+                            {currentSubscriptions.length === 0 ? (
                                 <tr>
                                     <td colSpan={isAdmin ? 4 : 3} className="text-center">
                                         No subscriptions found.
@@ -286,7 +274,6 @@ function Subscription() {
                                         <td>{subscription.milkType}</td>
                                         <td>{subscription.quantity}</td>
                                         <td>{subscription.pricePerLiter}</td>
-                                        {/* Admin  Edit/Delete buttons */}
                                         {isAdmin && (
                                             <td>
                                                 <button
@@ -367,9 +354,7 @@ function Subscription() {
                                 </div>
 
                                 <div className="mb-3">
-                                    <label className="form-label">
-                                        Quantity <span className="text-danger">*</span>
-                                    </label>
+                                    <label className="form-label">Quantity</label>
                                     <input
                                         type="text"
                                         className="form-control"
