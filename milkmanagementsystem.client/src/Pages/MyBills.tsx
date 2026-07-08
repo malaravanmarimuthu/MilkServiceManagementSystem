@@ -78,7 +78,7 @@ const MyBills: React.FC = () => {
 
     return (
         <div className="container-fluid mt-4 px-4 pb-5">
-            {/* Header */}
+
             <div className="d-flex align-items-center gap-3 mb-4">
                 <div style={{
                     width: 44, height: 44, borderRadius: 12,
@@ -96,7 +96,6 @@ const MyBills: React.FC = () => {
                 </div>
             </div>
 
-            {/* Bill List */}
             <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
                 <div className="card-header border-0 px-4 py-3" style={{ background: "#1B4332" }}>
                     <h6 className="mb-0 fw-bold text-white">
@@ -175,7 +174,6 @@ const MyBills: React.FC = () => {
                 )}
             </div>
 
-            {/* Invoice Detail — modal popup */}
             {selectedInvoice && (
                 <>
                     <div
@@ -190,7 +188,7 @@ const MyBills: React.FC = () => {
                                     style={{ background: "#1B4332" }}>
                                     <h6 className="mb-0 fw-bold text-white">
                                         <i className="bi bi-file-earmark-text me-2" />
-                                        {selectedInvoice.invoiceNumber} — Full Details
+                                        {selectedInvoice.invoiceNumber} â€” Full Details
                                     </h6>
                                     <div className="d-flex gap-2">
                                         <button
@@ -218,7 +216,6 @@ const MyBills: React.FC = () => {
                 </>
             )}
 
-            {/* Hidden container for PDF download */}
             {downloadInvoice && (
                 <div style={{ position: "absolute", left: "-9999px", top: 0 }} ref={downloadRef}>
                     <InvoiceDetailView invoice={downloadInvoice} />
