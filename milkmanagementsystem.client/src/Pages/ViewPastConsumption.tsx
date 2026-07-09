@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from "react";
@@ -58,9 +59,21 @@ const ViewPastConsumption: React.FC = () => {
         }
     };
 
+    const isToday = selectedDate === getTodayISO();
+
     const activeSubscriptions = empSubscriptions.filter((s: any) =>
         (s.status ?? "").toLowerCase() === "active"
     );
+
+    // Today -> only active subscriptions. Past dates -> all subscriptions (historical data preserved).
+    const relevantSubscriptions = isToday ? activeSubscriptions : empSubscriptions;
+
+    const getSubscriptionQty = (empId: number): number => {
+        const sub = activeSubscriptions.find((s: any) =>
+            Number(s.employeeId ?? s.EmployeeId ?? s.employeeID) === empId
+        );
+        return Number(sub?.quantity ?? sub?.Quantity ?? 0);
+    };
 
     const getPaymentForDate = (empId: number): number => {
         const p = payments.find((p: any) => {
@@ -92,7 +105,7 @@ const ViewPastConsumption: React.FC = () => {
         return fromEntry ? Number(fromEntry) : null;
     };
 
-    const tableRows = activeSubscriptions
+    const tableRows = relevantSubscriptions
         .map((sub: any) => {
             const empId = Number(sub.employeeId ?? sub.EmployeeId ?? sub.employeeID);
             const emp = employees.find((e: any) => Number(e.id ?? e.ID) === empId);
@@ -111,20 +124,30 @@ const ViewPastConsumption: React.FC = () => {
                 empId,
                 empName,
                 entry,
-                qty: entry?.quantity ?? 0,
+                qty: Number(entry?.quantity ?? 0),
                 entryType: entry?.entryType ?? "—",
                 paymentAmount,
                 milkEntryID: entry?.milkEntryID ?? -empId,
                 hasEntry: !!entry,
             };
         })
-        .sort((a, b) => a.empName.localeCompare(b.empName));
+        .sort((a, b) => {
+            const aIsLeave = a.entryType === "Leave" ? 0 : 1;
+            const bIsLeave = b.entryType === "Leave" ? 0 : 1;
+            if (aIsLeave !== bIsLeave) return aIsLeave - bIsLeave;
+            return a.empName.localeCompare(b.empName);
+        });
 
     const startEdit = (row: typeof tableRows[0]) => {
         setEditingId(row.empId);
-        setEditQty(String(row.qty));
+        const initialType = row.hasEntry ? row.entryType : "Actual";
+        setEditType(initialType);
+        if (initialType === "Actual") {
+            setEditQty(String(getSubscriptionQty(row.empId)));
+        } else {
+            setEditQty(String(row.qty));
+        }
         setEditPayment(String(row.paymentAmount));
-        setEditType(row.hasEntry ? row.entryType : "Actual");
     };
 
     const cancelEdit = () => {
@@ -137,7 +160,7 @@ const ViewPastConsumption: React.FC = () => {
     const handleUpdate = async (row: typeof tableRows[0]) => {
         setSaving(true);
         try {
-            const newQty = editQty === "Leave" ? 0 : Number(editQty);
+            const newQty = editType === "Leave" ? 0 : editType === "Actual" ? getSubscriptionQty(row.empId) : Number(editQty);
             let savedMilkEntryID = row.entry?.milkEntryID ?? 0;
 
             if (row.hasEntry && row.entry) {
@@ -302,7 +325,6 @@ const ViewPastConsumption: React.FC = () => {
                             <table className="table table-bordered align-middle">
                                 <thead className="table-dark">
                                     <tr>
-                                        <th style={{ width: "80px" }}>Emp ID</th>
                                         <th>Employee Name</th>
                                         <th style={{ width: "150px" }}>Entry Type</th>
                                         <th style={{ width: "140px" }}>Qty (L)</th>
@@ -314,7 +336,7 @@ const ViewPastConsumption: React.FC = () => {
                                 <tbody>
                                     {tableRows.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="text-center text-muted py-4">
+                                            <td colSpan={5} className="text-center text-muted py-4">
                                                 No active subscriptions found.
                                             </td>
                                         </tr>
@@ -329,10 +351,6 @@ const ViewPastConsumption: React.FC = () => {
                                                     transition: "background 0.2s"
                                                 }}
                                             >
-                                                <td className="text-muted fw-semibold" style={{ fontSize: "0.85rem" }}>
-                                                    {row.empId}
-                                                </td>
-
                                                 <td>
                                                     <div className="fw-semibold">{row.empName}</div>
                                                     {!isEditing && row.entryType === "Leave" && (
@@ -365,6 +383,9 @@ const ViewPastConsumption: React.FC = () => {
                                                                     setEditQty("0");
                                                                     setEditPayment("0");
                                                                 }
+                                                                else if (newType === "Actual") {
+                                                                    setEditQty(String(getSubscriptionQty(row.empId)));
+                                                                }
                                                             }}
                                                         >
                                                             {ENTRY_TYPES.map((t) => (
@@ -373,8 +394,8 @@ const ViewPastConsumption: React.FC = () => {
                                                         </select>
                                                     ) : row.hasEntry ? (
                                                         <span className={`badge ${row.entryType === "Actual" ? "bg-success" :
-                                                                row.entryType === "Leave" ? "bg-danger" :
-                                                                    "bg-primary"
+                                                            row.entryType === "Leave" ? "bg-danger" :
+                                                                "bg-primary"
                                                             }`}>
                                                             {row.entryType}
                                                         </span>
@@ -389,10 +410,12 @@ const ViewPastConsumption: React.FC = () => {
                                                             <input
                                                                 type="number"
                                                                 className="form-control form-control-sm"
-                                                                style={{ width: "75px" }}
-                                                                value={editType === "Leave" ? "0" : editQty}
+                                                                style={{ width: "80px" }}
+                                                                step="0.01"
+                                                                value={editType === "Leave" ? "0" :
+                                                                    editType === "Actual" ? String(getSubscriptionQty(row.empId)) : editQty}
                                                                 min={0}
-                                                                disabled={editType === "Leave"}
+                                                                disabled={editType === "Leave" || editType === "Actual"}
                                                                 onChange={(ev) => setEditQty(ev.target.value)}
                                                             />
                                                             <span className="text-muted">L</span>
@@ -412,6 +435,7 @@ const ViewPastConsumption: React.FC = () => {
                                                                 type="number"
                                                                 className="form-control form-control-sm"
                                                                 style={{ width: "100px" }}
+                                                                step="0.01"
                                                                 value={editType === "Leave" ? "0" : editPayment}
                                                                 min={0}
                                                                 disabled={editType === "Leave"}
@@ -472,8 +496,8 @@ const ViewPastConsumption: React.FC = () => {
 
                                 <tfoot>
                                     <tr className="table-secondary fw-bold">
-                                        <td colSpan={3} className="text-end">Total:</td>
-                                        <td>{totalQty.toFixed(1)} L</td>
+                                        <td colSpan={2} className="text-end">Total:</td>
+                                        <td>{totalQty.toFixed(2)} L</td>
                                         <td>₹{totalPayment.toFixed(2)}</td>
                                         <td></td>
                                     </tr>
