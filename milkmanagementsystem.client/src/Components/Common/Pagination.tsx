@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 
+type SortOrder = "asc" | "desc";
+
 type PaginationProps = {
     currentPage: number;
     totalPages: number;
@@ -7,7 +9,20 @@ type PaginationProps = {
     searchTerm?: string;
     onSearchChange?: (value: string) => void;
     searchPlaceholder?: string;
+
+    // Optional: sort toggle (ascending / descending)
+    sortOrder?: SortOrder;
+    onSortChange?: (order: SortOrder) => void;
+
+    // Optional: dynamic page size selector
+    pageSize?: number;
+    onPageSizeChange?: (size: number) => void;
+    pageSizeOptions?: number[];
 };
+
+const BRAND = "#1B4332";
+const BRAND_LIGHT = "#e8f3ec";
+const BRAND_BORDER = "#bfe0cc";
 
 const Pagination: React.FC<PaginationProps> = ({
     currentPage,
@@ -16,6 +31,11 @@ const Pagination: React.FC<PaginationProps> = ({
     searchTerm = "",
     onSearchChange,
     searchPlaceholder = "Search...",
+    sortOrder,
+    onSortChange,
+    pageSize,
+    onPageSizeChange,
+    pageSizeOptions = [10, 20, 30, 50, 100],
 }) => {
     const [inputPage, setInputPage] = useState("");
 
@@ -47,22 +67,92 @@ const Pagination: React.FC<PaginationProps> = ({
         }
     };
 
+    const showToolbar = !!onSearchChange || !!onSortChange || !!onPageSizeChange;
+
     return (
         <div>
-            {/* Search bar - only show if onSearchChange provided */}
-            {onSearchChange && (
-                <div className="mb-3">
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder={searchPlaceholder}
-                        value={searchTerm}
-                        onChange={(e) => {
-                            onSearchChange(e.target.value);
-                            onPageChange(1);
-                        }}
-                        style={{ maxWidth: "300px" }}
-                    />
+            {/* Toolbar: search + sort + page size */}
+            {showToolbar && (
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                        gap: "10px",
+                        marginBottom: "12px",
+                    }}
+                >
+                    {onSearchChange && (
+                        <input
+                            type="text"
+                            className="form-control"
+                            placeholder={searchPlaceholder}
+                            value={searchTerm}
+                            onChange={(e) => {
+                                onSearchChange(e.target.value);
+                                onPageChange(1);
+                            }}
+                            style={{
+                                maxWidth: "300px",
+                                borderRadius: "8px",
+                                border: `1px solid ${BRAND_BORDER}`,
+                            }}
+                        />
+                    )}
+
+                    {onSortChange && (
+                        <button
+                            type="button"
+                            onClick={() => onSortChange(sortOrder === "asc" ? "desc" : "asc")}
+                            title="Toggle sort order"
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                height: "38px",
+                                padding: "0 14px",
+                                borderRadius: "8px",
+                                border: `1px solid ${BRAND_BORDER}`,
+                                background: BRAND_LIGHT,
+                                color: BRAND,
+                                fontSize: "13px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                            }}
+                        >
+                            {sortOrder === "asc" ? "▲ Ascending" : "▼ Descending"}
+                        </button>
+                    )}
+
+                    {onPageSizeChange && (
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontSize: "13px", color: "#475569" }}>Show</span>
+                            <select
+                                value={pageSize}
+                                onChange={(e) => {
+                                    onPageSizeChange(Number(e.target.value));
+                                    onPageChange(1);
+                                }}
+                                style={{
+                                    height: "38px",
+                                    borderRadius: "8px",
+                                    border: `1px solid ${BRAND_BORDER}`,
+                                    background: "#fff",
+                                    color: "#334155",
+                                    fontSize: "13px",
+                                    padding: "0 8px",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                {pageSizeOptions.map((size) => (
+                                    <option key={size} value={size}>
+                                        {size}
+                                    </option>
+                                ))}
+                            </select>
+                            <span style={{ fontSize: "13px", color: "#475569" }}>records</span>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -77,9 +167,9 @@ const Pagination: React.FC<PaginationProps> = ({
                         gap: "8px",
                         marginTop: "12px",
                         padding: "12px",
-                        background: "#f8fafc",
+                        background: BRAND_LIGHT,
                         borderRadius: "12px",
-                        border: "1px solid #e2e8f0",
+                        border: `1px solid ${BRAND_BORDER}`,
                     }}
                 >
                     {/* First */}
@@ -129,14 +219,12 @@ const Pagination: React.FC<PaginationProps> = ({
                                     fontSize: "14px",
                                     transition: "all 0.2s",
                                     background:
-                                        currentPage === page
-                                            ? "linear-gradient(135deg, #3b82f6, #8b5cf6)"
-                                            : "#ffffff",
+                                        currentPage === page ? BRAND : "#ffffff",
                                     color:
                                         currentPage === page ? "#fff" : "#475569",
                                     boxShadow:
                                         currentPage === page
-                                            ? "0 4px 12px rgba(99,102,241,0.4)"
+                                            ? "0 4px 12px rgba(27,67,50,0.35)"
                                             : "0 1px 3px rgba(0,0,0,0.1)",
                                 }}
                             >
@@ -170,7 +258,7 @@ const Pagination: React.FC<PaginationProps> = ({
                         style={{
                             width: "1px",
                             height: "28px",
-                            background: "#e2e8f0",
+                            background: BRAND_BORDER,
                             margin: "0 4px",
                         }}
                     />
@@ -179,7 +267,7 @@ const Pagination: React.FC<PaginationProps> = ({
                     <span
                         style={{
                             fontSize: "13px",
-                            color: "#64748b",
+                            color: "#334155",
                             whiteSpace: "nowrap",
                         }}
                     >
@@ -201,7 +289,7 @@ const Pagination: React.FC<PaginationProps> = ({
                                 width: "52px",
                                 height: "32px",
                                 borderRadius: "8px",
-                                border: "1px solid #cbd5e1",
+                                border: `1px solid ${BRAND_BORDER}`,
                                 textAlign: "center",
                                 fontSize: "13px",
                                 outline: "none",
@@ -215,7 +303,7 @@ const Pagination: React.FC<PaginationProps> = ({
                                 padding: "0 10px",
                                 borderRadius: "8px",
                                 border: "none",
-                                background: "#3b82f6",
+                                background: BRAND,
                                 color: "#fff",
                                 fontSize: "13px",
                                 fontWeight: 600,
@@ -235,9 +323,9 @@ const btnStyle = (disabled: boolean): React.CSSProperties => ({
     width: "36px",
     height: "36px",
     borderRadius: "8px",
-    border: "1px solid #e2e8f0",
+    border: `1px solid ${BRAND_BORDER}`,
     background: disabled ? "#f1f5f9" : "#ffffff",
-    color: disabled ? "#cbd5e1" : "#475569",
+    color: disabled ? "#cbd5e1" : "#334155",
     cursor: disabled ? "not-allowed" : "pointer",
     fontSize: "14px",
     fontWeight: 700,
