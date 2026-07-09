@@ -80,7 +80,7 @@ function EmployeeSubscription() {
                             ? data.data
                             : [];
 
-            setEmployeeSubscriptions([...arr].reverse());
+            setEmployeeSubscriptions(arr);
         } catch (error) {
             setErrorMessage(handleApiError(error));
         } finally {
@@ -148,19 +148,46 @@ function EmployeeSubscription() {
         return sub.milkType ?? sub.MilkType ?? id;
     };
 
-    const filteredEmployeeSubscriptions = employeeSubscriptions.filter((item) => {
-        const employeeText = String(item.employeeId).toLowerCase();
-        const subscriptionText = String(getSubscriptionName(item.subscriptionId)).toLowerCase();
-        const quantityText = String(item.quantity).toLowerCase();
-        const statusText = item.status.toLowerCase();
+    // Resolve an employeeId to a display name, falling back to the id if not found.
+    const getEmployeeName = (id: number) => {
+        const emp = employees.find((x) => (x.id ?? x.ID) === id);
 
-        return (
-            employeeText.includes(searchTerm.toLowerCase()) ||
-            subscriptionText.includes(searchTerm.toLowerCase()) ||
-            quantityText.includes(searchTerm.toLowerCase()) ||
-            statusText.includes(searchTerm.toLowerCase())
+        if (!emp) return id;
+
+        const name = `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim();
+        return name || id;
+    };
+
+    // Employees who already have a subscription assigned should not show up
+    // again in "Select Employee" when adding a new one. When editing, the
+    // currently-assigned employee should still appear (so it stays selected).
+    const availableEmployees = employees.filter((emp) => {
+        const id = emp.id ?? emp.ID;
+        const alreadyAssigned = employeeSubscriptions.some(
+            (x) => x.employeeId === id && x.employeeSubscriptionId !== editId
         );
+        return !alreadyAssigned;
     });
+
+    const filteredEmployeeSubscriptions = employeeSubscriptions
+        .filter((item) => {
+            const employeeText = String(getEmployeeName(item.employeeId)).toLowerCase();
+            const subscriptionText = String(getSubscriptionName(item.subscriptionId)).toLowerCase();
+            const quantityText = String(item.quantity).toLowerCase();
+            const statusText = item.status.toLowerCase();
+
+            return (
+                employeeText.includes(searchTerm.toLowerCase()) ||
+                subscriptionText.includes(searchTerm.toLowerCase()) ||
+                quantityText.includes(searchTerm.toLowerCase()) ||
+                statusText.includes(searchTerm.toLowerCase())
+            );
+        })
+        .sort((a, b) =>
+            String(getEmployeeName(a.employeeId)).localeCompare(
+                String(getEmployeeName(b.employeeId))
+            )
+        );
 
     const totalPages = Math.ceil(
         filteredEmployeeSubscriptions.length / recordsPerPage
@@ -219,7 +246,7 @@ function EmployeeSubscription() {
         const newErrors: FormErrors = {};
 
         if (employeeId === 0) {
-            newErrors.employeeId = "Employee is required.";
+            newErrors.employeeId = "User is required.";
         }
 
         if (subscriptionId === 0) {
@@ -266,7 +293,7 @@ function EmployeeSubscription() {
 
         if (isDuplicate) {
             closeFormModal();
-            setErrorMessage("This subscription is already assigned to this employee.");
+            setErrorMessage("This subscription is already assigned to this user.");
             return;
         }
 
@@ -282,10 +309,10 @@ function EmployeeSubscription() {
         try {
             if (editId === null) {
                 await createEmployeeSubscription(data);
-                handleApiSuccess("Employee Subscription Created Successfully", setsuccessMessage);
+                handleApiSuccess("User Subscription Created Successfully", setsuccessMessage);
             } else {
                 await updateEmployeeSubscription(editId, data);
-                handleApiSuccess("Employee Subscription Updated Successfully", setsuccessMessage);
+                handleApiSuccess("User Subscription Updated Successfully", setsuccessMessage);
             }
 
             closeFormModal();
@@ -315,7 +342,7 @@ function EmployeeSubscription() {
 
         try {
             await deleteEmployeeSubscription(deleteTarget.employeeSubscriptionId);
-            handleApiSuccess("Employee Subscription Deleted Successfully", setsuccessMessage);
+            handleApiSuccess("User Subscription Deleted Successfully", setsuccessMessage);
             closeDeleteModal();
             await loadEmployeeSubscriptions();
         } catch (error) {
@@ -339,7 +366,7 @@ function EmployeeSubscription() {
             />
 
             <div className="d-flex justify-content-between align-items-center mb-3">
-                <h2>Employee Subscription Management</h2>
+                <h2>User Subscription Management</h2>
 
                 <div className="d-flex gap-2">
                     <button
@@ -353,7 +380,7 @@ function EmployeeSubscription() {
                         className="btn btn-primary"
                         onClick={openAddModal}
                     >
-                        Add Employee Subscription
+                        Add User Subscription
                     </button>
                 </div>
             </div>
@@ -362,7 +389,7 @@ function EmployeeSubscription() {
                 <input
                     type="text"
                     className="form-control"
-                    placeholder="Search employee subscription..."
+                    placeholder="Search user subscription..."
                     value={searchTerm}
                     onChange={(e) => {
                         setSearchTerm(e.target.value);
@@ -372,13 +399,13 @@ function EmployeeSubscription() {
             </div>
 
             {loading ? (
-                <Loader text="Loading Employee Subscriptions..." />
+                <Loader text="Loading User Subscriptions..." />
             ) : (
                 <>
                     <table className="table table-bordered table-striped">
                         <thead>
                             <tr>
-                                <th>Employee Id</th>
+                                <th>User</th>
                                 <th>Subscription</th>
                                 <th>Quantity</th>
                                 <th>Status</th>
@@ -390,13 +417,13 @@ function EmployeeSubscription() {
                             {currentEmployeeSubscriptions.length === 0 ? (
                                 <tr>
                                     <td colSpan={5} className="text-center">
-                                        No employee subscriptions found.
+                                        No user subscriptions found.
                                     </td>
                                 </tr>
                             ) : (
                                 currentEmployeeSubscriptions.map((item, index) => (
                                     <tr key={item.employeeSubscriptionId || index}>
-                                        <td>{item.employeeId}</td>
+                                        <td>{getEmployeeName(item.employeeId)}</td>
                                         <td>{getSubscriptionName(item.subscriptionId)}</td>
                                         <td>{item.quantity}</td>
                                         <td>{item.status}</td>
@@ -441,8 +468,8 @@ function EmployeeSubscription() {
                             <div className="modal-header">
                                 <h5 className="modal-title">
                                     {editId === null
-                                        ? "Add Employee Subscription"
-                                        : "Edit Employee Subscription"}
+                                        ? "Add User Subscription"
+                                        : "Edit User Subscription"}
                                 </h5>
 
                                 <button
@@ -466,10 +493,10 @@ function EmployeeSubscription() {
                                     </div>
                                 )}
 
-                                {/* Employee Dropdown */}
+                                {/* User Dropdown */}
                                 <div className="mb-3">
                                     <label className="form-label">
-                                        Employee <span className="text-danger">*</span>
+                                        User <span className="text-danger">*</span>
                                     </label>
 
                                     <select
@@ -481,8 +508,8 @@ function EmployeeSubscription() {
                                             setFormError("");
                                         }}
                                     >
-                                        <option value={0}>-- Select Employee --</option>
-                                        {employees.map((emp) => {
+                                        <option value={0}>-- Select User --</option>
+                                        {availableEmployees.map((emp) => {
                                             const id = emp.id ?? emp.ID;
                                             const name = `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim();
 
@@ -637,7 +664,7 @@ function EmployeeSubscription() {
 
                             <div className="modal-header">
                                 <h5 className="modal-title">
-                                    Delete Employee Subscription
+                                    Delete User Subscription
                                 </h5>
 
                                 <button
@@ -648,7 +675,7 @@ function EmployeeSubscription() {
                             </div>
 
                             <div className="modal-body">
-                                Are you sure you want to delete this employee subscription?
+                                Are you sure you want to delete this user subscription?
                             </div>
 
                             <div className="modal-footer">

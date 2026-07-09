@@ -29,6 +29,12 @@ const getTomorrowStr = () => {
 
 const getTodayStr = () => new Date().toISOString().split("T")[0];
 
+const getYesterdayStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split("T")[0];
+};
+
 const NO_TO_DATE_TYPES = ["Vacation/Freeze Leave", "Cancel", "Emergency Leave"];
 
 const INFINITY_DATE = "9999-12-31";
@@ -97,6 +103,10 @@ const LeaveRequestPage: React.FC = () => {
     const [updatingId, setUpdatingId] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [search, setSearch] = useState("");
+
+    // Resume modal state
+    const [resumeItem, setResumeItem] = useState<LeaveRequestDto | null>(null);
+    const [resuming, setResuming] = useState(false);
 
     useEffect(() => {
         fetchAll();
@@ -167,7 +177,7 @@ const LeaveRequestPage: React.FC = () => {
 
     const handleLeaveTypeChange = (leaveType: string) => {
         setFormError("");
-        if (leaveType === "Emergency Leave") {
+        if (leaveType === "Emergency Leave" && !isAdmin) {
             setFormData((prev) => ({
                 ...prev,
                 leaveType,
@@ -195,7 +205,7 @@ const LeaveRequestPage: React.FC = () => {
             return;
         }
 
-        if (name === "fromDate" && formData.leaveType === "Emergency Leave") {
+        if (name === "fromDate" && formData.leaveType === "Emergency Leave" && !isAdmin) {
             return;
         }
 
@@ -212,11 +222,13 @@ const LeaveRequestPage: React.FC = () => {
     };
 
     const getMinFromDate = () => {
+        if (isAdmin) return undefined;
         if (formData.leaveType === "Emergency Leave") return getTodayStr();
         return getTomorrowStr();
     };
 
     const getMaxFromDate = () => {
+        if (isAdmin) return undefined;
         if (formData.leaveType === "Emergency Leave") return getTodayStr();
         return undefined;
     };
@@ -240,14 +252,19 @@ const LeaveRequestPage: React.FC = () => {
             setFormError("From date is required.");
             return;
         }
-        if (isEmergency && formData.fromDate !== getTodayStr()) {
-            setFormError("Emergency Leave must be today's date.");
-            return;
+
+        // Date restrictions apply only to non-admin users.
+        if (!isAdmin) {
+            if (isEmergency && formData.fromDate !== getTodayStr()) {
+                setFormError("Emergency Leave must be today's date.");
+                return;
+            }
+            if (!isEmergency && formData.fromDate < getTomorrowStr()) {
+                setFormError("From date must be tomorrow or later.");
+                return;
+            }
         }
-        if (!isEmergency && formData.fromDate < getTomorrowStr()) {
-            setFormError("From date must be tomorrow or later.");
-            return;
-        }
+
         if (!isNoToDate) {
             if (!formData.toDate) {
                 setFormError("To date is required.");
@@ -281,9 +298,12 @@ const LeaveRequestPage: React.FC = () => {
 
         setSaving(true);
         try {
+            // Ongoing leave types (Cancel / Vacation / Emergency) are stored
+            // with toDate = INFINITY_DATE so the table shows "Ongoing"
+            // until an admin resumes it.
             const payload = {
                 ...formData,
-                toDate: isNoToDate ? formData.fromDate : formData.toDate,
+                toDate: isNoToDate ? INFINITY_DATE : formData.toDate,
             };
 
             if (editingLeave) {
@@ -351,6 +371,42 @@ const LeaveRequestPage: React.FC = () => {
         }
     };
 
+    // Admin only: resume an ongoing leave (toDate === INFINITY_DATE).
+    // mode "today"    -> toDate = yesterday (leave ends yesterday, employee resumes today)
+    // mode "tomorrow" -> toDate = today     (leave ends today, employee resumes tomorrow)
+    const handleResume = async (mode: "today" | "tomorrow") => {
+    if (!resumeItem) return;
+    setResuming(true);
+    try {
+        const fromDate = resumeItem.fromDate?.split("T")[0] ?? resumeItem.fromDate;
+        let newToDate = mode === "today" ? getYesterdayStr() : getTodayStr();
+
+        // Guard: resume date can never be before the leave's own fromDate.
+        if (newToDate < fromDate) {
+            newToDate = fromDate;
+        }
+
+        await LeaveRequestService.update(resumeItem.leaveRequestID, {
+            ...resumeItem,
+            toDate: newToDate,
+        });
+        setSuccessMessage(
+            mode === "today"
+                ? "Employee resumed from today!"
+                : "Employee will resume from tomorrow!"
+        );
+        fetchAll();
+    } catch {
+        setError("Failed to resume employee.");
+    } finally {
+        setResuming(false);
+        setResumeItem(null);
+    }
+};
+
+    const isOngoing = (item: LeaveRequestDto) =>
+        (item.toDate?.split("T")[0] ?? "") === INFINITY_DATE;
+
     const statusBadge = (status: string) => {
         const map: Record<string, string> = {
             Pending: "warning",
@@ -374,6 +430,67 @@ const LeaveRequestPage: React.FC = () => {
                 onClose={() => { setShowConfirm(false); setDeleteId(null); }}
                 isLoading={deleting}
             />
+
+            {resumeItem && (
+                <>
+                    <div
+                        className="modal-backdrop fade show"
+                        style={{
+                            backdropFilter: "blur(4px)",
+                            backgroundColor: "rgba(0,0,0,0.6)",
+                        }}
+                        onClick={() => !resuming && setResumeItem(null)}
+                    />
+                    <div className="modal fade show d-block" tabIndex={-1}>
+                        <div className="modal-dialog modal-dialog-centered">
+                            <div className="modal-content border-0 shadow-lg rounded-4">
+                                <div className="modal-header border-0 px-4 pt-4 pb-0">
+                                    <h5 className="modal-title fw-bold">Resume Employee</h5>
+                                </div>
+                                <div className="modal-body px-4 py-3">
+                                    <p className="mb-3">
+                                        From when should <strong>{resumeItem.employeeName ?? `Emp #${resumeItem.employeeID}`}</strong> resume?
+                                    </p>
+                                    <div className="d-flex gap-2">
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary flex-fill"
+                                            disabled={resuming}
+                                            onClick={() => handleResume("today")}
+                                        >
+                                            {resuming ? (
+                                                <span className="spinner-border spinner-border-sm me-2" />
+                                            ) : null}
+                                            Resume from Today
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-outline-primary flex-fill"
+                                            disabled={resuming}
+                                            onClick={() => handleResume("tomorrow")}
+                                        >
+                                            {resuming ? (
+                                                <span className="spinner-border spinner-border-sm me-2" />
+                                            ) : null}
+                                            Resume from Tomorrow
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="modal-footer border-0 px-4 pb-4">
+                                    <button
+                                        type="button"
+                                        className="btn btn-secondary"
+                                        disabled={resuming}
+                                        onClick={() => setResumeItem(null)}
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
 
             <div className="container mt-4">
                 <div className="d-flex justify-content-between align-items-center mb-3">
@@ -417,13 +534,13 @@ const LeaveRequestPage: React.FC = () => {
                                         <th>Reason</th>
                                         <th>Status</th>
                                         {isAdmin && <th>Approval</th>}
-                                        <th>Actions</th>
+                                        {isAdmin && <th>Actions</th>}
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {paginated.length === 0 ? (
                                         <tr>
-                                            <td colSpan={isAdmin ? 8 : 7} className="text-center">
+                                            <td colSpan={isAdmin ? 8 : 6} className="text-center">
                                                 No leave requests found.
                                             </td>
                                         </tr>
@@ -434,7 +551,7 @@ const LeaveRequestPage: React.FC = () => {
                                                 <td>{item.leaveType}</td>
                                                 <td>{new Date(item.fromDate).toLocaleDateString("en-IN")}</td>
                                                 <td>
-                                                    {NO_TO_DATE_TYPES.includes(item.leaveType)
+                                                    {isOngoing(item)
                                                         ? <span className="text-muted">Ongoing</span>
                                                         : new Date(item.toDate).toLocaleDateString("en-IN")
                                                     }
@@ -476,25 +593,45 @@ const LeaveRequestPage: React.FC = () => {
                                                                 </button>
                                                             </div>
                                                         ) : (
-                                                            <span className="text-muted">—</span>
+                                                            <button
+                                                                className="btn btn-secondary btn-sm"
+                                                                disabled={updatingId === item.leaveRequestID}
+                                                                onClick={() => handleStatusUpdate(item, "Pending")}
+                                                            >
+                                                                {updatingId === item.leaveRequestID ? (
+                                                                    <span className="spinner-border spinner-border-sm" />
+                                                                ) : "Cancel"}
+                                                            </button>
                                                         )}
                                                     </td>
                                                 )}
 
-                                                <td>
-                                                    <button
-                                                        className="btn btn-sm btn-warning me-2"
-                                                        onClick={() => openEditModal(item)}
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-sm btn-danger"
-                                                        onClick={() => confirmDelete(item.leaveRequestID)}
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                </td>
+                                                {isAdmin && (
+                                                    <td>
+                                                        <div className="d-flex gap-1 flex-wrap">
+                                                            <button
+                                                                className="btn btn-sm btn-warning"
+                                                                onClick={() => openEditModal(item)}
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                className="btn btn-sm btn-danger"
+                                                                onClick={() => confirmDelete(item.leaveRequestID)}
+                                                            >
+                                                                Delete
+                                                            </button>
+                                                            {isOngoing(item) && (
+                                                                <button
+                                                                    className="btn btn-sm btn-info"
+                                                                    onClick={() => setResumeItem(item)}
+                                                                >
+                                                                    Resume
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))
                                     )}
@@ -593,7 +730,7 @@ const LeaveRequestPage: React.FC = () => {
                                                 <div className="col-md-6 mb-3">
                                                     <label className="form-label">
                                                         From Date
-                                                        {isEmergency && (
+                                                        {isEmergency && !isAdmin && (
                                                             <span className="badge bg-danger ms-2">Today Only</span>
                                                         )}
                                                     </label>
@@ -605,16 +742,16 @@ const LeaveRequestPage: React.FC = () => {
                                                         min={getMinFromDate()}
                                                         max={getMaxFromDate()}
                                                         onChange={handleChange}
-                                                        readOnly={isEmergency}
-                                                        style={isEmergency ? { backgroundColor: "#e9ecef", cursor: "not-allowed" } : {}}
+                                                        readOnly={isEmergency && !isAdmin}
+                                                        style={isEmergency && !isAdmin ? { backgroundColor: "#e9ecef", cursor: "not-allowed" } : {}}
                                                         required
                                                     />
-                                                    {isEmergency && (
+                                                    {isEmergency && !isAdmin && (
                                                         <small className="text-muted">
                                                             Emergency leave is automatically set to today and cannot be changed.
                                                         </small>
                                                     )}
-                                                    {!isEmergency && (
+                                                    {!isEmergency && !isAdmin && (
                                                         <small className="text-muted">
                                                             Select from tomorrow onwards.
                                                         </small>
@@ -630,7 +767,7 @@ const LeaveRequestPage: React.FC = () => {
                                                         name="toDate"
                                                         className="form-control"
                                                         value={formData.toDate}
-                                                        min={formData.fromDate || getTomorrowStr()}
+                                                        min={isAdmin ? undefined : (formData.fromDate || getTomorrowStr())}
                                                         onChange={handleChange}
                                                         required
                                                     />
