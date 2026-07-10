@@ -31,9 +31,7 @@ namespace Services
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IContextResolver, ContextResolver>();
             services.AddSingleton<IAppAuthHelper, AppAuthHelper>();
-
             services.AddScoped<IRestAPIClient, RestAPIClient>();
-
             services.AddScoped<IEmployeeService, EmployeeService>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IRoleService, RoleService>();
@@ -44,6 +42,9 @@ namespace Services
             services.AddScoped(typeof(IApiMessage<>), typeof(ApiMessage<>));
             services.AddScoped<IMilkEntryService, MilkEntryService>();
             services.AddScoped<IInvoiceService, InvoiceService>();
+            services.AddScoped<IProfilePhotoService, ProfilePhotoService>();
+
+
 
         }
 

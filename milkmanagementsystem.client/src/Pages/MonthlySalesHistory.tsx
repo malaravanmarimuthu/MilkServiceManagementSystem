@@ -84,10 +84,10 @@ const MonthlySalesHistory: React.FC = () => {
     };
 
     const monthNames = [
-        "January","February","March","April","May","June",
-        "July","August","September","October","November","December"
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
     ];
-    const monthShort = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const monthShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
     const getSubPrice = (subId: number) => {
         const sub = subscriptions.find((s: any) => (s.subscriptionID ?? s.subscriptionId) === subId);
@@ -133,33 +133,49 @@ const MonthlySalesHistory: React.FC = () => {
         return d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
     });
 
-    // Daily summary — ALL days in month (0 for no entry days)
+    // Daily summary — ALL days in month (0 for no entry days), now includes payment + pending
     const dailySummary = () => {
         const allDays = getAllDaysInMonth();
 
-        // Build entry map
-        const map: Record<string, { totalQty: number; totalAmount: number }> = {};
+        // Build sales map (qty + amount) per day
+        const salesMap: Record<string, { totalQty: number; totalAmount: number }> = {};
 
         monthEntries.forEach((e: any) => {
             if (e.entryType === "Leave") return;
             const d = new Date(e.entryDate);
             const dateStr = `${d.getDate().toString().padStart(2, "0")}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getFullYear()}`;
-            if (!map[dateStr]) map[dateStr] = { totalQty: 0, totalAmount: 0 };
-            map[dateStr].totalQty += e.quantity ?? 0;
+            if (!salesMap[dateStr]) salesMap[dateStr] = { totalQty: 0, totalAmount: 0 };
+            salesMap[dateStr].totalQty += e.quantity ?? 0;
 
             const empSub = getEmpSubscription(e.employeeID);
             const subId = empSub?.subscriptionId ?? empSub?.SubscriptionId ?? empSub?.subscriptionID;
             const price = subId ? getSubPrice(subId) : 0;
-            map[dateStr].totalAmount += (e.quantity ?? 0) * price;
+            salesMap[dateStr].totalAmount += (e.quantity ?? 0) * price;
+        });
+
+        // Build payment map per day
+        const paymentMap: Record<string, number> = {};
+        monthPayments.forEach((p: any) => {
+            const d = new Date(p.paidDate ?? p.PaidDate ?? "");
+            const dateStr = `${d.getDate().toString().padStart(2, "0")}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getFullYear()}`;
+            paymentMap[dateStr] = (paymentMap[dateStr] ?? 0) + Number(p.totalAmount ?? p.TotalAmount ?? 0);
         });
 
         // Return ALL days — 0 for missing dates
-        return allDays.map(dateStr => ({
-            date: dateStr,
-            totalQty: map[dateStr]?.totalQty ?? 0,
-            totalAmount: map[dateStr]?.totalAmount ?? 0,
-            hasEntry: !!map[dateStr],
-        }));
+        return allDays.map(dateStr => {
+            const totalQty = salesMap[dateStr]?.totalQty ?? 0;
+            const totalAmount = salesMap[dateStr]?.totalAmount ?? 0;
+            const paidAmount = paymentMap[dateStr] ?? 0;
+            const pendingAmount = totalAmount - paidAmount;
+            return {
+                date: dateStr,
+                totalQty,
+                totalAmount,
+                paidAmount,
+                pendingAmount,
+                hasEntry: !!salesMap[dateStr],
+            };
+        });
     };
 
     // Employee wise summary
@@ -309,7 +325,7 @@ const MonthlySalesHistory: React.FC = () => {
                             <div className="col-6 col-md-3">
                                 <div className="card text-center border-0 shadow-sm">
                                     <div className="card-body py-3">
-                                        <div className="fs-3 fw-bold text-success">{totalQty} L</div>
+                                        <div className="fs-3 fw-bold text-success">{totalQty.toFixed(2)} L</div>
                                         <div className="text-muted small">Total Qty Sold</div>
                                     </div>
                                 </div>
@@ -355,12 +371,14 @@ const MonthlySalesHistory: React.FC = () => {
                                             <th>Date</th>
                                             <th>Total Qty (L)</th>
                                             <th>Total Sale (₹)</th>
+                                            <th>Payment (₹)</th>
+                                            <th>Pending (₹)</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {daily.length === 0 ? (
                                             <tr>
-                                                <td colSpan={3} className="text-center text-muted py-4">
+                                                <td colSpan={5} className="text-center text-muted py-4">
                                                     No data found for {monthNames[selectedMonth - 1]} {selectedYear}.
                                                 </td>
                                             </tr>
@@ -373,13 +391,25 @@ const MonthlySalesHistory: React.FC = () => {
                                                 <td className="fw-semibold">{d.date}</td>
                                                 <td>
                                                     {d.totalQty === 0
-                                                        ? <span className="text-muted">0 </span>
-                                                        : `${d.totalQty} `}
+                                                        ? <span className="text-muted">0.00</span>
+                                                        : d.totalQty.toFixed(2)}
                                                 </td>
                                                 <td>
                                                     {d.totalAmount === 0
                                                         ? <span className="text-muted">₹0.00</span>
                                                         : `₹${d.totalAmount.toFixed(2)}`}
+                                                </td>
+                                                <td>
+                                                    {d.paidAmount === 0
+                                                        ? <span className="text-muted">₹0.00</span>
+                                                        : <span className="text-success fw-semibold">₹{d.paidAmount.toFixed(2)}</span>}
+                                                </td>
+                                                <td>
+                                                    {d.pendingAmount > 0
+                                                        ? <span className="text-danger fw-semibold">₹{d.pendingAmount.toFixed(2)}</span>
+                                                        : d.totalAmount > 0
+                                                            ? <span className="text-success">✓ Paid</span>
+                                                            : <span className="text-muted">₹0.00</span>}
                                                 </td>
                                             </tr>
                                         ))}
@@ -388,8 +418,10 @@ const MonthlySalesHistory: React.FC = () => {
                                         <tfoot>
                                             <tr style={{ background: "#f1f8f4" }}>
                                                 <td className="fw-bold text-end">Total:</td>
-                                                <td className="fw-bold text-success">{totalQty} L</td>
+                                                <td className="fw-bold text-success">{totalQty.toFixed(2)} L</td>
                                                 <td className="fw-bold text-success">₹{totalSaleAmount.toFixed(2)}</td>
+                                                <td className="fw-bold text-success">₹{totalPaid.toFixed(2)}</td>
+                                                <td className="fw-bold text-danger">₹{totalPending.toFixed(2)}</td>
                                             </tr>
                                         </tfoot>
                                     )}
@@ -427,8 +459,8 @@ const MonthlySalesHistory: React.FC = () => {
                                             return (
                                                 <tr key={i}>
                                                     <td className="fw-semibold">{emp.empName}</td>
-                                                    <td>{emp.actualQty} </td>
-                                                    <td>{emp.otherQty} </td>
+                                                    <td>{emp.actualQty.toFixed(2)}</td>
+                                                    <td>{emp.otherQty.toFixed(2)}</td>
                                                     <td>
                                                         <span className={`badge ${emp.leaveDays > 0 ? "bg-warning text-dark" : "bg-secondary"}`}>
                                                             {emp.leaveDays}
@@ -451,8 +483,8 @@ const MonthlySalesHistory: React.FC = () => {
                                         <tfoot>
                                             <tr style={{ background: "#f1f8f4" }}>
                                                 <td className="fw-bold">Total</td>
-                                                <td className="fw-bold">{empSummary.reduce((s, e) => s + e.actualQty, 0)} L</td>
-                                                <td className="fw-bold">{empSummary.reduce((s, e) => s + e.otherQty, 0)} L</td>
+                                                <td className="fw-bold">{empSummary.reduce((s, e) => s + e.actualQty, 0).toFixed(2)} L</td>
+                                                <td className="fw-bold">{empSummary.reduce((s, e) => s + e.otherQty, 0).toFixed(2)} L</td>
                                                 <td className="fw-bold">{empSummary.reduce((s, e) => s + e.leaveDays, 0)}</td>
                                                 <td className="fw-bold text-primary">₹{totalSaleAmount.toFixed(2)}</td>
                                                 <td className="fw-bold text-success">₹{totalPaid.toFixed(2)}</td>
