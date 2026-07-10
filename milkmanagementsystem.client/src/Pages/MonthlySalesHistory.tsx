@@ -432,13 +432,13 @@ const MonthlySalesHistory: React.FC = () => {
                         {/* Employee wise Summary */}
                         <div className="mb-4">
                             <h5 className="fw-bold mb-3">
-                                👥 Employee wise Summary — {monthNames[selectedMonth - 1]} {selectedYear}
+                                👥 User wise Summary — {monthNames[selectedMonth - 1]} {selectedYear}
                             </h5>
                             <div className="table-responsive">
                                 <table className="table table-bordered align-middle">
                                     <thead className="table-dark">
                                         <tr>
-                                            <th>Employee</th>
+                                            <th>User</th>
                                             <th>Actual Qty (L)</th>
                                             <th>Other Qty (L)</th>
                                             <th>Leave Days</th>

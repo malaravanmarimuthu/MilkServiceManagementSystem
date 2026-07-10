@@ -156,7 +156,7 @@ const Invoice: React.FC = () => {
     };
 
     const handleGenerate = async () => {
-        if (!form.employeeID) return setError("Please select an employee.");
+        if (!form.employeeID) return setError("Please select an user.");
         if (!form.monthYear) return setError("Please select month & year.");
 
         setGenLoading(true);
@@ -437,7 +437,7 @@ const Invoice: React.FC = () => {
                     <div>
                         <h4 className="fw-bold mb-0">Invoice Management</h4>
                         <div className="text-muted" style={{ fontSize: "0.84rem" }}>
-                            Generate & view employee invoices
+                            Generate & view User invoices
                         </div>
                     </div>
                 </div>
@@ -472,7 +472,7 @@ const Invoice: React.FC = () => {
             {showBulkForm && (
                 <div className="card border-0 shadow-sm rounded-4 p-4 mb-4" style={{ borderLeft: "4px solid #845ec2" }}>
                     <h6 className="fw-bold mb-3" style={{ color: "#845ec2" }}>
-                        <i className="bi bi-people-fill me-2" />Generate Invoices for All Employees
+                        <i className="bi bi-people-fill me-2" />Generate Invoices for All Users
                     </h6>
                     <div className="row g-3 align-items-end">
                         <div className="col-md-3">
@@ -508,13 +508,13 @@ const Invoice: React.FC = () => {
                             >
                                 {bulkLoading
                                     ? <><span className="spinner-border spinner-border-sm me-1" />Generating...</>
-                                    : <><i className="bi bi-lightning-fill me-1" />Generate for {employees.length} Employees</>
+                                    : <><i className="bi bi-lightning-fill me-1" />Generate for {employees.length} Users</>
                                 }
                             </button>
                         </div>
                     </div>
                     <div className="text-muted mt-2" style={{ fontSize: "0.78rem" }}>
-                        Employees who already have an invoice for the selected month will be skipped automatically.
+                        Users who already have an invoice for the selected month will be skipped automatically.
                     </div>
                     {bulkResult && (
                         <div className="mt-3 p-3 rounded-3" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
@@ -543,14 +543,14 @@ const Invoice: React.FC = () => {
 
                         <div className="col-md-4">
                             <label className="form-label fw-semibold small text-muted">
-                                EMPLOYEE *
+                                USER *
                             </label>
                             <select
                                 className="form-select form-select-sm"
                                 value={form.employeeID}
                                 onChange={e => handleEmployeeChange(Number(e.target.value))}
                             >
-                                <option value={0}>-- Select Employee --</option>
+                                <option value={0}>-- Select User --</option>
                                 {employees.map((emp: any) => {
                                     const id = emp.id ?? emp.ID;
                                     const name = `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim();
@@ -622,12 +622,12 @@ const Invoice: React.FC = () => {
                     </div>
                     <div className="col-md-4">
                         <label className="form-label fw-semibold small text-muted">
-                            SEARCH EMPLOYEE NAME
+                            SEARCH USER NAME
                         </label>
                         <input
                             type="text"
                             className="form-control form-control-sm"
-                            placeholder="Type employee name..."
+                            placeholder="Type user name..."
                             value={searchName}
                             onChange={e => setSearchName(e.target.value)}
                         />
@@ -696,7 +696,7 @@ const Invoice: React.FC = () => {
                                         />
                                     </th>
                                     {[
-                                        "Invoice No", "Employee Name",
+                                        "Invoice No", "User Name",
                                         "Month / Year", "Generated Date", "Status", "Action"
                                     ].map(h => (
                                         <th key={h} style={{
@@ -1040,7 +1040,7 @@ export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto; noOfLeaves?: num
                 marginBottom: 10, fontSize: 11, fontWeight: 700,
                 color: "#1B4332", textTransform: "uppercase", letterSpacing: 1
             }}>
-                Employee & Invoice Information
+                User & Invoice Information
             </div>
             <table style={{
                 width: "100%", borderCollapse: "collapse",
@@ -1048,7 +1048,7 @@ export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto; noOfLeaves?: num
             }}>
                 <thead>
                     <tr style={{ background: "#1B4332" }}>
-                        {["Employee Name", "Employee ID", "Invoice Number",
+                        {["User Name", "User ID", "Invoice Number",
                             "Generated Date", "Month / Year"].map(h => (
                                 <th key={h} style={th}>{h}</th>
                             ))}

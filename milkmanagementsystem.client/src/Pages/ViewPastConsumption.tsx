@@ -214,7 +214,7 @@ const ViewPastConsumption: React.FC = () => {
                 const resolvedLocationID = getEmployeeLocationID(row.empId);
 
                 if (!resolvedLocationID) {
-                    setError("Cannot determine location for this employee. Please contact admin.");
+                    setError("Cannot determine location for this user. Please contact admin.");
                     setSaving(false);
                     return;
                 }
@@ -339,20 +339,9 @@ const ViewPastConsumption: React.FC = () => {
                     <h4 className="fw-bold mb-0">Milk Entries</h4>
                 </div>
 
-                {/* Filters row: Date, Location, Employee search (left) + Refresh (right) */}
+                {/* Filters row: Location, Employee search (left) + Date, Refresh (right) */}
                 <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                     <div className="d-flex align-items-center gap-3 flex-wrap">
-                        <input
-                            type="date"
-                            className="form-control"
-                            style={{ width: "180px" }}
-                            value={selectedDate}
-                            onChange={(e) => {
-                                setSelectedDate(e.target.value);
-                                cancelEdit();
-                            }}
-                        />
-
                         <select
                             className="form-select"
                             style={{ width: "200px" }}
@@ -371,7 +360,7 @@ const ViewPastConsumption: React.FC = () => {
                             <input
                                 type="text"
                                 className="form-control"
-                                placeholder="Search employee..."
+                                placeholder="Search user..."
                                 value={empSearchText}
                                 onChange={(e) => setEmpSearchText(e.target.value)}
                             />
@@ -398,19 +387,32 @@ const ViewPastConsumption: React.FC = () => {
                         </div>
                     </div>
 
-                    <button
-                        className="btn fw-semibold d-flex align-items-center gap-2"
-                        style={{ background: "#1B4332", color: "#fff", borderRadius: "8px" }}
-                        onClick={() => fetchAll(true)}
-                        disabled={loading}
-                    >
-                        {loading ? (
-                            <span className="spinner-border spinner-border-sm" />
-                        ) : (
-                            <span>🔄</span>
-                        )}
-                        Refresh All
-                    </button>
+                    <div className="d-flex align-items-center gap-2">
+                        <input
+                            type="date"
+                            className="form-control"
+                            style={{ width: "180px" }}
+                            value={selectedDate}
+                            onChange={(e) => {
+                                setSelectedDate(e.target.value);
+                                cancelEdit();
+                            }}
+                        />
+
+                        <button
+                            className="btn fw-semibold d-flex align-items-center gap-2"
+                            style={{ background: "#1B4332", color: "#fff", borderRadius: "8px" }}
+                            onClick={() => fetchAll(true)}
+                            disabled={loading}
+                        >
+                            {loading ? (
+                                <span className="spinner-border spinner-border-sm" />
+                            ) : (
+                                <span>🔄</span>
+                            )}
+                            Refresh All
+                        </button>
+                    </div>
                 </div>
 
                 {loading ? (
@@ -421,7 +423,7 @@ const ViewPastConsumption: React.FC = () => {
                             <table className="table table-bordered align-middle">
                                 <thead className="table-dark">
                                     <tr>
-                                        <th>Employee Name</th>
+                                        <th>User Name</th>
                                         <th style={{ width: "150px" }}>Entry Type</th>
                                         <th style={{ width: "140px" }}>Qty (L)</th>
                                         <th style={{ width: "160px" }}>Payment (₹)</th>

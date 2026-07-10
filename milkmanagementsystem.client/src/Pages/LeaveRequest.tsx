@@ -138,7 +138,7 @@ const LeaveRequestPage: React.FC = () => {
                 : data?.$values ?? data?.data ?? [];
             setEmployeeList(arr);
         } catch {
-            console.error("Failed to load employees");
+            console.error("Failed to load users");
         }
     };
 
@@ -212,7 +212,7 @@ const LeaveRequestPage: React.FC = () => {
         setFormData((prev) => {
             const updated = {
                 ...prev,
-                [name]: name === "employeeID" ? Number(value) : value,
+                [name]: name === "userID" ? Number(value) : value,
             };
             if (name === "fromDate" && updated.toDate && updated.toDate < value) {
                 updated.toDate = "";
@@ -241,7 +241,7 @@ const LeaveRequestPage: React.FC = () => {
         if (saving) return;
 
         if (isAdmin && (!formData.employeeID || formData.employeeID === 0)) {
-            setFormError("Please select an employee.");
+            setFormError("Please select an User.");
             return;
         }
         if (!formData.leaveType) {
@@ -371,9 +371,6 @@ const LeaveRequestPage: React.FC = () => {
         }
     };
 
-    // Admin only: resume an ongoing leave (toDate === INFINITY_DATE).
-    // mode "today"    -> toDate = yesterday (leave ends yesterday, employee resumes today)
-    // mode "tomorrow" -> toDate = today     (leave ends today, employee resumes tomorrow)
     const handleResume = async (mode: "today" | "tomorrow") => {
     if (!resumeItem) return;
     setResuming(true);
@@ -381,7 +378,6 @@ const LeaveRequestPage: React.FC = () => {
         const fromDate = resumeItem.fromDate?.split("T")[0] ?? resumeItem.fromDate;
         let newToDate = mode === "today" ? getYesterdayStr() : getTodayStr();
 
-        // Guard: resume date can never be before the leave's own fromDate.
         if (newToDate < fromDate) {
             newToDate = fromDate;
         }
@@ -392,12 +388,12 @@ const LeaveRequestPage: React.FC = () => {
         });
         setSuccessMessage(
             mode === "today"
-                ? "Employee resumed from today!"
-                : "Employee will resume from tomorrow!"
+                ? "User resumed from today!"
+                : "User will resume from tomorrow!"
         );
         fetchAll();
     } catch {
-        setError("Failed to resume employee.");
+        setError("Failed to resume User.");
     } finally {
         setResuming(false);
         setResumeItem(null);
@@ -445,7 +441,7 @@ const LeaveRequestPage: React.FC = () => {
                         <div className="modal-dialog modal-dialog-centered">
                             <div className="modal-content border-0 shadow-lg rounded-4">
                                 <div className="modal-header border-0 px-4 pt-4 pb-0">
-                                    <h5 className="modal-title fw-bold">Resume Employee</h5>
+                                    <h5 className="modal-title fw-bold">Resume User</h5>
                                 </div>
                                 <div className="modal-body px-4 py-3">
                                     <p className="mb-3">
@@ -527,7 +523,7 @@ const LeaveRequestPage: React.FC = () => {
                             <table className="table table-bordered text-nowrap">
                                 <thead>
                                     <tr>
-                                        <th>Employee</th>
+                                        <th>User</th>
                                         <th>Leave Type</th>
                                         <th>From</th>
                                         <th>To</th>
@@ -677,15 +673,15 @@ const LeaveRequestPage: React.FC = () => {
 
                                             {isAdmin ? (
                                                 <div className="col-md-6 mb-3">
-                                                    <label className="form-label">Select Employee</label>
+                                                    <label className="form-label">Select User</label>
                                                     <select
-                                                        name="employeeID"
+                                                        name="userID"
                                                         className="form-select"
                                                         value={formData.employeeID}
                                                         onChange={handleChange}
                                                         required
                                                     >
-                                                        <option value={0} disabled>-- Select Employee --</option>
+                                                        <option value={0} disabled>-- Select User --</option>
                                                         {employeeList.map((emp: any) => {
                                                             const id = emp.employeeID ?? emp.id ?? emp.ID ?? emp.Id;
                                                             const firstName = emp.firstName ?? emp.FirstName ?? emp.first_name ?? "";
@@ -700,7 +696,7 @@ const LeaveRequestPage: React.FC = () => {
                                                 </div>
                                             ) : (
                                                 <div className="col-md-6 mb-3">
-                                                    <label className="form-label">Employee</label>
+                                                    <label className="form-label">User</label>
                                                     <input
                                                         type="text"
                                                         className="form-control"
