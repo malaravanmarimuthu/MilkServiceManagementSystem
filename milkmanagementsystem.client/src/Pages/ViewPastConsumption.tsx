@@ -1,14 +1,15 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { MilkEntryService } from "../Services/MilkEntryService";
 import type { MilkEntryDto } from "../Services/MilkEntryService";
 import { getEmployeeSubscriptions } from "../Services/EmployeeSubscriptionService";
 import { getEmployees } from "../Services/EmployeeService";
+import { getLocations } from "../Services/LocationService";
+import type { LocationType } from "../Services/LocationService";
 import { PaymentService } from "../Services/PaymentService";
 import ErrorModal from "../Components/Common/ErrorModal";
-import SuccessModal from "../Components/Common/SuccessModal";
 import ConfirmModal from "../Components/Common/ConfirmModal";
 import Loader from "../Components/Common/Loader";
 
@@ -16,15 +17,20 @@ const getTodayISO = () => new Date().toISOString().split("T")[0];
 
 const ENTRY_TYPES = ["Actual", "Leave", "Other"];
 
+type RowMessage = { type: "success" | "error"; text: string };
+
 const ViewPastConsumption: React.FC = () => {
     const [allEntries, setAllEntries] = useState<MilkEntryDto[]>([]);
     const [empSubscriptions, setEmpSubscriptions] = useState<any[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
+    const [locations, setLocations] = useState<LocationType[]>([]);
     const [payments, setPayments] = useState<any[]>([]);
     const [selectedDate, setSelectedDate] = useState<string>(getTodayISO());
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
+
+    const [selectedLocationID, setSelectedLocationID] = useState<number>(0);
+    const [empSearchText, setEmpSearchText] = useState("");
 
     const [editingId, setEditingId] = useState<number | null>(null);
     const [editQty, setEditQty] = useState<string>("");
@@ -34,28 +40,46 @@ const ViewPastConsumption: React.FC = () => {
 
     const [showConfirm, setShowConfirm] = useState(false);
     const [deleteId, setDeleteId] = useState<number | null>(null);
+    const [deleteEmpId, setDeleteEmpId] = useState<number | null>(null);
     const [deleting, setDeleting] = useState(false);
 
-    useEffect(() => { fetchAll(); }, []);
+    const [rowMessages, setRowMessages] = useState<Record<number, RowMessage>>({});
+    const messageTimers = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
 
-    const fetchAll = async () => {
-        setLoading(true);
+    useEffect(() => { fetchAll(true); }, []);
+
+    const showRowMessage = (empId: number, msg: RowMessage) => {
+        setRowMessages(prev => ({ ...prev, [empId]: msg }));
+        if (messageTimers.current[empId]) clearTimeout(messageTimers.current[empId]);
+        messageTimers.current[empId] = setTimeout(() => {
+            setRowMessages(prev => {
+                const next = { ...prev };
+                delete next[empId];
+                return next;
+            });
+        }, 2500);
+    };
+
+    const fetchAll = async (showLoader: boolean) => {
+        if (showLoader) setLoading(true);
         try {
-            const [entryData, empSubData, empData, payData] = await Promise.all([
+            const [entryData, empSubData, empData, payData, locData] = await Promise.all([
                 MilkEntryService.getAll(),
                 getEmployeeSubscriptions(),
                 getEmployees(),
                 PaymentService.getAll(),
+                getLocations(),
             ]);
 
             setAllEntries(Array.isArray(entryData) ? entryData : (entryData as any)?.$values ?? []);
             setEmpSubscriptions(Array.isArray(empSubData) ? empSubData : (empSubData as any)?.$values ?? (empSubData as any)?.data ?? []);
             setEmployees(Array.isArray(empData.data) ? empData.data : empData.data?.$values ?? []);
             setPayments(Array.isArray(payData) ? payData : (payData as any)?.$values ?? []);
+            setLocations(Array.isArray(locData) ? locData : (locData as any)?.$values ?? []);
         } catch {
             setError("Failed to load entries.");
         } finally {
-            setLoading(false);
+            if (showLoader) setLoading(false);
         }
     };
 
@@ -65,7 +89,6 @@ const ViewPastConsumption: React.FC = () => {
         (s.status ?? "").toLowerCase() === "active"
     );
 
-    // Today -> only active subscriptions. Past dates -> all subscriptions (historical data preserved).
     const relevantSubscriptions = isToday ? activeSubscriptions : empSubscriptions;
 
     const getSubscriptionQty = (empId: number): number => {
@@ -105,13 +128,31 @@ const ViewPastConsumption: React.FC = () => {
         return fromEntry ? Number(fromEntry) : null;
     };
 
-    const tableRows = relevantSubscriptions
+    const getEmpName = (empId: number): string => {
+        const emp = employees.find((e: any) => Number(e.id ?? e.ID) === empId);
+        return emp ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim() : `Emp #${empId}`;
+    };
+
+    const filteredSubscriptions = relevantSubscriptions.filter((sub: any) => {
+        const empId = Number(sub.employeeId ?? sub.EmployeeId ?? sub.employeeID);
+
+        if (selectedLocationID !== 0) {
+            const empLocId = getEmployeeLocationID(empId);
+            if (empLocId !== selectedLocationID) return false;
+        }
+
+        if (empSearchText.trim() !== "") {
+            const empName = getEmpName(empId).toLowerCase();
+            if (!empName.includes(empSearchText.trim().toLowerCase())) return false;
+        }
+
+        return true;
+    });
+
+    const tableRows = filteredSubscriptions
         .map((sub: any) => {
             const empId = Number(sub.employeeId ?? sub.EmployeeId ?? sub.employeeID);
-            const emp = employees.find((e: any) => Number(e.id ?? e.ID) === empId);
-            const empName = emp
-                ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
-                : `Emp #${empId}`;
+            const empName = getEmpName(empId);
 
             const entry = allEntries.find((e) =>
                 Number(e.employeeID) === empId &&
@@ -222,18 +263,19 @@ const ViewPastConsumption: React.FC = () => {
                 await PaymentService.delete(paymentId);
             }
 
-            setSuccess("Updated successfully!");
             cancelEdit();
-            await fetchAll();
+            await fetchAll(false);
+            showRowMessage(row.empId, { type: "success", text: "Updated!" });
         } catch {
-            setError("Failed to update.");
+            showRowMessage(row.empId, { type: "error", text: "Update failed" });
         } finally {
             setSaving(false);
         }
     };
 
-    const confirmDelete = (milkEntryID: number) => {
+    const confirmDelete = (milkEntryID: number, empId: number) => {
         setDeleteId(milkEntryID);
+        setDeleteEmpId(empId);
         setShowConfirm(true);
     };
 
@@ -242,19 +284,26 @@ const ViewPastConsumption: React.FC = () => {
             setError("Invalid entry — nothing to delete.");
             setShowConfirm(false);
             setDeleteId(null);
+            setDeleteEmpId(null);
             return;
         }
         setDeleting(true);
+        const empIdForMessage = deleteEmpId;
         try {
             await MilkEntryService.delete(deleteId);
-            setSuccess("Entry deleted successfully!");
-            await fetchAll();
+            await fetchAll(false);
+            if (empIdForMessage !== null) {
+                showRowMessage(empIdForMessage, { type: "success", text: "Deleted!" });
+            }
         } catch {
-            setError("Failed to delete entry.");
+            if (empIdForMessage !== null) {
+                showRowMessage(empIdForMessage, { type: "error", text: "Delete failed" });
+            }
         } finally {
             setDeleting(false);
             setShowConfirm(false);
             setDeleteId(null);
+            setDeleteEmpId(null);
         }
     };
 
@@ -266,18 +315,12 @@ const ViewPastConsumption: React.FC = () => {
         return {};
     };
 
-    const formatDisplayDate = (iso: string) => {
-        const [y, m, d] = iso.split("-");
-        return `${d}-${m}-${y}`;
-    };
-
     const totalQty = tableRows.reduce((sum, r) => sum + r.qty, 0);
     const totalPayment = tableRows.reduce((sum, r) => sum + r.paymentAmount, 0);
 
     return (
         <>
             <ErrorModal message={error} onClose={() => setError("")} />
-            <SuccessModal message={success} onClose={() => setSuccess("")} />
             {showConfirm && (
                 <ConfirmModal
                     title="Confirm Delete"
@@ -291,30 +334,83 @@ const ViewPastConsumption: React.FC = () => {
 
             <div className="container-fluid mt-3 px-4">
 
-                <div className="d-flex justify-content-between align-items-center mb-4">
+                {/* Header row: title only */}
+                <div className="mb-3">
                     <h4 className="fw-bold mb-0">Milk Entries</h4>
-                    <div className="d-flex align-items-center gap-2">
-                        <label className="fw-semibold mb-0 text-muted" style={{ fontSize: "0.9rem" }}>
-                            Date:
-                        </label>
+                </div>
+
+                {/* Filters row: Date, Location, Employee search (left) + Refresh (right) */}
+                <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+                    <div className="d-flex align-items-center gap-3 flex-wrap">
                         <input
                             type="date"
                             className="form-control"
                             style={{ width: "180px" }}
                             value={selectedDate}
-                            max={getTodayISO()}
                             onChange={(e) => {
                                 setSelectedDate(e.target.value);
                                 cancelEdit();
                             }}
                         />
-                        <span
-                            className="px-3 py-2 rounded-3 fw-semibold"
-                            style={{ background: "#1B4332", color: "#fff", fontSize: "0.9rem", whiteSpace: "nowrap" }}
+
+                        <select
+                            className="form-select"
+                            style={{ width: "200px" }}
+                            value={selectedLocationID}
+                            onChange={(e) => setSelectedLocationID(Number(e.target.value))}
                         >
-                            {formatDisplayDate(selectedDate)}
-                        </span>
+                            <option value={0}>-- All Locations --</option>
+                            {locations.map((loc: any) => {
+                                const id = loc.locationID ?? loc.LocationID;
+                                const name = loc.locationName ?? loc.LocationName;
+                                return <option key={id} value={id}>{name}</option>;
+                            })}
+                        </select>
+
+                        <div style={{ position: "relative", width: "220px" }}>
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Search employee..."
+                                value={empSearchText}
+                                onChange={(e) => setEmpSearchText(e.target.value)}
+                            />
+                            {empSearchText !== "" && (
+                                <button
+                                    type="button"
+                                    onClick={() => setEmpSearchText("")}
+                                    style={{
+                                        position: "absolute",
+                                        right: "8px",
+                                        top: "50%",
+                                        transform: "translateY(-50%)",
+                                        border: "none",
+                                        background: "transparent",
+                                        color: "#94a3b8",
+                                        fontWeight: 700,
+                                        cursor: "pointer",
+                                    }}
+                                    title="Clear"
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
                     </div>
+
+                    <button
+                        className="btn fw-semibold d-flex align-items-center gap-2"
+                        style={{ background: "#1B4332", color: "#fff", borderRadius: "8px" }}
+                        onClick={() => fetchAll(true)}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <span className="spinner-border spinner-border-sm" />
+                        ) : (
+                            <span>🔄</span>
+                        )}
+                        Refresh All
+                    </button>
                 </div>
 
                 {loading ? (
@@ -329,7 +425,7 @@ const ViewPastConsumption: React.FC = () => {
                                         <th style={{ width: "150px" }}>Entry Type</th>
                                         <th style={{ width: "140px" }}>Qty (L)</th>
                                         <th style={{ width: "160px" }}>Payment (₹)</th>
-                                        <th style={{ width: "180px" }}>Actions</th>
+                                        <th style={{ width: "200px" }}>Actions</th>
                                     </tr>
                                 </thead>
 
@@ -337,11 +433,12 @@ const ViewPastConsumption: React.FC = () => {
                                     {tableRows.length === 0 ? (
                                         <tr>
                                             <td colSpan={5} className="text-center text-muted py-4">
-                                                No active subscriptions found.
+                                                No records found.
                                             </td>
                                         </tr>
                                     ) : tableRows.map((row) => {
                                         const isEditing = editingId === row.empId;
+                                        const rowMsg = rowMessages[row.empId];
 
                                         return (
                                             <tr
@@ -353,6 +450,9 @@ const ViewPastConsumption: React.FC = () => {
                                             >
                                                 <td>
                                                     <div className="fw-semibold">{row.empName}</div>
+                                                    <div className="text-muted" style={{ fontSize: "0.75rem" }}>
+                                                        ID: {row.empId}
+                                                    </div>
                                                     {!isEditing && row.entryType === "Leave" && (
                                                         <span className="badge mt-1" style={{ background: "#dc3545", fontSize: "0.68rem" }}>
                                                             On Leave
@@ -471,22 +571,35 @@ const ViewPastConsumption: React.FC = () => {
                                                             </button>
                                                         </div>
                                                     ) : (
-                                                        <div className="d-flex gap-2">
-                                                            <button
-                                                                className="btn btn-sm btn-warning"
-                                                                onClick={() => startEdit(row)}
-                                                            >
-                                                                Edit
-                                                            </button>
-                                                            {row.hasEntry && (
+                                                        <>
+                                                            <div className="d-flex gap-2">
                                                                 <button
-                                                                    className="btn btn-sm btn-danger"
-                                                                    onClick={() => confirmDelete(row.milkEntryID)}
+                                                                    className="btn btn-sm btn-warning"
+                                                                    onClick={() => startEdit(row)}
                                                                 >
-                                                                    Delete
+                                                                    Edit
                                                                 </button>
+                                                                {row.hasEntry && (
+                                                                    <button
+                                                                        className="btn btn-sm btn-danger"
+                                                                        onClick={() => confirmDelete(row.milkEntryID, row.empId)}
+                                                                    >
+                                                                        Delete
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                            {rowMsg && (
+                                                                <div
+                                                                    className="mt-1 fw-semibold"
+                                                                    style={{
+                                                                        fontSize: "0.75rem",
+                                                                        color: rowMsg.type === "success" ? "#198754" : "#dc3545",
+                                                                    }}
+                                                                >
+                                                                    {rowMsg.type === "success" ? "✓ " : "✕ "}{rowMsg.text}
+                                                                </div>
                                                             )}
-                                                        </div>
+                                                        </>
                                                     )}
                                                 </td>
                                             </tr>
