@@ -480,23 +480,31 @@ const MyConsumption: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Admin Employee Dropdown */}
                 {isAdmin && (
                     <div className="mb-4">
                         <label className="form-label fw-semibold">Select Employee</label>
-                        <select
-                            className="form-select"
-                            style={{ borderRadius: "8px", maxWidth: "400px" }}
-                            value={adminEmpId}
-                            onChange={(e) => setAdminEmpId(e.target.value === "" ? "" : Number(e.target.value))}
-                        >
-                            <option value="">-- Select Employee --</option>
-                            {employees.map((emp) => (
-                                <option key={emp.id} value={emp.id}>
-                                    {emp.firstName} {emp.lastName} (ID: {emp.id})
-                                </option>
-                            ))}
-                        </select>
+                        {loading ? (
+                            <div
+                                className="d-flex justify-content-center align-items-center w-100"
+                                style={{ minHeight: "100px" }}
+                            >
+                                <Loader text="Loading employees..." />
+                            </div>
+                        ) : (
+                            <select
+                                className="form-select"
+                                style={{ borderRadius: "8px", maxWidth: "400px" }}
+                                value={adminEmpId}
+                                onChange={(e) => setAdminEmpId(e.target.value === "" ? "" : Number(e.target.value))}
+                            >
+                                <option value="">-- Select Employee --</option>
+                                {employees.map((emp) => (
+                                    <option key={emp.id} value={emp.id}>
+                                        {emp.firstName} {emp.lastName} (ID: {emp.id})
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                     </div>
                 )}
 

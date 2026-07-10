@@ -147,14 +147,7 @@ function Location() {
             return;
         }
 
-        const isPinCodeDuplicate = locations.some(
-            (x) => x.pinCode.trim() === pinCode.trim() && x.locationID !== editId
-        );
-        if (isPinCodeDuplicate) {
-            setFormError("Pincode already exists.");
-            return;
-        }
-
+        
         const locationData = { locationName, street, pinCode };
 
         setLoading(true);
@@ -171,7 +164,6 @@ function Location() {
             closeFormModal();
             await loadLocations();
         } catch (error) {
-            // Only real API/server errors close the modal + show global popup
             closeFormModal();
             setErrorMessage(handleApiError(error));
         } finally {
