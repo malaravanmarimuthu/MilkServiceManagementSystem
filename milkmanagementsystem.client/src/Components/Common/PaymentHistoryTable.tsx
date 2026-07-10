@@ -132,12 +132,6 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
         return `${d}-${m}-${y}`;
     };
 
-    // Resolves a proper employee name for a payment row.
-    // Priority: PaymentDto.employeeName (if it's a real non-empty value)
-    // -> lookup in the fetched employees list -> final fallback "Employee".
-    // NOTE: uses a truthy/trim check instead of `??` because `??` does NOT
-    // fall back on an empty string "", which was the actual bug — the
-    // backend was sending employeeName: "" so the name never showed.
     const getEmpName = (id: number, fallbackName?: string): string => {
         if (fallbackName && fallbackName.trim()) return fallbackName.trim();
 
@@ -146,7 +140,7 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
             const name = `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim();
             if (name) return name;
         }
-        return "Employee";
+        return "User";
     };
 
     return (
@@ -159,14 +153,14 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
                     {isAdmin && (
                         <div className="col-md-3">
                             <label className="form-label fw-semibold small text-muted">
-                                EMPLOYEE
+                                USER
                             </label>
                             <select
                                 className="form-select form-select-sm"
                                 value={selectedEmpID}
                                 onChange={(e) => setSelectedEmpID(Number(e.target.value))}
                             >
-                                <option value={0}>All Employees</option>
+                                <option value={0}>All User</option>
                                 {employees.map((emp: any) => {
                                     const id = emp.id ?? emp.ID;
                                     const name = `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim();
@@ -270,7 +264,7 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
                                 <tr>
                                     {isAdmin && (
                                         <th style={{ padding: "12px 16px", fontSize: "0.8rem", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>
-                                            Employee
+                                            User
                                         </th>
                                     )}
                                     <th style={{ padding: "12px 16px", fontSize: "0.8rem", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>

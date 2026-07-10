@@ -35,7 +35,7 @@ const PaymentHistory: React.FC = () => {
                 <div>
                     <h4 className="fw-bold mb-0">Payment History</h4>
                     <div className="text-muted" style={{ fontSize: "0.85rem" }}>
-                        {isAdmin ? "All employees  3 month blocks" : "Your payment records  3 month blocks"}
+                        {isAdmin ? "All users  3 month blocks" : "Your payment records  3 month blocks"}
                     </div>
                 </div>
             </div>

@@ -148,7 +148,6 @@ function EmployeeSubscription() {
         return sub.milkType ?? sub.MilkType ?? id;
     };
 
-    // Resolve an employeeId to a display name, falling back to the id if not found.
     const getEmployeeName = (id: number) => {
         const emp = employees.find((x) => (x.id ?? x.ID) === id);
 
@@ -158,9 +157,6 @@ function EmployeeSubscription() {
         return name || id;
     };
 
-    // Employees who already have a subscription assigned should not show up
-    // again in "Select Employee" when adding a new one. When editing, the
-    // currently-assigned employee should still appear (so it stays selected).
     const availableEmployees = employees.filter((emp) => {
         const id = emp.id ?? emp.ID;
         const alreadyAssigned = employeeSubscriptions.some(

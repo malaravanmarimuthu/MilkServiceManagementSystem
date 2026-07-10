@@ -41,8 +41,20 @@ const MilkConsumption: React.FC = () => {
     const [otherAmount, setOtherAmount] = useState<Record<number, string>>({});
     const [actualAmount, setActualAmount] = useState<Record<number, string>>({});
     const [search, setSearch] = useState("");
+    const [inlineMsg, setInlineMsg] = useState<Record<number, string>>({});
 
     useEffect(() => { fetchAll(); }, []);
+
+    const showInlineMsg = (empId: number, msg: string) => {
+        setInlineMsg((prev) => ({ ...prev, [empId]: msg }));
+        setTimeout(() => {
+            setInlineMsg((prev) => {
+                const copy = { ...prev };
+                delete copy[empId];
+                return copy;
+            });
+        }, 2000);
+    };
 
     const fetchAll = async () => {
         setLoading(true);
@@ -162,8 +174,6 @@ const MilkConsumption: React.FC = () => {
         return !hasEntryForDate(empId, selectedDate);
     });
 
-
-
     const createEntry = async (
         sub: any,
         type: string,
@@ -238,7 +248,7 @@ const MilkConsumption: React.FC = () => {
             setEntries((prev) => [...prev, entry]);
             if (payment) setPayments((prev) => [...prev, payment]);
 
-            setSuccess(paidAmount > 0 ? `Entry saved + ₹${round2(paidAmount)} paid!` : `${type} entry saved!`);
+            showInlineMsg(empId, paidAmount > 0 ? `Updated ✓ ₹${round2(paidAmount)} paid` : "Updated ✓");
         } catch {
             setError("Failed to save.");
         } finally {
@@ -269,7 +279,7 @@ const MilkConsumption: React.FC = () => {
             };
 
             setPayments((prev) => [...prev, newPayment]);
-            setSuccess(`₹${round2(amount)} paid!`);
+            showInlineMsg(empId, `Updated ✓ ₹${round2(amount)} paid`);
         } catch {
             setError("Payment failed.");
         } finally {
@@ -304,7 +314,6 @@ const MilkConsumption: React.FC = () => {
             setCompletingAll(false);
         }
     };
-
     return (
         <>
             <ErrorModal message={error} onClose={() => setError("")} />
@@ -313,16 +322,8 @@ const MilkConsumption: React.FC = () => {
             <div className="container-fluid mt-3 px-4">
                 <h4 className="fw-bold mb-3">Milk Consumption</h4>
 
-                {/* Single control row: date, location, search (left) — Complete All, Refresh (right) */}
                 <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                     <div className="d-flex gap-2 align-items-center flex-wrap">
-                        <input
-                            type="date"
-                            className="form-control fw-semibold"
-                            style={{ width: "170px" }}
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                        />
                         <select
                             className="form-select"
                             style={{ width: "200px" }}
@@ -346,7 +347,14 @@ const MilkConsumption: React.FC = () => {
                         />
                     </div>
 
-                    <div className="d-flex gap-2 align-items-center">
+                    <div className="d-flex gap-2 align-items-center flex-wrap">
+                        <input
+                            type="date"
+                            className="form-control fw-semibold"
+                            style={{ width: "170px" }}
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                        />
                         <button
                             className="btn fw-semibold"
                             style={{ background: "#1B4332", color: "#fff", padding: "10px 20px", fontSize: "0.95rem" }}
@@ -361,18 +369,17 @@ const MilkConsumption: React.FC = () => {
                                 : `Complete All (${pendingSubs.length} Pending)`}
                         </button>
                         <button
-                            className="btn btn-outline-secondary fw-semibold"
-                            style={{ padding: "10px 20px", fontSize: "0.95rem" }}
-                            disabled={refreshing || loading}
+                            className="btn fw-semibold d-flex align-items-center gap-2"
+                            style={{ background: "#1B4332", color: "#fff", borderRadius: "8px" }}
                             onClick={handleManualRefresh}
-                            title="Refresh data"
+                            disabled={refreshing || loading}
                         >
                             {refreshing ? (
-                                <span className="spinner-border spinner-border-sm me-2" />
+                                <span className="spinner-border spinner-border-sm" />
                             ) : (
-                                <span className="me-1">⟳</span>
+                                <span>🔄</span>
                             )}
-                            Refresh
+                            Refresh All
                         </button>
                     </div>
                 </div>
@@ -415,6 +422,7 @@ const MilkConsumption: React.FC = () => {
                                         const amountVal = otherAmount[empId] ?? "";
                                         const actAmountVal = actualAmount[empId] ?? "";
                                         const rowBg = onLeave ? "#ffe5e5" : done ? "#f0fff4" : "";
+                                        const rowMsg = inlineMsg[empId];
 
                                         return (
                                             <tr key={index} style={{ background: rowBg }}>
@@ -442,6 +450,11 @@ const MilkConsumption: React.FC = () => {
                                                     </div>
                                                 </td>
                                                 <td className="py-3 align-middle">
+                                                    {rowMsg && (
+                                                        <div className="fw-semibold text-success mb-1" style={{ fontSize: "0.85rem" }}>
+                                                            {rowMsg}
+                                                        </div>
+                                                    )}
                                                     {done ? (
 
                                                         <div className="d-flex flex-wrap align-items-center gap-2">
