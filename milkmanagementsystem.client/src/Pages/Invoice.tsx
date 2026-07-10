@@ -33,16 +33,13 @@ const Invoice: React.FC = () => {
     const [bulkNotes, setBulkNotes] = useState("");
     const [bulkResult, setBulkResult] = useState<{ success: number; failed: number; skipped: number } | null>(null);
 
-    // Filters
     const [filterMonthYear, setFilterMonthYear] = useState("");
     const [searchName, setSearchName] = useState("");
 
-    // Row selection / bulk delete
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
     const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
-    // PDF download (row-level, completely silent — no modal shown to the user)
     const [downloadingId, setDownloadingId] = useState<number | null>(null);
     const [downloadTarget, setDownloadTarget] = useState<InvoiceDto | null>(null);
     const hiddenDownloadRef = useRef<HTMLDivElement>(null);
@@ -90,11 +87,6 @@ const Invoice: React.FC = () => {
         }
     };
 
-    // ---- Month-key normalizer ----
-    // Backend can return monthYear either as a display string like "June 2026"
-    // or as an ISO-ish value like "2026-06" / "2026-06-01T00:00:00". This
-    // converts either form into a canonical "YYYY-MM" so it can be reliably
-    // compared against the native <input type="month"> value.
     const MONTH_NAMES = [
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
@@ -104,10 +96,8 @@ const Invoice: React.FC = () => {
         if (!value) return "";
         const trimmed = value.trim();
 
-        // Already ISO-ish ("2026-06" or "2026-06-01T00:00:00")
         if (/^\d{4}-\d{2}/.test(trimmed)) return trimmed.slice(0, 7);
 
-        // "June 2026" style
         const parts = trimmed.split(" ");
         if (parts.length !== 2) return "";
         const [monthName, year] = parts;
@@ -118,7 +108,6 @@ const Invoice: React.FC = () => {
         return `${year}-${String(idx + 1).padStart(2, "0")}`;
     };
 
-    // Counts approved leave days for an employee that fall inside the given "YYYY-MM" month.
     const getLeaveDaysForMonth = (empId: number, monthYear: string): number => {
         const monthKey = toMonthKey(monthYear);
         if (!monthKey) return 0;
@@ -142,7 +131,6 @@ const Invoice: React.FC = () => {
             let toDate = (leave.toDate ?? leave.ToDate ?? "").split("T")[0];
             if (!toDate || toDate === "9999-12-31") toDate = monthEnd;
 
-            // Overlap of [fromDate, toDate] with [monthStart, monthEnd]
             const overlapStart = fromDate > monthStart ? fromDate : monthStart;
             const overlapEnd = toDate < monthEnd ? toDate : monthEnd;
             if (overlapStart > overlapEnd) return;
@@ -191,10 +179,7 @@ const Invoice: React.FC = () => {
         setBulkLoading(true);
         setBulkResult(null);
         try {
-            // NOTE: InvoiceService.generateAll must accept a second "notes" param
-            // on the service/backend side for this to actually apply notes to
-            // every generated invoice.
-            const res = await InvoiceService.generateAll(bulkMonthYear, bulkNotes);
+            const res = await InvoiceService.generateAll(bulkMonthYear);
             setBulkResult({ success: res.successCount, failed: res.failedCount, skipped: res.skippedCount });
             setSuccess(`Bulk generation done: ${res.successCount} created, ${res.skippedCount} skipped, ${res.failedCount} failed.`);
         } catch {
@@ -336,7 +321,6 @@ const Invoice: React.FC = () => {
         pdf.save(`${invoice.invoiceNumber || "Invoice"}.pdf`);
     };
 
-    // ---- Download PDF from the VISIBLE modal (View -> Download PDF button) ----
     const downloadInvoiceAsPdf = async (invoice: InvoiceDto) => {
         setDownloadingId(invoice.invoiceID);
         try {
@@ -351,9 +335,6 @@ const Invoice: React.FC = () => {
         }
     };
 
-    // Row "Download" button: NO modal is opened at all. The invoice is
-    // rendered into an off-screen hidden container, captured, downloaded,
-    // then cleared — completely invisible to the user, zero popup flash.
     const handleRowDownload = (inv: InvoiceDto) => {
         setDownloadingId(inv.invoiceID);
         setDownloadTarget(inv);
@@ -432,8 +413,6 @@ const Invoice: React.FC = () => {
                 isLoading={bulkDeleteLoading}
             />
 
-            {/* Hidden off-screen render target used ONLY for silent row downloads.
-                Never visible to the user — no modal, no flash. */}
             <div style={{ position: "fixed", top: 0, left: -99999, opacity: 0, pointerEvents: "none" }}>
                 <div ref={hiddenDownloadRef}>
                     {downloadTarget && (
@@ -628,7 +607,6 @@ const Invoice: React.FC = () => {
                 </div>
             )}
 
-            {/* Filters + bulk delete bar */}
             <div className="card border-0 shadow-sm rounded-4 p-3 mb-3">
                 <div className="row g-2 align-items-end">
                     <div className="col-md-3">

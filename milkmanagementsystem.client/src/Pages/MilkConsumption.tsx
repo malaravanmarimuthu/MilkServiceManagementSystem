@@ -42,8 +42,6 @@ const MilkConsumption: React.FC = () => {
     const [actualAmount, setActualAmount] = useState<Record<number, string>>({});
     const [search, setSearch] = useState("");
 
-    const isToday = selectedDate === getTodayISO();
-
     useEffect(() => { fetchAll(); }, []);
 
     const fetchAll = async () => {
@@ -164,24 +162,7 @@ const MilkConsumption: React.FC = () => {
         return !hasEntryForDate(empId, selectedDate);
     });
 
-    const totalConsumptionL = round2(
-        filteredSubs.reduce((sum, sub: any) => {
-            const empId = sub.employeeId ?? sub.EmployeeId;
-            const entry = getEntryForDate(empId, selectedDate);
-            if (!entry || entry.entryType === "Leave") return sum;
-            return sum + (Number(entry.quantity) || 0);
-        }, 0)
-    );
 
-    const totalCollectedAmount = round2(
-        filteredSubs.reduce((sum, sub: any) => {
-            const empId = sub.employeeId ?? sub.EmployeeId;
-            const payment = getPaymentForDate(empId, selectedDate);
-            return sum + Number(payment?.totalAmount ?? payment?.TotalAmount ?? 0);
-        }, 0)
-    );
-
-    const completedCount = filteredSubs.length - pendingSubs.length;
 
     const createEntry = async (
         sub: any,

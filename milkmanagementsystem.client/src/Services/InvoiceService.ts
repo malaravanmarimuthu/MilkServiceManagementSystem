@@ -47,7 +47,7 @@ export const InvoiceService = {
 
     create: (req: CreateInvoiceRequest) => axios.post<InvoiceDto>(BASE, req).then(r => r.data),
 
-    generateAll: (monthYear: string, bulkNotes?: string) =>
+    generateAll: (monthYear: string) =>
         axios.post<BulkInvoiceResult>(`${BASE}/generate-all`, { monthYear }).then(r => r.data),
 
     delete: (id: number) => axios.delete(`${BASE}/${id}`),
