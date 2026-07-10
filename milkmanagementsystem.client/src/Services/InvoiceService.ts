@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import axios from "axios";
 import config from "../config";
 
@@ -46,7 +47,7 @@ export const InvoiceService = {
 
     create: (req: CreateInvoiceRequest) => axios.post<InvoiceDto>(BASE, req).then(r => r.data),
 
-    generateAll: (monthYear: string) =>
+    generateAll: (monthYear: string, bulkNotes?: string) =>
         axios.post<BulkInvoiceResult>(`${BASE}/generate-all`, { monthYear }).then(r => r.data),
 
     delete: (id: number) => axios.delete(`${BASE}/${id}`),

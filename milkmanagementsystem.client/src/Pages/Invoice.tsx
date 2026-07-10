@@ -3,8 +3,11 @@
 /* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { InvoiceService, type InvoiceDto, type CreateInvoiceRequest, } from "../Services/InvoiceService";
 import { getEmployees } from "../Services/EmployeeService";
+import { LeaveRequestService } from "../Services/LeaveRequestService";
 import Loader from "../Components/Common/Loader";
 import ErrorModal from "../Components/Common/ErrorModal";
 import SuccessModal from "../Components/Common/SuccessModal";
@@ -13,6 +16,7 @@ import ConfirmModal from "../Components/Common/ConfirmModal";
 const Invoice: React.FC = () => {
     const [invoices, setInvoices] = useState<InvoiceDto[]>([]);
     const [employees, setEmployees] = useState<any[]>([]);
+    const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [genLoading, setGenLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
@@ -26,7 +30,22 @@ const Invoice: React.FC = () => {
     const [bulkLoading, setBulkLoading] = useState(false);
     const [showBulkForm, setShowBulkForm] = useState(false);
     const [bulkMonthYear, setBulkMonthYear] = useState("");
+    const [bulkNotes, setBulkNotes] = useState("");
     const [bulkResult, setBulkResult] = useState<{ success: number; failed: number; skipped: number } | null>(null);
+
+    // Filters
+    const [filterMonthYear, setFilterMonthYear] = useState("");
+    const [searchName, setSearchName] = useState("");
+
+    // Row selection / bulk delete
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
+    // PDF download (row-level, completely silent — no modal shown to the user)
+    const [downloadingId, setDownloadingId] = useState<number | null>(null);
+    const [downloadTarget, setDownloadTarget] = useState<InvoiceDto | null>(null);
+    const hiddenDownloadRef = useRef<HTMLDivElement>(null);
 
     const currentMonthYear = new Date().toISOString().slice(0, 7);
 
@@ -45,9 +64,10 @@ const Invoice: React.FC = () => {
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [invData, empData] = await Promise.all([
+            const [invData, empData, leaveData] = await Promise.all([
                 InvoiceService.getAll(),
                 getEmployees(),
+                LeaveRequestService.getAll(),
             ]);
             const invArr = Array.isArray(invData)
                 ? invData
@@ -58,11 +78,81 @@ const Invoice: React.FC = () => {
                 ? (empData as any).data
                 : (empData as any).data?.$values ?? [];
             setEmployees(empArr);
+
+            const leaveArr = Array.isArray(leaveData)
+                ? leaveData
+                : (leaveData as any)?.$values ?? (leaveData as any)?.data ?? [];
+            setLeaveRequests(leaveArr);
         } catch {
             setError("Failed to load data.");
         } finally {
             setLoading(false);
         }
+    };
+
+    // ---- Month-key normalizer ----
+    // Backend can return monthYear either as a display string like "June 2026"
+    // or as an ISO-ish value like "2026-06" / "2026-06-01T00:00:00". This
+    // converts either form into a canonical "YYYY-MM" so it can be reliably
+    // compared against the native <input type="month"> value.
+    const MONTH_NAMES = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+
+    const toMonthKey = (value: string | null | undefined): string => {
+        if (!value) return "";
+        const trimmed = value.trim();
+
+        // Already ISO-ish ("2026-06" or "2026-06-01T00:00:00")
+        if (/^\d{4}-\d{2}/.test(trimmed)) return trimmed.slice(0, 7);
+
+        // "June 2026" style
+        const parts = trimmed.split(" ");
+        if (parts.length !== 2) return "";
+        const [monthName, year] = parts;
+        const idx = MONTH_NAMES.findIndex(
+            m => m.toLowerCase() === monthName.toLowerCase()
+        );
+        if (idx === -1 || !/^\d{4}$/.test(year)) return "";
+        return `${year}-${String(idx + 1).padStart(2, "0")}`;
+    };
+
+    // Counts approved leave days for an employee that fall inside the given "YYYY-MM" month.
+    const getLeaveDaysForMonth = (empId: number, monthYear: string): number => {
+        const monthKey = toMonthKey(monthYear);
+        if (!monthKey) return 0;
+        const [yearStr, monthStr] = monthKey.split("-");
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        if (!year || !month) return 0;
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const monthStart = `${yearStr}-${monthStr}-01`;
+        const monthEnd = `${yearStr}-${monthStr}-${String(daysInMonth).padStart(2, "0")}`;
+
+        let count = 0;
+        leaveRequests.forEach((leave: any) => {
+            const leaveEmpId = leave.employeeID ?? leave.employeeId ?? leave.EmployeeId;
+            if (leaveEmpId !== empId) return;
+
+            const status = (leave.status ?? leave.Status ?? "").toLowerCase();
+            if (status !== "approved") return;
+
+            const fromDate = (leave.fromDate ?? leave.FromDate ?? "").split("T")[0];
+            let toDate = (leave.toDate ?? leave.ToDate ?? "").split("T")[0];
+            if (!toDate || toDate === "9999-12-31") toDate = monthEnd;
+
+            // Overlap of [fromDate, toDate] with [monthStart, monthEnd]
+            const overlapStart = fromDate > monthStart ? fromDate : monthStart;
+            const overlapEnd = toDate < monthEnd ? toDate : monthEnd;
+            if (overlapStart > overlapEnd) return;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${yearStr}-${monthStr}-${String(d).padStart(2, "0")}`;
+                if (dateStr >= fromDate && dateStr <= toDate) count++;
+            }
+        });
+        return count;
     };
 
     const handleEmployeeChange = async (empId: number) => {
@@ -101,7 +191,10 @@ const Invoice: React.FC = () => {
         setBulkLoading(true);
         setBulkResult(null);
         try {
-            const res = await InvoiceService.generateAll(bulkMonthYear);
+            // NOTE: InvoiceService.generateAll must accept a second "notes" param
+            // on the service/backend side for this to actually apply notes to
+            // every generated invoice.
+            const res = await InvoiceService.generateAll(bulkMonthYear, bulkNotes);
             setBulkResult({ success: res.successCount, failed: res.failedCount, skipped: res.skippedCount });
             setSuccess(`Bulk generation done: ${res.successCount} created, ${res.skippedCount} skipped, ${res.failedCount} failed.`);
         } catch {
@@ -109,6 +202,7 @@ const Invoice: React.FC = () => {
         } finally {
             setBulkLoading(false);
             setShowBulkForm(false);
+            setBulkNotes("");
             fetchAll();
         }
     };
@@ -122,6 +216,7 @@ const Invoice: React.FC = () => {
             await InvoiceService.delete(deleteTargetId);
             setSuccess("Invoice deleted.");
             if (selectedInvoice?.invoiceID === deleteTargetId) setSelectedInvoice(null);
+            setSelectedIds(prev => prev.filter(id => id !== deleteTargetId));
             fetchAll();
         } catch {
             setError("Failed to delete. This invoice may be linked to other records.");
@@ -131,6 +226,63 @@ const Invoice: React.FC = () => {
         }
     };
 
+    // ---- Filters ----
+    const filteredInvoices = invoices.filter((inv) => {
+        const matchesMonth = !filterMonthYear || toMonthKey(inv.monthYear) === filterMonthYear;
+        const matchesName = !searchName.trim() ||
+            (inv.employeeName ?? "").toLowerCase().includes(searchName.trim().toLowerCase());
+        return matchesMonth && matchesName;
+    });
+
+    // ---- Selection / bulk delete ----
+    const allVisibleSelected = filteredInvoices.length > 0 &&
+        filteredInvoices.every(inv => selectedIds.includes(inv.invoiceID));
+
+    const toggleSelectAll = () => {
+        if (allVisibleSelected) {
+            setSelectedIds(prev => prev.filter(id => !filteredInvoices.some(inv => inv.invoiceID === id)));
+        } else {
+            const visibleIds = filteredInvoices.map(inv => inv.invoiceID);
+            setSelectedIds(prev => Array.from(new Set([...prev, ...visibleIds])));
+        }
+    };
+
+    const toggleSelectOne = (id: number) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.length === 0) return;
+        setBulkDeleteLoading(true);
+        try {
+            const results = await Promise.allSettled(
+                selectedIds.map(id => InvoiceService.delete(id))
+            );
+            const failedCount = results.filter(r => r.status === "rejected").length;
+            const successCount = results.length - failedCount;
+
+            if (failedCount > 0) {
+                setError(`${successCount} invoices deleted, ${failedCount} failed.`);
+            } else {
+                setSuccess(`${successCount} invoice(s) deleted successfully!`);
+            }
+
+            if (selectedInvoice && selectedIds.includes(selectedInvoice.invoiceID)) {
+                setSelectedInvoice(null);
+            }
+            setSelectedIds([]);
+            fetchAll();
+        } catch {
+            setError("Bulk delete failed.");
+        } finally {
+            setBulkDeleteLoading(false);
+            setShowBulkDeleteConfirm(false);
+        }
+    };
+
+    // ---- Print (opens print dialog — kept for convenience) ----
     const handlePrint = () => {
         const content = printRef.current;
         if (!content) return;
@@ -151,6 +303,79 @@ const Invoice: React.FC = () => {
         win.focus();
         setTimeout(() => { win.print(); win.close(); }, 600);
     };
+
+    // ---- Generic PDF generator: works off ANY rendered node (modal or hidden) ----
+    const generatePdfFromNode = async (node: HTMLDivElement, invoice: InvoiceDto) => {
+        const canvas = await html2canvas(node, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#ffffff",
+        });
+
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        const imgWidth = pageWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+
+        pdf.save(`${invoice.invoiceNumber || "Invoice"}.pdf`);
+    };
+
+    // ---- Download PDF from the VISIBLE modal (View -> Download PDF button) ----
+    const downloadInvoiceAsPdf = async (invoice: InvoiceDto) => {
+        setDownloadingId(invoice.invoiceID);
+        try {
+            const node = printRef.current;
+            if (!node) throw new Error("Invoice content not ready.");
+            await generatePdfFromNode(node, invoice);
+            setSuccess(`${invoice.invoiceNumber} downloaded!`);
+        } catch {
+            setError("Failed to generate PDF. Please try again.");
+        } finally {
+            setDownloadingId(null);
+        }
+    };
+
+    // Row "Download" button: NO modal is opened at all. The invoice is
+    // rendered into an off-screen hidden container, captured, downloaded,
+    // then cleared — completely invisible to the user, zero popup flash.
+    const handleRowDownload = (inv: InvoiceDto) => {
+        setDownloadingId(inv.invoiceID);
+        setDownloadTarget(inv);
+    };
+
+    useEffect(() => {
+        if (!downloadTarget) return;
+        const timer = setTimeout(async () => {
+            try {
+                const node = hiddenDownloadRef.current;
+                if (!node) throw new Error("Invoice content not ready.");
+                await generatePdfFromNode(node, downloadTarget);
+                setSuccess(`${downloadTarget.invoiceNumber} downloaded!`);
+            } catch {
+                setError("Failed to generate PDF. Please try again.");
+            } finally {
+                setDownloadingId(null);
+                setDownloadTarget(null);
+            }
+        }, 250);
+        return () => clearTimeout(timer);
+    }, [downloadTarget]);
 
     const statusBadge = (s: string) => {
         const cfg: Record<string, { bg: string; color: string; label: string }> = {
@@ -196,8 +421,31 @@ const Invoice: React.FC = () => {
                 onClose={() => setDeleteTargetId(null)}
                 isLoading={deleteLoading}
             />
+            <ConfirmModal
+                title="Delete Selected Invoices"
+                message={showBulkDeleteConfirm
+                    ? `Are you sure you want to permanently delete ${selectedIds.length} selected invoice(s)? This action cannot be undone.`
+                    : ""}
+                confirmText={bulkDeleteLoading ? "Deleting..." : "Delete All Selected"}
+                onConfirm={handleBulkDelete}
+                onClose={() => setShowBulkDeleteConfirm(false)}
+                isLoading={bulkDeleteLoading}
+            />
 
-            <div className="d-flex align-items-center justify-content-between mb-4">
+            {/* Hidden off-screen render target used ONLY for silent row downloads.
+                Never visible to the user — no modal, no flash. */}
+            <div style={{ position: "fixed", top: 0, left: -99999, opacity: 0, pointerEvents: "none" }}>
+                <div ref={hiddenDownloadRef}>
+                    {downloadTarget && (
+                        <InvoiceDetailView
+                            invoice={downloadTarget}
+                            noOfLeaves={getLeaveDaysForMonth(downloadTarget.employeeID, downloadTarget.monthYear)}
+                        />
+                    )}
+                </div>
+            </div>
+
+            <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
                 <div className="d-flex align-items-center gap-3">
                     <div style={{
                         width: 44, height: 44, borderRadius: 12,
@@ -248,7 +496,7 @@ const Invoice: React.FC = () => {
                         <i className="bi bi-people-fill me-2" />Generate Invoices for All Employees
                     </h6>
                     <div className="row g-3 align-items-end">
-                        <div className="col-md-4">
+                        <div className="col-md-3">
                             <label className="form-label fw-semibold small text-muted">
                                 MONTH & YEAR *
                             </label>
@@ -258,6 +506,18 @@ const Invoice: React.FC = () => {
                                 value={bulkMonthYear}
                                 max={currentMonthYear}
                                 onChange={e => setBulkMonthYear(e.target.value)}
+                            />
+                        </div>
+                        <div className="col-md-4">
+                            <label className="form-label fw-semibold small text-muted">
+                                NOTES (Optional — applied to all)
+                            </label>
+                            <input
+                                type="text"
+                                className="form-control form-control-sm"
+                                placeholder="Any notes..."
+                                value={bulkNotes}
+                                onChange={e => setBulkNotes(e.target.value)}
                             />
                         </div>
                         <div className="col-md-3">
@@ -368,12 +628,77 @@ const Invoice: React.FC = () => {
                 </div>
             )}
 
+            {/* Filters + bulk delete bar */}
+            <div className="card border-0 shadow-sm rounded-4 p-3 mb-3">
+                <div className="row g-2 align-items-end">
+                    <div className="col-md-3">
+                        <label className="form-label fw-semibold small text-muted">
+                            FILTER BY MONTH
+                        </label>
+                        <input
+                            type="month"
+                            className="form-control form-control-sm"
+                            value={filterMonthYear}
+                            onChange={e => setFilterMonthYear(e.target.value)}
+                        />
+                    </div>
+                    <div className="col-md-4">
+                        <label className="form-label fw-semibold small text-muted">
+                            SEARCH EMPLOYEE NAME
+                        </label>
+                        <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            placeholder="Type employee name..."
+                            value={searchName}
+                            onChange={e => setSearchName(e.target.value)}
+                        />
+                    </div>
+                    {(filterMonthYear || searchName) && (
+                        <div className="col-md-2">
+                            <button
+                                className="btn btn-sm btn-outline-secondary w-100"
+                                onClick={() => { setFilterMonthYear(""); setSearchName(""); }}
+                            >
+                                Clear Filters
+                            </button>
+                        </div>
+                    )}
+                    <div className="col-md-3 ms-auto text-md-end">
+                        <button
+                            className="btn btn-sm fw-semibold text-white px-3"
+                            style={{ background: selectedIds.length > 0 ? "#dc2626" : "#9ca3af", borderRadius: 8 }}
+                            disabled={selectedIds.length === 0}
+                            onClick={() => setShowBulkDeleteConfirm(true)}
+                        >
+                            <i className="bi bi-trash me-1" />
+                            Delete Selected ({selectedIds.length})
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div className="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
-                <div className="card-header border-0 px-4 py-3"
+                <div className="card-header border-0 px-4 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2"
                     style={{ background: "#1B4332" }}>
                     <h6 className="mb-0 fw-bold text-white">
                         <i className="bi bi-table me-2" />Invoice Records
                     </h6>
+                    {filteredInvoices.length > 0 && (
+                        <div className="form-check d-flex align-items-center gap-2 mb-0">
+                            <input
+                                type="checkbox"
+                                className="form-check-input"
+                                id="selectAllTop"
+                                style={{ width: 18, height: 18, cursor: "pointer" }}
+                                checked={allVisibleSelected}
+                                onChange={toggleSelectAll}
+                            />
+                            <label htmlFor="selectAllTop" className="form-check-label text-white small fw-semibold" style={{ cursor: "pointer" }}>
+                                {allVisibleSelected ? "Unselect All" : "Select All"}
+                            </label>
+                        </div>
+                    )}
                 </div>
                 {loading ? (
                     <div className="p-4"><Loader /></div>
@@ -382,8 +707,18 @@ const Invoice: React.FC = () => {
                         <table className="table table-hover mb-0 align-middle">
                             <thead style={{ background: "#f0fdf4" }}>
                                 <tr>
+                                    <th style={{ padding: "12px 16px", width: 40, textAlign: "center" }}>
+                                        <input
+                                            type="checkbox"
+                                            className="form-check-input"
+                                            style={{ width: 16, height: 16, cursor: "pointer" }}
+                                            checked={allVisibleSelected}
+                                            onChange={toggleSelectAll}
+                                            title="Select all"
+                                        />
+                                    </th>
                                     {[
-                                        "Invoice No", "Employee Name", "Emp ID",
+                                        "Invoice No", "Employee Name",
                                         "Month / Year", "Generated Date", "Status", "Action"
                                     ].map(h => (
                                         <th key={h} style={{
@@ -400,7 +735,7 @@ const Invoice: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {invoices.length === 0 ? (
+                                {filteredInvoices.length === 0 ? (
                                     <tr>
                                         <td colSpan={7}
                                             className="text-center text-muted py-5">
@@ -411,10 +746,10 @@ const Invoice: React.FC = () => {
                                                     marginBottom: 8,
                                                     opacity: 0.4
                                                 }} />
-                                            No invoices generated yet.
+                                            No invoices found.
                                         </td>
                                     </tr>
-                                ) : invoices.map(inv => (
+                                ) : filteredInvoices.map(inv => (
                                     <tr
                                         key={inv.invoiceID}
                                         style={{
@@ -422,9 +757,17 @@ const Invoice: React.FC = () => {
                                             background: selectedInvoice?.invoiceID === inv.invoiceID
                                                 ? "#f0fdf4" : undefined
                                         }}
-                                        onClick={() => setSelectedInvoice(inv)}
                                     >
-                                        <td style={{ padding: "12px 16px" }}>
+                                        <td style={{ padding: "12px 16px", textAlign: "center" }} onClick={e => e.stopPropagation()}>
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input"
+                                                style={{ width: 16, height: 16, cursor: "pointer" }}
+                                                checked={selectedIds.includes(inv.invoiceID)}
+                                                onChange={() => toggleSelectOne(inv.invoiceID)}
+                                            />
+                                        </td>
+                                        <td style={{ padding: "12px 16px" }} onClick={() => setSelectedInvoice(inv)}>
                                             <span className="fw-bold"
                                                 style={{ color: "#1B4332", fontSize: "0.9rem" }}>
                                                 {inv.invoiceNumber}
@@ -434,34 +777,32 @@ const Invoice: React.FC = () => {
                                             padding: "12px 16px",
                                             fontWeight: 600,
                                             fontSize: "0.9rem"
-                                        }}>
+                                        }} onClick={() => setSelectedInvoice(inv)}>
                                             {inv.employeeName}
-                                        </td>
-                                        <td style={{ padding: "12px 16px" }}>
-                                            <span className="badge"
-                                                style={{
-                                                    background: "#e8f5e9",
-                                                    color: "#1B4332",
-                                                    fontWeight: 700
-                                                }}>
-                                                #{inv.employeeID}
+                                            <span style={{
+                                                marginLeft: 6,
+                                                color: "#6b7280",
+                                                fontWeight: 500,
+                                                fontSize: "0.82rem"
+                                            }}>
+                                                (ID: {inv.employeeID})
                                             </span>
                                         </td>
                                         <td style={{
                                             padding: "12px 16px",
                                             fontSize: "0.9rem",
                                             color: "#374151"
-                                        }}>
+                                        }} onClick={() => setSelectedInvoice(inv)}>
                                             {inv.monthYear}
                                         </td>
                                         <td style={{
                                             padding: "12px 16px",
                                             fontSize: "0.88rem",
                                             color: "#6b7280"
-                                        }}>
+                                        }} onClick={() => setSelectedInvoice(inv)}>
                                             {inv.generatedDate}
                                         </td>
-                                        <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }}>
+                                        <td style={{ padding: "12px 16px", whiteSpace: "nowrap" }} onClick={() => setSelectedInvoice(inv)}>
                                             {statusBadge(inv.status)}
                                             {advanceBadge(inv.balanceDue)}
                                         </td>
@@ -477,6 +818,20 @@ const Invoice: React.FC = () => {
                                                     onClick={() => setSelectedInvoice(inv)}
                                                 >
                                                     <i className="bi bi-eye me-1" />View
+                                                </button>
+                                                <button
+                                                    className="btn btn-sm btn-outline-primary"
+                                                    style={{
+                                                        fontSize: "0.78rem",
+                                                        borderRadius: 8
+                                                    }}
+                                                    disabled={downloadingId === inv.invoiceID}
+                                                    onClick={() => handleRowDownload(inv)}
+                                                >
+                                                    {downloadingId === inv.invoiceID
+                                                        ? <span className="spinner-border spinner-border-sm" />
+                                                        : <><i className="bi bi-download me-1" />Download</>
+                                                    }
                                                 </button>
                                                 <button
                                                     className="btn btn-sm btn-outline-danger"
@@ -525,9 +880,25 @@ const Invoice: React.FC = () => {
                                                 color: "#1B4332",
                                                 borderRadius: 8
                                             }}
+                                            disabled={downloadingId === selectedInvoice.invoiceID}
+                                            onClick={() => downloadInvoiceAsPdf(selectedInvoice)}
+                                        >
+                                            {downloadingId === selectedInvoice.invoiceID
+                                                ? <span className="spinner-border spinner-border-sm me-1" />
+                                                : <i className="bi bi-download me-1" />
+                                            }
+                                            Download PDF
+                                        </button>
+                                        <button
+                                            className="btn btn-sm fw-semibold"
+                                            style={{
+                                                background: "#e8f5e9",
+                                                color: "#1B4332",
+                                                borderRadius: 8
+                                            }}
                                             onClick={handlePrint}
                                         >
-                                            <i className="bi bi-printer me-1" />Print / PDF
+                                            <i className="bi bi-printer me-1" />Print
                                         </button>
                                         <button
                                             className="btn btn-sm btn-outline-light"
@@ -543,7 +914,10 @@ const Invoice: React.FC = () => {
                                     style={{ maxHeight: "80vh", overflowY: "auto" }}
                                     ref={printRef}
                                 >
-                                    <InvoiceDetailView invoice={selectedInvoice} />
+                                    <InvoiceDetailView
+                                        invoice={selectedInvoice}
+                                        noOfLeaves={getLeaveDaysForMonth(selectedInvoice.employeeID, selectedInvoice.monthYear)}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -554,7 +928,7 @@ const Invoice: React.FC = () => {
     );
 };
 
-export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }) => {
+export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto; noOfLeaves?: number }> = ({ invoice, noOfLeaves = 0 }) => {
     const grandTotal = invoice.totalAmount + invoice.previousArrears;
 
     const isDue = invoice.balanceDue > 0;
@@ -572,33 +946,39 @@ export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }
         padding: "13px 18px", fontSize: 13, color: "#374151"
     };
 
+    // Clear, plain-language wording for every line so anyone reading the
+    // invoice understands exactly what each number means.
     const paymentRows: { label: string; value: string; isBalance?: boolean }[] = [
         {
-            label: "Milk Purchased",
+            label: "Milk Consumed This Month",
             value: `${invoice.totalQuantity.toFixed(2)} Litres`,
         },
         {
-            label: "Bill Amount",
+            label: "This Month's Bill Amount",
             value: `Rs. ${invoice.totalAmount.toFixed(2)}`,
         },
         {
-            label: "Previous Amount (Pending)",
+            label: "Pending Amount (Balance From Before)",
             value: `Rs. ${invoice.previousArrears.toFixed(2)}`,
         },
         {
-            label: "Total Payable (Current + pending Amount)",
+            label: "Total Amount To Pay (This Month's Bill + Pending Amount)",
             value: `Rs. ${grandTotal.toFixed(2)}`,
         },
         {
-            label: "Amount Paid This Month",
+            label: "Amount Already Paid This Month",
             value: `Rs. ${invoice.amountPaid.toFixed(2)}`,
         },
         {
+            label: "No. of Leave Days This Month",
+            value: `${noOfLeaves} ${noOfLeaves === 1 ? "day" : "days"}`,
+        },
+        {
             label: isDue
-                ? "Balance Due (Still Pending)"
+                ? "Amount Still To Be Paid (Balance Due)"
                 : isAdvance
-                    ? "Advance Paid (Extra Amount)"
-                    : "Balance Due (Cleared)",
+                    ? "Extra Amount Paid In Advance"
+                    : "Balance — Fully Settled, Nothing Pending",
             value: isDue
                 ? `Rs. ${invoice.balanceDue.toFixed(2)}`
                 : isAdvance
@@ -812,10 +1192,10 @@ export const InvoiceDetailView: React.FC<{ invoice: InvoiceDto }> = ({ invoice }
                         color: balColor, marginTop: 4
                     }}>
                         {isDue
-                            ? `Balance: Rs. ${invoice.balanceDue.toFixed(2)}`
+                            ? `You Still Need To Pay: Rs. ${invoice.balanceDue.toFixed(2)}`
                             : isAdvance
-                                ? `Advance Paid: Rs. ${advanceAmount.toFixed(2)}`
-                                : "FULLY PAID"
+                                ? `Extra Paid In Advance: Rs. ${advanceAmount.toFixed(2)}`
+                                : "FULLY PAID — NOTHING PENDING"
                         }
                     </div>
                 </div>

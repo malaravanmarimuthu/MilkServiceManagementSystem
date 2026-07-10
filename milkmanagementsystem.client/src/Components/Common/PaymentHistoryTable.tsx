@@ -132,13 +132,22 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
         return `${d}-${m}-${y}`;
     };
 
-    const getEmpName = (id: number) => {
-        const emp = employees.find((e: any) => (e.id ?? e.ID) === id);
-        return emp
-            ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
-            : `Emp #${id}`;
-    };
+    // Resolves a proper employee name for a payment row.
+    // Priority: PaymentDto.employeeName (if it's a real non-empty value)
+    // -> lookup in the fetched employees list -> final fallback "Employee".
+    // NOTE: uses a truthy/trim check instead of `??` because `??` does NOT
+    // fall back on an empty string "", which was the actual bug — the
+    // backend was sending employeeName: "" so the name never showed.
+    const getEmpName = (id: number, fallbackName?: string): string => {
+        if (fallbackName && fallbackName.trim()) return fallbackName.trim();
 
+        const emp = employees.find((e: any) => (e.id ?? e.ID) === id);
+        if (emp) {
+            const name = `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim();
+            if (name) return name;
+        }
+        return "Employee";
+    };
 
     return (
         <>
@@ -292,10 +301,15 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
                                             {isAdmin && (
                                                 <td style={{ padding: "12px 16px" }}>
                                                     <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>
-                                                        {p.employeeName ?? getEmpName(p.employeeID)}
-                                                    </div>
-                                                    <div className="text-muted" style={{ fontSize: "0.78rem" }}>
-                                                        ID: {p.employeeID}
+                                                        {getEmpName(p.employeeID, p.employeeName)}
+                                                        <span style={{
+                                                            marginLeft: 6,
+                                                            color: "#6b7280",
+                                                            fontWeight: 500,
+                                                            fontSize: "0.8rem"
+                                                        }}>
+                                                            (ID: {p.employeeID})
+                                                        </span>
                                                     </div>
                                                 </td>
                                             )}
