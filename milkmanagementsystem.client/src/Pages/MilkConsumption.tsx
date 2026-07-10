@@ -18,12 +18,6 @@ import { LeaveRequestService } from "../Services/LeaveRequestService";
 
 const getTodayISO = () => new Date().toISOString().split("T")[0];
 
-const formatDateDisplay = (isoDate: string) => {
-    if (!isoDate) return "";
-    const [y, m, d] = isoDate.split("-");
-    return `${d}-${m}-${y}`;
-};
-
 const RECORDS_PER_PAGE = 20;
 
 const MilkConsumption: React.FC = () => {
