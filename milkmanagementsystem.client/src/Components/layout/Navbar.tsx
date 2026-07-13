@@ -366,6 +366,11 @@ function Navbar() {
                                                                 Procurement Entry
                                                             </NavLink>
                                                         </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/procurement-monthly-sales-history">
+                                                                Procurement Montly History
+                                                            </NavLink>
+                                                        </li>
                                                     </ul>
                                                 </li>
 
