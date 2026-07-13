@@ -341,11 +341,7 @@ function Navbar() {
                                                                     Invoice
                                                                 </NavLink>
                                                             </li>
-                                                            <li>
-                                                                <NavLink className="dropdown-item" to="/procurement-entry">
-                                                                    Procurement Entry
-                                                                </NavLink>
-                                                            </li>
+                                                         
                                                     </ul>
                                                 </li>
                                                 <li className="nav-item dropdown">
@@ -363,6 +359,11 @@ function Navbar() {
                                                         <li>
                                                             <NavLink className="dropdown-item" to="/procurement-rate">
                                                                 Procurement Price
+                                                            </NavLink>
+                                                        </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/procurement-entry">
+                                                                Procurement Entry
                                                             </NavLink>
                                                         </li>
                                                     </ul>
