@@ -32,7 +32,8 @@ public class ProcurementEntryService : IProcurementEntryService
             MilkType = entry.MilkType,
             Quantity = entry.QuantityLiters,
             Rate = entry.RatePerLiter,
-            TotalAmount = entry.TotalAmount
+            TotalAmount = entry.TotalAmount,
+            EntryDate = entry.EntryDate
         };
     }
 
@@ -49,7 +50,6 @@ public class ProcurementEntryService : IProcurementEntryService
 
         return result;
     }
-
 
     public async Task<ProcurementEntryDto> AddAsync(ProcurementEntryDto dto)
     {
@@ -69,7 +69,8 @@ public class ProcurementEntryService : IProcurementEntryService
             MilkType = dto.MilkType,
             QuantityLiters = dto.Quantity,
             RatePerLiter = rate,
-            TotalAmount = dto.Quantity * rate
+            TotalAmount = dto.Quantity * rate,
+            EntryDate = dto.EntryDate == default ? DateTime.Now : dto.EntryDate
         };
 
         _context.ProcurementEntries.Add(entry);
@@ -97,6 +98,8 @@ public class ProcurementEntryService : IProcurementEntryService
         entry.QuantityLiters = dto.Quantity;
         entry.RatePerLiter = dto.Rate;
         entry.TotalAmount = dto.Quantity * dto.Rate;
+        if (dto.EntryDate != default)
+            entry.EntryDate = dto.EntryDate;
 
         await _context.SaveChangesAsync();
 

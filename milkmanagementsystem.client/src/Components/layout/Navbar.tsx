@@ -336,11 +336,16 @@ function Navbar() {
                                                             </NavLink>
                                                            
                                                         </li>
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/invoice">
-                                                                Invoice
-                                                            </NavLink>
-                                                        </li>
+                                                            <li>
+                                                                <NavLink className="dropdown-item" to="/invoice">
+                                                                    Invoice
+                                                                </NavLink>
+                                                            </li>
+                                                            <li>
+                                                                <NavLink className="dropdown-item" to="/procurement-entry">
+                                                                    Procurement Entry
+                                                                </NavLink>
+                                                            </li>
                                                     </ul>
                                                 </li>
 

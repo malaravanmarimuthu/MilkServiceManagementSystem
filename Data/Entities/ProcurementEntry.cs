@@ -14,6 +14,8 @@ namespace Data.Entities
         public decimal QuantityLiters { get; set; }
         public decimal RatePerLiter { get; set; }
         public decimal TotalAmount { get; set; }
+        public DateTime EntryDate { get; set; }
         public Employee? Employee { get; set; }
+
     }
 }
