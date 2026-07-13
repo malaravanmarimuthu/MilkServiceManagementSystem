@@ -212,7 +212,7 @@ const LeaveRequestPage: React.FC = () => {
         setFormData((prev) => {
             const updated = {
                 ...prev,
-                [name]: name === "userID" ? Number(value) : value,
+                [name]: name === "employeeID" ? Number(value) : value,
             };
             if (name === "fromDate" && updated.toDate && updated.toDate < value) {
                 updated.toDate = "";
@@ -241,7 +241,7 @@ const LeaveRequestPage: React.FC = () => {
         if (saving) return;
 
         if (isAdmin && (!formData.employeeID || formData.employeeID === 0)) {
-            setFormError("Please select an User.");
+            setFormError("Please select an user.");
             return;
         }
         if (!formData.leaveType) {
@@ -675,13 +675,13 @@ const LeaveRequestPage: React.FC = () => {
                                                 <div className="col-md-6 mb-3">
                                                     <label className="form-label">Select User</label>
                                                     <select
-                                                        name="userID"
+                                                        name="employeeID"
                                                         className="form-select"
                                                         value={formData.employeeID}
                                                         onChange={handleChange}
                                                         required
                                                     >
-                                                        <option value={0} disabled>-- Select User --</option>
+                                                        <option value={0} disabled>-- Select user --</option>
                                                         {employeeList.map((emp: any) => {
                                                             const id = emp.employeeID ?? emp.id ?? emp.ID ?? emp.Id;
                                                             const firstName = emp.firstName ?? emp.FirstName ?? emp.first_name ?? "";
