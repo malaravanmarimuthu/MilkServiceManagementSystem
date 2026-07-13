@@ -110,8 +110,7 @@ function EmployeeSubscription() {
 
     const loadEmployees = async () => {
         try {
-            const response: any = await getEmployees();
-            const data = response.data;
+            const data: any = await getEmployees();
 
             const arr = Array.isArray(data)
                 ? data
@@ -504,7 +503,7 @@ function EmployeeSubscription() {
                                             setFormError("");
                                         }}
                                     >
-                                        <option value={0}>-- Select User --</option>
+                                        <option value={0}>-- Select user --</option>
                                         {availableEmployees.map((emp) => {
                                             const id = emp.id ?? emp.ID;
                                             const name = `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim();
