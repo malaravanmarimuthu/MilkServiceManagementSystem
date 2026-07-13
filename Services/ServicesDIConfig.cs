@@ -43,8 +43,8 @@ namespace Services
             services.AddScoped<IMilkEntryService, MilkEntryService>();
             services.AddScoped<IInvoiceService, InvoiceService>();
             services.AddScoped<IProfilePhotoService, ProfilePhotoService>();
-
-
+            services.AddScoped<IProcurementEntryService, ProcurementEntryService>();
+            services.AddScoped<IProcurementRateService, ProcurementRateService>();
 
         }
 
