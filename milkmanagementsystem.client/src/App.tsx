@@ -25,6 +25,7 @@ import MonthlySalesHistory from "./Pages/MonthlySalesHistory";
 import MyBills from "./Pages/MyBills";
 import ProcurementRate from "./Pages/ProcurementRate";
 import ProcurementEntry from "./Pages/ProcurementEntry";
+import ProcurementMonthlySalesHistory from "./Pages/ProcurementMonthlySalesHistory";
 
 
 
@@ -76,6 +77,7 @@ function AppContent() {
                         <Route path="/my-bills" element={<ProtectedRoute><MyBills /></ProtectedRoute>} />
                         <Route path="/procurement-entry" element={<ProtectedRoute><ProcurementEntry /></ProtectedRoute>} />
                         <Route path="/procurement-rate" element={<ProtectedRoute><ProcurementRate /></ProtectedRoute>} />
+                        <Route path="/procurement-monthly-sales-history" element={<ProtectedRoute><ProcurementMonthlySalesHistory /></ProtectedRoute> } />
 
                     </Routes>
                 </div>

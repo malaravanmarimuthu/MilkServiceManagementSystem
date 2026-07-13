@@ -21,6 +21,7 @@ const MonthlySalesHistory: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [showPicker, setShowPicker] = useState(false);
+    const [empSearch, setEmpSearch] = useState("");
     const [pickerYear, setPickerYear] = useState(0);
     const pickerRef = useRef<HTMLDivElement>(null);
 
@@ -231,6 +232,9 @@ const MonthlySalesHistory: React.FC = () => {
 
     const daily = dailySummary();
     const empSummary = employeeSummary();
+    const filteredEmpSummary = empSummary.filter(emp =>
+        emp.empName.toLowerCase().includes(empSearch.toLowerCase())
+    );
 
     const totalQty = daily.reduce((s, d) => s + d.totalQty, 0);
     const totalSaleAmount = daily.reduce((s, d) => s + d.totalAmount, 0);
@@ -431,9 +435,19 @@ const MonthlySalesHistory: React.FC = () => {
 
                         {/* Employee wise Summary */}
                         <div className="mb-4">
-                            <h5 className="fw-bold mb-3">
-                                👥 User wise Summary — {monthNames[selectedMonth - 1]} {selectedYear}
-                            </h5>
+                            <div className="d-flex align-items-center flex-nowrap gap-3 mb-3">
+                                <h5 className="fw-bold mb-0 text-truncate" style={{ flexShrink: 0 }}>
+                                    👥 User wise Summary — {monthNames[selectedMonth - 1]} {selectedYear}
+                                </h5>
+                                <input
+                                    type="text"
+                                    placeholder="🔍 Search user..."
+                                    value={empSearch}
+                                    onChange={(e) => setEmpSearch(e.target.value)}
+                                    className="form-control flex-shrink-0"
+                                    style={{ maxWidth: "180px", borderRadius: "8px" }}
+                                />
+                            </div>
                             <div className="table-responsive">
                                 <table className="table table-bordered align-middle">
                                     <thead className="table-dark">
@@ -448,13 +462,13 @@ const MonthlySalesHistory: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {empSummary.length === 0 ? (
+                                        {filteredEmpSummary.length === 0 ? (
                                             <tr>
                                                 <td colSpan={7} className="text-center text-muted py-4">
-                                                    No data found.
+                                                    No matching user found.
                                                 </td>
                                             </tr>
-                                        ) : empSummary.map((emp, i) => {
+                                        ) : filteredEmpSummary.map((emp, i) => {
                                             const pending = emp.totalAmount - emp.paidAmount;
                                             return (
                                                 <tr key={i}>
