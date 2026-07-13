@@ -348,6 +348,25 @@ function Navbar() {
                                                             </li>
                                                     </ul>
                                                 </li>
+                                                <li className="nav-item dropdown">
+                                                    <a
+                                                        className="nav-link dropdown-toggle nav-master-toggle"
+                                                        href="#"
+                                                        role="button"
+                                                        data-bs-toggle="dropdown"
+                                                    >
+                                                        Procurement
+                                                    </a>
+
+                                                    <ul className="dropdown-menu nav-dropdown-fresh">
+
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/procurement-rate">
+                                                                Procurement Price
+                                                            </NavLink>
+                                                        </li>
+                                                    </ul>
+                                                </li>
 
                                                 <li className="nav-item">
                                                     <NavLink to="/my-profile" className="nav-link nav-link-fresh">
