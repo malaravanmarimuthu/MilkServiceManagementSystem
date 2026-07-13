@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Data.Migrations
 {
     /// <inheritdoc />
-    public partial class ADDProcurementRateTable : Migration
+    public partial class AddProcurementTable : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -17,22 +17,22 @@ namespace Data.Migrations
                 {
                     ID = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    EmployeeID = table.Column<int>(type: "int", nullable: false),
+                    EmployeeID = table.Column<long>(type: "bigint", nullable: false),
                     MilkType = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     QuantityLiters = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
                     RatePerLiter = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
-                    TotalAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
-                    EmployeeID1 = table.Column<long>(type: "bigint", nullable: true)
+                    TotalAmount = table.Column<decimal>(type: "decimal(65,30)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ProcurementEntries", x => x.ID);
                     table.ForeignKey(
-                        name: "FK_ProcurementEntries_Employees_EmployeeID1",
-                        column: x => x.EmployeeID1,
+                        name: "FK_ProcurementEntries_Employees_EmployeeID",
+                        column: x => x.EmployeeID,
                         principalTable: "Employees",
-                        principalColumn: "ID");
+                        principalColumn: "ID",
+                        onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -53,9 +53,9 @@ namespace Data.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ProcurementEntries_EmployeeID1",
+                name: "IX_ProcurementEntries_EmployeeID",
                 table: "ProcurementEntries",
-                column: "EmployeeID1");
+                column: "EmployeeID");
         }
 
         /// <inheritdoc />
