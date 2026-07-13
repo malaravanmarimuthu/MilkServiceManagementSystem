@@ -48,6 +48,7 @@ const Employee: React.FC = () => {
     const [successMessage, setSuccessMessage] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const [search, setSearch] = useState("");
+    const [roleFilter, setRoleFilter] = useState<number>(0);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -101,8 +102,13 @@ const Employee: React.FC = () => {
 
     const filteredEmployees = employees.filter((e: any) => {
         const full =
-            `${e.firstName ?? e.FirstName ?? ""} ${e.lastName ?? e.LastName ?? ""} ${e.emailId ?? e.EmailId ?? ""} ${e.mobile ?? e.Mobile ?? ""}`.toLowerCase();
-        return full.includes(search.toLowerCase());
+            `${e.firstName ?? e.FirstName ?? ""} ${e.lastName ?? e.LastName ?? ""} ${e.emailId ?? e.EmailId ?? ""} ${e.mobile ?? e.Mobile ?? ""} `.toLowerCase();
+        const matchesSearch = full.includes(search.toLowerCase());
+
+        const empRoleId = e.roleID ?? e.RoleID;
+        const matchesRole = roleFilter === 0 || empRoleId === roleFilter;
+
+        return matchesSearch && matchesRole;
     });
 
     const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
@@ -247,6 +253,23 @@ const Employee: React.FC = () => {
                         }}
                         style={{ maxWidth: "300px" }}
                     />
+
+                    <select
+                        className="form-select"
+                        value={roleFilter}
+                        onChange={(e) => {
+                            setRoleFilter(Number(e.target.value));
+                            setCurrentPage(1);
+                        }}
+                        style={{ maxWidth: "200px" }}
+                    >
+                        <option value={0}>All Roles</option>
+                        {roles.map((role) => (
+                            <option key={role.roleID} value={role.roleID}>
+                                {role.roleName}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
                 {loading ? (

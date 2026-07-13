@@ -23,6 +23,7 @@ import PaymentHistory from "./Pages/PaymentHistory";
 import Invoice from "./Pages/Invoice"; 
 import MonthlySalesHistory from "./Pages/MonthlySalesHistory";
 import MyBills from "./Pages/MyBills";
+import ProcurementRate from "./Pages/ProcurementRate";
 
 
 
@@ -68,11 +69,11 @@ function AppContent() {
                 <Route path="/My-Consumption" element={<ProtectedRoute><MyConsumption /></ProtectedRoute>} />
                 <Route path="/payment-history" element={<ProtectedRoute><PaymentHistory /></ProtectedRoute>} />
                 <Route path="/Monthly-Sales-History" element={<ProtectedRoute><MonthlySalesHistory /></ProtectedRoute>} />
-
                 <Route path="/My-Consumption" element={<ProtectedRoute><MyConsumption /></ProtectedRoute>} />
                 <Route path="/payment-history" element={<ProtectedRoute><PaymentHistory /></ProtectedRoute>} />
                 <Route path="/invoice" element={<ProtectedRoute><Invoice /></ProtectedRoute>} />
                 <Route path="/my-bills" element={<ProtectedRoute><MyBills /></ProtectedRoute>} />
+                <Route path="/procurement-rate" element={<ProtectedRoute><ProcurementRate /></ProtectedRoute>} />
 
 
             </Routes>
