@@ -26,5 +26,8 @@ namespace Data.Context
         public DbSet<MilkEntry> MilkEntries { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<ProcurementRate> ProcurementRates { get; set; }
+        public DbSet<ProcurementEntry> ProcurementEntries { get; set; }
+ 
     }
 }
