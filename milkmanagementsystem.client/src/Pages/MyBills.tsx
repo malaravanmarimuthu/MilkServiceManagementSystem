@@ -1,62 +1,182 @@
+/* eslint-disable react-hooks/immutability */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useRef } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import { InvoiceService, type InvoiceDto } from "../Services/InvoiceService";
+import { LeaveRequestService } from "../Services/LeaveRequestService";
 import { getLoggedInEmployeeId } from "../Helpers/getEmployeeId";
 import Loader from "../Components/Common/Loader";
+import ErrorModal from "../Components/Common/ErrorModal";
+import SuccessModal from "../Components/Common/SuccessModal";
 import { InvoiceDetailView } from "./Invoice";
 
 const MyBills: React.FC = () => {
     const [invoices, setInvoices] = useState<InvoiceDto[]>([]);
+    const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
     const [selectedInvoice, setSelectedInvoice] = useState<InvoiceDto | null>(null);
-    const [downloadInvoice, setDownloadInvoice] = useState<InvoiceDto | null>(null);
-    const downloadRef = useRef<HTMLDivElement>(null);
+    const printRef = useRef<HTMLDivElement>(null);
+
+    const [downloadingId, setDownloadingId] = useState<number | null>(null);
+    const [downloadTarget, setDownloadTarget] = useState<InvoiceDto | null>(null);
+    const hiddenDownloadRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const fetchMyBills = async () => {
-            const empId = getLoggedInEmployeeId();
-            if (!empId) return;
-            setLoading(true);
-            try {
-                const data = await InvoiceService.getByEmployee(empId);
-                setInvoices(data);
-            } catch {
-                // silently fail
-            } finally {
-                setLoading(false);
-            }
-        };
         fetchMyBills();
     }, []);
 
-    useEffect(() => {
-        if (downloadInvoice && downloadRef.current) {
-            const content = downloadRef.current;
-            const win = window.open("", "_blank");
-            if (!win) return;
-            win.document.write(`<!DOCTYPE html><html><head>
-                <title>${downloadInvoice.invoiceNumber}</title>
-                <style>
-                    * { margin:0; padding:0; box-sizing:border-box; }
-                    body { font-family: Arial, sans-serif; }
-                    @media print {
-                        @page { margin: 15mm; }
-                        body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                    }
-                </style>
-            </head><body>${content.innerHTML}</body></html>`);
-            win.document.close();
-            win.focus();
-            setTimeout(() => {
-                win.print();
-                win.close();
-                setDownloadInvoice(null);
-            }, 600);
-        }
-    }, [downloadInvoice]);
+    const fetchMyBills = async () => {
+        const empId = getLoggedInEmployeeId();
+        if (!empId) return;
+        setLoading(true);
+        try {
+            const [invData, leaveData] = await Promise.all([
+                InvoiceService.getByEmployee(empId),
+                LeaveRequestService.getAll(),
+            ]);
 
-    const handleDownload = (inv: InvoiceDto) => {
-        setDownloadInvoice(inv);
+            const invArr = Array.isArray(invData)
+                ? invData
+                : (invData as any)?.$values ?? [];
+            setInvoices(invArr);
+
+            const leaveArr = Array.isArray(leaveData)
+                ? leaveData
+                : (leaveData as any)?.$values ?? (leaveData as any)?.data ?? [];
+            setLeaveRequests(leaveArr);
+        } catch {
+            setError("Failed to load your bills. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     };
+
+    const MONTH_NAMES = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+
+    const toMonthKey = (value: string | null | undefined): string => {
+        if (!value) return "";
+        const trimmed = value.trim();
+
+        if (/^\d{4}-\d{2}/.test(trimmed)) return trimmed.slice(0, 7);
+
+        const parts = trimmed.split(" ");
+        if (parts.length !== 2) return "";
+        const [monthName, year] = parts;
+        const idx = MONTH_NAMES.findIndex(
+            m => m.toLowerCase() === monthName.toLowerCase()
+        );
+        if (idx === -1 || !/^\d{4}$/.test(year)) return "";
+        return `${year}-${String(idx + 1).padStart(2, "0")}`;
+    };
+
+    const getLeaveDaysForMonth = (empId: number, monthYear: string): number => {
+        const monthKey = toMonthKey(monthYear);
+        if (!monthKey) return 0;
+        const [yearStr, monthStr] = monthKey.split("-");
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        if (!year || !month) return 0;
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const monthStart = `${yearStr}-${monthStr}-01`;
+        const monthEnd = `${yearStr}-${monthStr}-${String(daysInMonth).padStart(2, "0")}`;
+
+        let count = 0;
+        leaveRequests.forEach((leave: any) => {
+            const leaveEmpId = leave.employeeID ?? leave.employeeId ?? leave.EmployeeId;
+            if (leaveEmpId !== empId) return;
+
+            const status = (leave.status ?? leave.Status ?? "").toLowerCase();
+            if (status !== "approved") return;
+
+            const fromDate = (leave.fromDate ?? leave.FromDate ?? "").split("T")[0];
+            let toDate = (leave.toDate ?? leave.ToDate ?? "").split("T")[0];
+            if (!toDate || toDate === "9999-12-31") toDate = monthEnd;
+
+            const overlapStart = fromDate > monthStart ? fromDate : monthStart;
+            const overlapEnd = toDate < monthEnd ? toDate : monthEnd;
+            if (overlapStart > overlapEnd) return;
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${yearStr}-${monthStr}-${String(d).padStart(2, "0")}`;
+                if (dateStr >= fromDate && dateStr <= toDate) count++;
+            }
+        });
+        return count;
+    };
+
+    const generatePdfFromNode = async (node: HTMLDivElement, invoice: InvoiceDto) => {
+        const canvas = await html2canvas(node, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: "#ffffff",
+        });
+
+        const imgData = canvas.toDataURL("image/png");
+        const pdf = new jsPDF("p", "mm", "a4");
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        const imgWidth = pageWidth;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        let heightLeft = imgHeight;
+        let position = 0;
+
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
+        }
+
+        pdf.save(`${invoice.invoiceNumber || "Invoice"}.pdf`);
+    };
+
+    const downloadInvoiceAsPdf = async (invoice: InvoiceDto) => {
+        setDownloadingId(invoice.invoiceID);
+        try {
+            const node = printRef.current;
+            if (!node) throw new Error("Invoice content not ready.");
+            await generatePdfFromNode(node, invoice);
+            setSuccess(`${invoice.invoiceNumber} downloaded!`);
+        } catch {
+            setError("Failed to generate PDF. Please try again.");
+        } finally {
+            setDownloadingId(null);
+        }
+    };
+
+    const handleRowDownload = (inv: InvoiceDto) => {
+        setDownloadingId(inv.invoiceID);
+        setDownloadTarget(inv);
+    };
+
+    useEffect(() => {
+        if (!downloadTarget) return;
+        const timer = setTimeout(async () => {
+            try {
+                const node = hiddenDownloadRef.current;
+                if (!node) throw new Error("Invoice content not ready.");
+                await generatePdfFromNode(node, downloadTarget);
+                setSuccess(`${downloadTarget.invoiceNumber} downloaded!`);
+            } catch {
+                setError("Failed to generate PDF. Please try again.");
+            } finally {
+                setDownloadingId(null);
+                setDownloadTarget(null);
+            }
+        }, 250);
+        return () => clearTimeout(timer);
+    }, [downloadTarget]);
 
     const statusBadge = (s: string) => {
         const cfg: Record<string, { bg: string; color: string; label: string }> = {
@@ -78,6 +198,19 @@ const MyBills: React.FC = () => {
 
     return (
         <div className="container-fluid mt-4 px-4 pb-5">
+            <ErrorModal message={error} onClose={() => setError("")} />
+            <SuccessModal message={success} onClose={() => setSuccess("")} />
+
+            <div style={{ position: "fixed", top: 0, left: -99999, opacity: 0, pointerEvents: "none" }}>
+                <div ref={hiddenDownloadRef}>
+                    {downloadTarget && (
+                        <InvoiceDetailView
+                            invoice={downloadTarget}
+                            noOfLeaves={getLeaveDaysForMonth(downloadTarget.employeeID, downloadTarget.monthYear)}
+                        />
+                    )}
+                </div>
+            </div>
 
             <div className="d-flex align-items-center gap-3 mb-4">
                 <div style={{
@@ -160,9 +293,13 @@ const MyBills: React.FC = () => {
                                                 <button
                                                     className="btn btn-sm btn-outline-primary"
                                                     style={{ fontSize: "0.78rem", borderRadius: 8 }}
-                                                    onClick={() => handleDownload(inv)}
+                                                    disabled={downloadingId === inv.invoiceID}
+                                                    onClick={() => handleRowDownload(inv)}
                                                 >
-                                                    <i className="bi bi-download me-1" />PDF
+                                                    {downloadingId === inv.invoiceID
+                                                        ? <span className="spinner-border spinner-border-sm" />
+                                                        : <><i className="bi bi-download me-1" />PDF</>
+                                                    }
                                                 </button>
                                             </div>
                                         </td>
@@ -194,9 +331,14 @@ const MyBills: React.FC = () => {
                                         <button
                                             className="btn btn-sm fw-semibold"
                                             style={{ background: "#e8f5e9", color: "#1B4332", borderRadius: 8 }}
-                                            onClick={() => handleDownload(selectedInvoice)}
+                                            disabled={downloadingId === selectedInvoice.invoiceID}
+                                            onClick={() => downloadInvoiceAsPdf(selectedInvoice)}
                                         >
-                                            <i className="bi bi-printer me-1" />Print / PDF
+                                            {downloadingId === selectedInvoice.invoiceID
+                                                ? <span className="spinner-border spinner-border-sm me-1" />
+                                                : <i className="bi bi-download me-1" />
+                                            }
+                                            Download PDF
                                         </button>
                                         <button
                                             className="btn btn-sm btn-outline-light"
@@ -207,19 +349,20 @@ const MyBills: React.FC = () => {
                                         </button>
                                     </div>
                                 </div>
-                                <div className="p-0" style={{ maxHeight: "80vh", overflowY: "auto" }}>
-                                    <InvoiceDetailView invoice={selectedInvoice} />
+                                <div
+                                    className="p-0"
+                                    style={{ maxHeight: "80vh", overflowY: "auto" }}
+                                    ref={printRef}
+                                >
+                                    <InvoiceDetailView
+                                        invoice={selectedInvoice}
+                                        noOfLeaves={getLeaveDaysForMonth(selectedInvoice.employeeID, selectedInvoice.monthYear)}
+                                    />
                                 </div>
                             </div>
                         </div>
                     </div>
                 </>
-            )}
-
-            {downloadInvoice && (
-                <div style={{ position: "absolute", left: "-9999px", top: 0 }} ref={downloadRef}>
-                    <InvoiceDetailView invoice={downloadInvoice} />
-                </div>
             )}
         </div>
     );

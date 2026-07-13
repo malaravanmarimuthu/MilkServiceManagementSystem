@@ -305,7 +305,7 @@ function Navbar() {
                                                     <ul className="dropdown-menu nav-dropdown-fresh">
                                                         
                                                         <li>
-                                                            <NavLink className="dropdown-item" to="/employeesubscription">Employee Subscription</NavLink>
+                                                            <NavLink className="dropdown-item" to="/employeesubscription">User Subscription</NavLink>
                                                         </li>
                                                         <li>
                                                             <NavLink className="dropdown-item" to="/leave-request">Leave Request</NavLink>
@@ -327,7 +327,7 @@ function Navbar() {
                                                         </li>
                                                          <li>
                                                             <NavLink className="dropdown-item" to="/My-consumption">
-                                                                Employee Consumption
+                                                                User Consumption
                                                             </NavLink>
                                                         </li>
                                                         <li>
@@ -336,11 +336,16 @@ function Navbar() {
                                                             </NavLink>
                                                            
                                                         </li>
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/invoice">
-                                                                Invoice
-                                                            </NavLink>
-                                                        </li>
+                                                            <li>
+                                                                <NavLink className="dropdown-item" to="/invoice">
+                                                                    Invoice
+                                                                </NavLink>
+                                                            </li>
+                                                            <li>
+                                                                <NavLink className="dropdown-item" to="/procurement-entry">
+                                                                    Procurement Entry
+                                                                </NavLink>
+                                                            </li>
                                                     </ul>
                                                 </li>
                                                 <li className="nav-item dropdown">

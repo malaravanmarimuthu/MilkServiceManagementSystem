@@ -81,7 +81,7 @@ const MyConsumption: React.FC = () => {
         ? (adminEmpId !== ""
             ? (() => {
                 const emp = employees.find(e => e.id === Number(adminEmpId));
-                return emp ? `${emp.firstName} ${emp.mobile}` : "Selected Employee";
+                return emp ? `${emp.firstName} ${emp.mobile}` : "Selected User";
             })()
             : "")
         : loggedEmployeeName;
@@ -370,13 +370,13 @@ const MyConsumption: React.FC = () => {
                 <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                     <div>
                         <h4 className="fw-bold mb-0">
-                            {isAdmin ? "Employee Consumption" : "My Consumption"}
+                            {isAdmin ? "User Consumption" : "My Consumption"}
                         </h4>
                         <div className="text-muted" style={{ fontSize: "0.85rem" }}>
                             {isAdmin
                                 ? (effectiveEmpId !== 0
                                     ? `${effectiveEmpName} — Monthly milk purchase history`
-                                    : "Select an employee to view consumption")
+                                    : "Select an User to view consumption")
                                 : `${loggedEmployeeName} — Monthly milk purchase history`}
                         </div>
                     </div>
@@ -482,13 +482,13 @@ const MyConsumption: React.FC = () => {
 
                 {isAdmin && (
                     <div className="mb-4">
-                        <label className="form-label fw-semibold">Select Employee</label>
+                        <label className="form-label fw-semibold">Select User</label>
                         {loading ? (
                             <div
                                 className="d-flex justify-content-center align-items-center w-100"
                                 style={{ minHeight: "100px" }}
                             >
-                                <Loader text="Loading employees..." />
+                                <Loader text="Loading users..." />
                             </div>
                         ) : (
                             <select
@@ -497,7 +497,7 @@ const MyConsumption: React.FC = () => {
                                 value={adminEmpId}
                                 onChange={(e) => setAdminEmpId(e.target.value === "" ? "" : Number(e.target.value))}
                             >
-                                <option value="">-- Select Employee --</option>
+                                <option value="">-- Select User --</option>
                                 {employees.map((emp) => (
                                     <option key={emp.id} value={emp.id}>
                                         {emp.firstName} {emp.lastName} (ID: {emp.id})
@@ -511,7 +511,7 @@ const MyConsumption: React.FC = () => {
                 {isAdmin && effectiveEmpId === 0 ? (
                     <div className="text-center text-muted py-5">
                         <div style={{ fontSize: "3rem" }}>👆</div>
-                        <div className="mt-2 fw-semibold">Please select an employee to view consumption</div>
+                        <div className="mt-2 fw-semibold">Please select an user to view consumption</div>
                     </div>
                 ) : (
                     <>

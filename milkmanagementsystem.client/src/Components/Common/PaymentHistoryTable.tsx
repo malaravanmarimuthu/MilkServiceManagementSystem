@@ -132,13 +132,16 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
         return `${d}-${m}-${y}`;
     };
 
-    const getEmpName = (id: number) => {
-        const emp = employees.find((e: any) => (e.id ?? e.ID) === id);
-        return emp
-            ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim()
-            : `Emp #${id}`;
-    };
+    const getEmpName = (id: number, fallbackName?: string): string => {
+        if (fallbackName && fallbackName.trim()) return fallbackName.trim();
 
+        const emp = employees.find((e: any) => (e.id ?? e.ID) === id);
+        if (emp) {
+            const name = `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim();
+            if (name) return name;
+        }
+        return "User";
+    };
 
     return (
         <>
@@ -150,14 +153,14 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
                     {isAdmin && (
                         <div className="col-md-3">
                             <label className="form-label fw-semibold small text-muted">
-                                EMPLOYEE
+                                USER
                             </label>
                             <select
                                 className="form-select form-select-sm"
                                 value={selectedEmpID}
                                 onChange={(e) => setSelectedEmpID(Number(e.target.value))}
                             >
-                                <option value={0}>All Employees</option>
+                                <option value={0}>All User</option>
                                 {employees.map((emp: any) => {
                                     const id = emp.id ?? emp.ID;
                                     const name = `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim();
@@ -261,7 +264,7 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
                                 <tr>
                                     {isAdmin && (
                                         <th style={{ padding: "12px 16px", fontSize: "0.8rem", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>
-                                            Employee
+                                            User
                                         </th>
                                     )}
                                     <th style={{ padding: "12px 16px", fontSize: "0.8rem", color: "#6b7280", fontWeight: 600, textTransform: "uppercase" }}>
@@ -292,10 +295,15 @@ const PaymentHistoryTable: React.FC<Props> = ({ isAdmin, currentEmployeeID }) =>
                                             {isAdmin && (
                                                 <td style={{ padding: "12px 16px" }}>
                                                     <div className="fw-semibold" style={{ fontSize: "0.9rem" }}>
-                                                        {p.employeeName ?? getEmpName(p.employeeID)}
-                                                    </div>
-                                                    <div className="text-muted" style={{ fontSize: "0.78rem" }}>
-                                                        ID: {p.employeeID}
+                                                        {getEmpName(p.employeeID, p.employeeName)}
+                                                        <span style={{
+                                                            marginLeft: 6,
+                                                            color: "#6b7280",
+                                                            fontWeight: 500,
+                                                            fontSize: "0.8rem"
+                                                        }}>
+                                                            (ID: {p.employeeID})
+                                                        </span>
                                                     </div>
                                                 </td>
                                             )}

@@ -15,5 +15,6 @@ namespace Models.Dto
         public decimal Quantity { get; set; }
         public decimal Rate { get; set; }
         public decimal TotalAmount { get; set; }
+        public DateTime EntryDate { get; set; }
     }
 }

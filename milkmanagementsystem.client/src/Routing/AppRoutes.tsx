@@ -17,6 +17,7 @@ import ViewPastConsumption from "../Pages/ViewPastConsumption";
 import MyConsumption from "../Pages/MyConsumption";
 import MyBills from "../Pages/MyBills";
 import ProcurementRate from "../Pages/ProcurementRate";
+import ProcurementEntry from "../Pages/ProcurementEntry";
 
 
 function AppRoutes() {
@@ -138,6 +139,14 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute>
                         <MyConsumption />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/procurement-entry"
+                element={
+                    <ProtectedRoute>
+                        <ProcurementEntry />
                     </ProtectedRoute>
                 }
             />

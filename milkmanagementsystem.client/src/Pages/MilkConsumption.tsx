@@ -12,19 +12,12 @@ import { PaymentService } from "../Services/PaymentService";
 import ErrorModal from "../Components/Common/ErrorModal";
 import SuccessModal from "../Components/Common/SuccessModal";
 import Loader from "../Components/Common/Loader";
-import Pagination from "../Components/Common/Pagination";
 import { getEmployees } from "../Services/EmployeeService";
 import { LeaveRequestService } from "../Services/LeaveRequestService";
 
 const getTodayISO = () => new Date().toISOString().split("T")[0];
 
-const formatDateDisplay = (isoDate: string) => {
-    if (!isoDate) return "";
-    const [y, m, d] = isoDate.split("-");
-    return `${d}-${m}-${y}`;
-};
-
-const RECORDS_PER_PAGE = 20;
+const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
 const MilkConsumption: React.FC = () => {
     const [locations, setLocations] = useState<any[]>([]);
@@ -34,6 +27,7 @@ const MilkConsumption: React.FC = () => {
     const [selectedLocationID, setSelectedLocationID] = useState<number>(0);
     const [selectedDate, setSelectedDate] = useState<string>(getTodayISO());
     const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [employees, setEmployees] = useState<any[]>([]);
@@ -46,15 +40,23 @@ const MilkConsumption: React.FC = () => {
     const [otherQty, setOtherQty] = useState<Record<number, string>>({});
     const [otherAmount, setOtherAmount] = useState<Record<number, string>>({});
     const [actualAmount, setActualAmount] = useState<Record<number, string>>({});
-    const [currentPage, setCurrentPage] = useState(1);
     const [search, setSearch] = useState("");
+    const [inlineMsg, setInlineMsg] = useState<Record<number, string>>({});
 
     useEffect(() => { fetchAll(); }, []);
 
-    useEffect(() => { setCurrentPage(1); }, [selectedLocationID, selectedDate, search]);
+    const showInlineMsg = (empId: number, msg: string) => {
+        setInlineMsg((prev) => ({ ...prev, [empId]: msg }));
+        setTimeout(() => {
+            setInlineMsg((prev) => {
+                const copy = { ...prev };
+                delete copy[empId];
+                return copy;
+            });
+        }, 2000);
+    };
 
     const fetchAll = async () => {
-
         setLoading(true);
         try {
             const [locData, empSubData, subData, entryData, empData, leaveData, payData] =
@@ -79,6 +81,16 @@ const MilkConsumption: React.FC = () => {
             setError("Failed to load data.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleManualRefresh = async () => {
+        setRefreshing(true);
+        try {
+            await fetchAll();
+            setSuccess("Data refreshed!");
+        } finally {
+            setRefreshing(false);
         }
     };
 
@@ -162,19 +174,13 @@ const MilkConsumption: React.FC = () => {
         return !hasEntryForDate(empId, selectedDate);
     });
 
-    const totalPages = Math.ceil(filteredSubs.length / RECORDS_PER_PAGE);
-    const paginatedSubs = filteredSubs.slice(
-        (currentPage - 1) * RECORDS_PER_PAGE,
-        currentPage * RECORDS_PER_PAGE
-    );
-
     const createEntry = async (
         sub: any,
         type: string,
         qty: number,
         withPay: boolean,
         customAmount: number = 0
-    ): Promise<number> => {
+    ): Promise<{ entry: MilkEntryDto; paidAmount: number; payment: any | null }> => {
         const empId = sub.employeeId ?? sub.EmployeeId;
         const subId = sub.subscriptionId ?? sub.SubscriptionId;
         const emp = employees.find((e: any) => (e.id ?? e.ID) === empId);
@@ -182,7 +188,7 @@ const MilkConsumption: React.FC = () => {
         const rate = getRatePerLiter(subId);
         const payAmount = customAmount > 0 ? customAmount : qty * rate;
 
-        const entryRes = await MilkEntryService.create({
+        const entryRes: any = await MilkEntryService.create({
             milkEntryID: 0,
             employeeID: empId,
             locationID: locId,
@@ -192,9 +198,19 @@ const MilkConsumption: React.FC = () => {
             notes: type === "Other" ? String(qty) : "",
         });
 
+        const newEntry: MilkEntryDto = {
+            milkEntryID: entryRes?.milkEntryID ?? entryRes?.MilkEntryID ?? 0,
+            employeeID: empId,
+            locationID: locId,
+            entryDate: selectedDate,
+            entryType: type,
+            quantity: qty,
+            notes: type === "Other" ? String(qty) : "",
+        } as MilkEntryDto;
+
         if (withPay && type !== "Leave" && payAmount > 0) {
-            const milkEntryID = (entryRes as any)?.milkEntryID ?? (entryRes as any)?.MilkEntryID ?? 0;
-            await PaymentService.create({
+            const milkEntryID = newEntry.milkEntryID;
+            const paymentRes: any = await PaymentService.create({
                 employeeID: empId,
                 milkEntryID,
                 quantity: qty,
@@ -202,9 +218,19 @@ const MilkConsumption: React.FC = () => {
                 totalAmount: payAmount,
                 paidDate: selectedDate,
             });
-            return payAmount;
+            const newPayment = {
+                paymentID: paymentRes?.paymentID ?? paymentRes?.PaymentID ?? 0,
+                employeeID: empId,
+                milkEntryID,
+                quantity: qty,
+                ratePerLiter: rate,
+                totalAmount: payAmount,
+                paidDate: selectedDate,
+            };
+            return { entry: newEntry, paidAmount: payAmount, payment: newPayment };
         }
-        return 0;
+
+        return { entry: newEntry, paidAmount: 0, payment: null };
     };
 
     const handleSave = async (
@@ -217,9 +243,12 @@ const MilkConsumption: React.FC = () => {
         const empId = sub.employeeId ?? sub.EmployeeId;
         setSavingId(empId);
         try {
-            const paidAmount = await createEntry(sub, type, qty, withPay, customAmount);
-            setSuccess(paidAmount > 0 ? `Entry saved + ₹${paidAmount} paid!` : `${type} entry saved!`);
-            fetchAll();
+            const { entry, paidAmount, payment } = await createEntry(sub, type, qty, withPay, customAmount);
+
+            setEntries((prev) => [...prev, entry]);
+            if (payment) setPayments((prev) => [...prev, payment]);
+
+            showInlineMsg(empId, paidAmount > 0 ? `Updated ✓ ₹${round2(paidAmount)} paid` : "Updated ✓");
         } catch {
             setError("Failed to save.");
         } finally {
@@ -230,7 +259,7 @@ const MilkConsumption: React.FC = () => {
     const handlePayOnly = async (empId: number, entry: MilkEntryDto, amount: number) => {
         setPayingId(empId);
         try {
-            await PaymentService.create({
+            const paymentRes: any = await PaymentService.create({
                 employeeID: empId,
                 milkEntryID: entry.milkEntryID ?? 0,
                 quantity: entry.quantity ?? 0,
@@ -238,8 +267,19 @@ const MilkConsumption: React.FC = () => {
                 totalAmount: amount,
                 paidDate: selectedDate,
             });
-            setSuccess(`₹${amount} paid!`);
-            fetchAll();
+
+            const newPayment = {
+                paymentID: paymentRes?.paymentID ?? paymentRes?.PaymentID ?? 0,
+                employeeID: empId,
+                milkEntryID: entry.milkEntryID ?? 0,
+                quantity: entry.quantity ?? 0,
+                ratePerLiter: 0,
+                totalAmount: amount,
+                paidDate: selectedDate,
+            };
+
+            setPayments((prev) => [...prev, newPayment]);
+            showInlineMsg(empId, `Updated ✓ ₹${round2(amount)} paid`);
         } catch {
             setError("Payment failed.");
         } finally {
@@ -254,46 +294,36 @@ const MilkConsumption: React.FC = () => {
         }
 
         setCompletingAll(true);
+        const newEntries: MilkEntryDto[] = [];
         try {
             for (const sub of pendingSubs) {
                 const empId = sub.employeeId ?? sub.EmployeeId;
                 const qty = sub.quantity ?? 0;
                 const onLeave = isOnLeaveForDate(empId, selectedDate);
-                await createEntry(sub, onLeave ? "Leave" : "Actual", onLeave ? 0 : qty, false);
+                const { entry } = await createEntry(sub, onLeave ? "Leave" : "Actual", onLeave ? 0 : qty, false);
+                newEntries.push(entry);
             }
+            setEntries((prev) => [...prev, ...newEntries]);
             setSuccess(
-                `Completed ${pendingSubs.length} ${pendingSubs.length === 1 ? "entry" : "entries"}!`
+                `Completed ${newEntries.length} ${newEntries.length === 1 ? "entry" : "entries"}!`
             );
         } catch {
+            setEntries((prev) => [...prev, ...newEntries]);
             setError("Some entries could not be completed. Please check and retry.");
         } finally {
             setCompletingAll(false);
-            fetchAll();
         }
     };
-
     return (
         <>
             <ErrorModal message={error} onClose={() => setError("")} />
             <SuccessModal message={success} onClose={() => setSuccess("")} />
 
             <div className="container-fluid mt-3 px-4">
-                <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                    <h4 className="fw-bold mb-0">Milk Consumption</h4>
-                    <div className="d-flex gap-3 align-items-center flex-wrap">
-                        <button
-                            className="btn btn-sm fw-semibold"
-                            style={{ background: "#1B4332", color: "#fff" }}
-                            disabled={completingAll || pendingSubs.length === 0}
-                            onClick={handleCompleteAll}
-                        >
-                            {completingAll ? (
-                                <span className="spinner-border spinner-border-sm me-2" />
-                            ) : null}
-                            {pendingSubs.length === 0
-                                ? "All Completed"
-                                : `Complete All (${pendingSubs.length} Pending)`}
-                        </button>
+                <h4 className="fw-bold mb-3">Milk Consumption</h4>
+
+                <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div className="d-flex gap-2 align-items-center flex-wrap">
                         <select
                             className="form-select"
                             style={{ width: "200px" }}
@@ -308,58 +338,83 @@ const MilkConsumption: React.FC = () => {
                             })}
                         </select>
                         <input
+                            type="text"
+                            className="form-control"
+                            style={{ width: "260px" }}
+                            placeholder="Search by user, subscription..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="d-flex gap-2 align-items-center flex-wrap">
+                        <input
                             type="date"
                             className="form-control fw-semibold"
-                            style={{ width: "170px"}}
+                            style={{ width: "170px" }}
                             value={selectedDate}
                             onChange={(e) => setSelectedDate(e.target.value)}
                         />
+                        <button
+                            className="btn fw-semibold"
+                            style={{ background: "#1B4332", color: "#fff", padding: "10px 20px", fontSize: "0.95rem" }}
+                            disabled={completingAll || pendingSubs.length === 0}
+                            onClick={handleCompleteAll}
+                        >
+                            {completingAll ? (
+                                <span className="spinner-border spinner-border-sm me-2" />
+                            ) : null}
+                            {pendingSubs.length === 0
+                                ? "All Completed"
+                                : `Complete All (${pendingSubs.length} Pending)`}
+                        </button>
+                        <button
+                            className="btn fw-semibold d-flex align-items-center gap-2"
+                            style={{ background: "#1B4332", color: "#fff", borderRadius: "8px" }}
+                            onClick={handleManualRefresh}
+                            disabled={refreshing || loading}
+                        >
+                            {refreshing ? (
+                                <span className="spinner-border spinner-border-sm" />
+                            ) : (
+                                <span>🔄</span>
+                            )}
+                            Refresh All
+                        </button>
                     </div>
-                </div>
-
-                <div className="mb-3" style={{ maxWidth: "320px" }}>
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Search by employee, subscription..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
                 </div>
 
                 {loading ? <Loader text="Loading milk entries..." /> : (
                     <>
                         <div className="table-responsive">
-                            <table className="table table-bordered align-middle">
+                            <table className="table table-bordered align-middle mb-0" style={{ tableLayout: "fixed" }}>
                                 <thead className="table-dark">
                                     <tr>
-                                        <th>Employee</th>
-                                        <th>Subscription</th>
-                                        <th>Subscription Qty (L)</th>
-                                        <th style={{ width: "360px" }}>Entry</th>
+                                        <th style={{ width: "40%" }}>User</th>
+                                        <th style={{ width: "60%" }}>Entry</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {paginatedSubs.length === 0 ? (
+                                    {filteredSubs.length === 0 ? (
                                         <tr>
-                                            <td colSpan={4} className="text-center text-muted py-4">
+                                            <td colSpan={2} className="text-center text-muted py-4">
                                                 No active subscriptions found.
                                             </td>
                                         </tr>
-                                    ) : paginatedSubs.map((sub: any, index: number) => {
+                                    ) : filteredSubs.map((sub: any, index: number) => {
                                         const empId = sub.employeeId ?? sub.EmployeeId;
                                         const subId = sub.subscriptionId ?? sub.SubscriptionId;
                                         const qty = sub.quantity ?? 0;
                                         const emp = employees.find((e: any) => (e.id ?? e.ID) === empId);
                                         const empName = emp
                                             ? `${emp.firstName ?? emp.FirstName ?? ""} ${emp.lastName ?? emp.LastName ?? ""}`.trim()
-                                            : `Emp #${empId}`;
+                                            : `User #${empId}`;
                                         const onLeave = isOnLeaveForDate(empId, selectedDate);
                                         const done = hasEntryForDate(empId, selectedDate);
                                         const paid = isPaidForDate(empId, selectedDate);
                                         const todayEntry = getEntryForDate(empId, selectedDate);
                                         const todayPayment = getPaymentForDate(empId, selectedDate);
-                                        const paidAmount = todayPayment?.totalAmount ?? todayPayment?.TotalAmount ?? 0;
+                                        const paidAmount = round2(Number(todayPayment?.totalAmount ?? todayPayment?.TotalAmount ?? 0));
                                         const isSaving = savingId === empId;
                                         const isPaying = payingId === empId;
                                         const selectedType = rowType[empId] ?? "";
@@ -367,43 +422,52 @@ const MilkConsumption: React.FC = () => {
                                         const amountVal = otherAmount[empId] ?? "";
                                         const actAmountVal = actualAmount[empId] ?? "";
                                         const rowBg = onLeave ? "#ffe5e5" : done ? "#f0fff4" : "";
+                                        const rowMsg = inlineMsg[empId];
 
                                         return (
                                             <tr key={index} style={{ background: rowBg }}>
-                                                <td>
-                                                    <div className="fw-semibold" style={{ color: onLeave ? "#c0392b" : "" }}>
-                                                        {empName}
+                                                <td className="py-3 align-middle">
+                                                    <div className="d-flex align-items-center flex-wrap gap-2">
+                                                        <span className="fw-semibold" style={{ color: onLeave ? "#c0392b" : "", fontSize: "1rem" }}>
+                                                            {empName}
+                                                        </span>
+                                                        <span className="text-muted" style={{ fontSize: "0.8rem" }}>
+                                                            (ID: {empId})
+                                                        </span>
                                                         {onLeave && (
-                                                            <span className="ms-2 badge"
-                                                                style={{ background: "#c0392b", fontSize: "0.7rem" }}>
+                                                            <span className="badge" style={{ background: "#c0392b", fontSize: "0.72rem" }}>
                                                                 On Leave
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <div className="text-muted" style={{ fontSize: "0.8rem" }}>
-                                                        ID: {empId}
+                                                    <div className="mt-2">
+                                                        <span
+                                                            className="badge"
+                                                            style={{ background: "#1B4332", fontSize: "0.9rem", fontWeight: 600, padding: "7px 14px" }}
+                                                        >
+                                                            {getSubName(subId)} - {qty} L
+                                                        </span>
                                                     </div>
                                                 </td>
-                                                <td>{getSubName(subId)}</td>
-                                                <td className="fw-bold">{qty} L</td>
-                                                <td>
+                                                <td className="py-3 align-middle">
+                                                    {rowMsg && (
+                                                        <div className="fw-semibold text-success mb-1" style={{ fontSize: "0.85rem" }}>
+                                                            {rowMsg}
+                                                        </div>
+                                                    )}
                                                     {done ? (
 
-
-                                                        <div className="d-flex flex-column gap-1">
-                                                            <div className="fw-semibold text-success"
-                                                                style={{ fontSize: "0.85rem" }}>
+                                                        <div className="d-flex flex-wrap align-items-center gap-2">
+                                                            <span className="fw-semibold text-success" style={{ fontSize: "0.9rem" }}>
                                                                 ✓ {todayEntry?.entryType} — {todayEntry?.quantity} L
-                                                            </div>
+                                                            </span>
                                                             {todayEntry?.entryType !== "Leave" && (
                                                                 paid ? (
-                                                                    <span className="badge bg-success"
-                                                                        style={{ width: "fit-content" }}>
+                                                                    <span className="badge bg-success">
                                                                         Paid ✓ ₹{paidAmount}
                                                                     </span>
                                                                 ) : (
-
-                                                                    <div className="d-flex gap-2 align-items-center mt-1">
+                                                                    <>
                                                                         <input
                                                                             type="number"
                                                                             className="form-control form-control-sm"
@@ -429,16 +493,16 @@ const MilkConsumption: React.FC = () => {
                                                                                 : `Pay ₹${actAmountVal || 0}`
                                                                             }
                                                                         </button>
-                                                                    </div>
+                                                                    </>
                                                                 )
                                                             )}
                                                         </div>
                                                     ) : (
 
-                                                        <div className="d-flex flex-column gap-2">
+                                                        <div className="d-flex flex-wrap align-items-center gap-2">
                                                             <select
                                                                 className="form-select form-select-sm"
-                                                                style={{ width: "160px" }}
+                                                                style={{ width: "150px" }}
                                                                 value={selectedType}
                                                                 onChange={(e) =>
                                                                     setRowType(prev => ({ ...prev, [empId]: e.target.value }))
@@ -451,11 +515,11 @@ const MilkConsumption: React.FC = () => {
                                                             </select>
 
                                                             {selectedType === "Actual" && (
-                                                                <div className="d-flex flex-column gap-2">
+                                                                <>
                                                                     <input
                                                                         type="number"
                                                                         className="form-control form-control-sm"
-                                                                        style={{ width: "110px" }}
+                                                                        style={{ width: "100px" }}
                                                                         placeholder="₹ Amount"
                                                                         value={actAmountVal}
                                                                         min={0}
@@ -463,36 +527,34 @@ const MilkConsumption: React.FC = () => {
                                                                             setActualAmount(prev => ({ ...prev, [empId]: e.target.value }))
                                                                         }
                                                                     />
-                                                                    <div className="d-flex gap-2 flex-wrap">
-                                                                        <button
-                                                                            className="btn btn-success btn-sm"
-                                                                            disabled={isSaving || !!actAmountVal}
-                                                                            onClick={() => {
-                                                                                handleSave(sub, "Actual", qty, false, 0);
-                                                                                setActualAmount(prev => ({ ...prev, [empId]: "" }));
-                                                                            }}
-                                                                        >
-                                                                            {isSaving
-                                                                                ? <span className="spinner-border spinner-border-sm" />
-                                                                                : "Save"
-                                                                            }
-                                                                        </button>
-                                                                        <button
-                                                                            className="btn btn-sm fw-semibold"
-                                                                            style={{ background: "#1B4332", color: "#fff" }}
-                                                                            disabled={isSaving || !actAmountVal}
-                                                                            onClick={() => {
-                                                                                handleSave(sub, "Actual", qty, true, Number(actAmountVal));
-                                                                                setActualAmount(prev => ({ ...prev, [empId]: "" }));
-                                                                            }}
-                                                                        >
-                                                                            {isSaving
-                                                                                ? <span className="spinner-border spinner-border-sm" />
-                                                                                : `Save + Pay ₹${actAmountVal || 0}`
-                                                                            }
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
+                                                                    <button
+                                                                        className="btn btn-success btn-sm"
+                                                                        disabled={isSaving || !!actAmountVal}
+                                                                        onClick={() => {
+                                                                            handleSave(sub, "Actual", qty, false, 0);
+                                                                            setActualAmount(prev => ({ ...prev, [empId]: "" }));
+                                                                        }}
+                                                                    >
+                                                                        {isSaving
+                                                                            ? <span className="spinner-border spinner-border-sm" />
+                                                                            : "Save"
+                                                                        }
+                                                                    </button>
+                                                                    <button
+                                                                        className="btn btn-sm fw-semibold"
+                                                                        style={{ background: "#1B4332", color: "#fff" }}
+                                                                        disabled={isSaving || !actAmountVal}
+                                                                        onClick={() => {
+                                                                            handleSave(sub, "Actual", qty, true, Number(actAmountVal));
+                                                                            setActualAmount(prev => ({ ...prev, [empId]: "" }));
+                                                                        }}
+                                                                    >
+                                                                        {isSaving
+                                                                            ? <span className="spinner-border spinner-border-sm" />
+                                                                            : `Save + Pay ₹${actAmountVal || 0}`
+                                                                        }
+                                                                    </button>
+                                                                </>
                                                             )}
 
                                                             {selectedType === "Leave" && (
@@ -509,63 +571,59 @@ const MilkConsumption: React.FC = () => {
                                                             )}
 
                                                             {selectedType === "Other" && (
-                                                                <div className="d-flex flex-column gap-2">
-                                                                    <div className="d-flex gap-2 align-items-center">
-                                                                        <input
-                                                                            type="number"
-                                                                            className="form-control form-control-sm"
-                                                                            style={{ width: "75px" }}
-                                                                            placeholder="Qty"
-                                                                            value={otherVal}
-                                                                            min={0}
-                                                                            onChange={(e) =>
-                                                                                setOtherQty(prev => ({ ...prev, [empId]: e.target.value }))
-                                                                            }
-                                                                        />
-                                                                        <input
-                                                                            type="number"
-                                                                            className="form-control form-control-sm"
-                                                                            style={{ width: "90px" }}
-                                                                            placeholder="₹ Amount"
-                                                                            value={amountVal}
-                                                                            min={0}
-                                                                            onChange={(e) =>
-                                                                                setOtherAmount(prev => ({ ...prev, [empId]: e.target.value }))
-                                                                            }
-                                                                        />
-                                                                    </div>
-                                                                    <div className="d-flex gap-2 flex-wrap">
-                                                                        <button
-                                                                            className="btn btn-primary btn-sm"
-                                                                            disabled={isSaving || !otherVal || !!amountVal}
-                                                                            onClick={() => {
-                                                                                handleSave(sub, "Other", Number(otherVal), false, 0);
-                                                                                setOtherQty(prev => ({ ...prev, [empId]: "" }));
-                                                                                setOtherAmount(prev => ({ ...prev, [empId]: "" }));
-                                                                            }}
-                                                                        >
-                                                                            {isSaving
-                                                                                ? <span className="spinner-border spinner-border-sm" />
-                                                                                : "Save"
-                                                                            }
-                                                                        </button>
-                                                                        <button
-                                                                            className="btn btn-sm fw-semibold"
-                                                                            style={{ background: "#1B4332", color: "#fff" }}
-                                                                            disabled={isSaving || !otherVal || !amountVal}
-                                                                            onClick={() => {
-                                                                                handleSave(sub, "Other", Number(otherVal), true, Number(amountVal));
-                                                                                setOtherQty(prev => ({ ...prev, [empId]: "" }));
-                                                                                setOtherAmount(prev => ({ ...prev, [empId]: "" }));
-                                                                            }}
-                                                                        >
-                                                                            {isSaving
-                                                                                ? <span className="spinner-border spinner-border-sm" />
-                                                                                : `Save + Pay ₹${amountVal || 0}`
-                                                                            }
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
+                                                                <>
+                                                                    <input
+                                                                        type="number"
+                                                                        className="form-control form-control-sm"
+                                                                        style={{ width: "70px" }}
+                                                                        placeholder="Qty"
+                                                                        value={otherVal}
+                                                                        min={0}
+                                                                        onChange={(e) =>
+                                                                            setOtherQty(prev => ({ ...prev, [empId]: e.target.value }))
+                                                                        }
+                                                                    />
+                                                                    <input
+                                                                        type="number"
+                                                                        className="form-control form-control-sm"
+                                                                        style={{ width: "90px" }}
+                                                                        placeholder="₹ Amount"
+                                                                        value={amountVal}
+                                                                        min={0}
+                                                                        onChange={(e) =>
+                                                                            setOtherAmount(prev => ({ ...prev, [empId]: e.target.value }))
+                                                                        }
+                                                                    />
+                                                                    <button
+                                                                        className="btn btn-primary btn-sm"
+                                                                        disabled={isSaving || !otherVal || !!amountVal}
+                                                                        onClick={() => {
+                                                                            handleSave(sub, "Other", Number(otherVal), false, 0);
+                                                                            setOtherQty(prev => ({ ...prev, [empId]: "" }));
+                                                                            setOtherAmount(prev => ({ ...prev, [empId]: "" }));
+                                                                        }}
+                                                                    >
+                                                                        {isSaving
+                                                                            ? <span className="spinner-border spinner-border-sm" />
+                                                                            : "Save"
+                                                                        }
+                                                                    </button>
+                                                                    <button
+                                                                        className="btn btn-sm fw-semibold"
+                                                                        style={{ background: "#1B4332", color: "#fff" }}
+                                                                        disabled={isSaving || !otherVal || !amountVal}
+                                                                        onClick={() => {
+                                                                            handleSave(sub, "Other", Number(otherVal), true, Number(amountVal));
+                                                                            setOtherQty(prev => ({ ...prev, [empId]: "" }));
+                                                                            setOtherAmount(prev => ({ ...prev, [empId]: "" }));
+                                                                        }}
+                                                                    >
+                                                                        {isSaving
+                                                                            ? <span className="spinner-border spinner-border-sm" />
+                                                                            : `Save + Pay ₹${amountVal || 0}`
+                                                                        }
+                                                                    </button>
+                                                                </>
                                                             )}
                                                         </div>
                                                     )}
@@ -576,18 +634,11 @@ const MilkConsumption: React.FC = () => {
                                 </tbody>
                             </table>
                         </div>
-
-                        {totalPages > 1 && (
-                            <Pagination
-                                currentPage={currentPage}
-                                totalPages={totalPages}
-                                onPageChange={setCurrentPage}
-                            />
-                        )}
                     </>
                 )}
             </div>
         </>
+
     );
 };
 

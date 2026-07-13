@@ -69,7 +69,7 @@ const Employee: React.FC = () => {
             setCurrentPage(1);
         } catch (err) {
             console.error(err);
-            setError("Failed to load employees");
+            setError("Failed to load users");
         } finally {
             setLoading(false);
         }
@@ -174,10 +174,10 @@ const Employee: React.FC = () => {
                     editingEmployee.ID ??
                     editingEmployee.Id;
                 await updateEmployee(id, formData);
-                setSuccessMessage("Employee updated successfully!");
+                setSuccessMessage("User updated successfully!");
             } else {
                 await addEmployee(formData);
-                setSuccessMessage("Employee created successfully!");
+                setSuccessMessage("User created successfully!");
             }
             setShowModal(false);
             fetchEmployees();
@@ -185,8 +185,8 @@ const Employee: React.FC = () => {
             const msg =
                 err?.response?.data?.message ??
                 err?.response?.data ??
-                "Failed to save employee";
-            setError(typeof msg === "string" ? msg : "Failed to save employee");
+                "Failed to save user";
+            setError(typeof msg === "string" ? msg : "Failed to save user");
         } finally {
             setSaving(false);
         }
@@ -202,11 +202,11 @@ const Employee: React.FC = () => {
         setDeleting(true);
         try {
             await deleteEmployee(deleteId);
-            setSuccessMessage("Employee deleted successfully!");
+            setSuccessMessage("User deleted successfully!");
             fetchEmployees();
         } catch (err) {
             console.error(err);
-            setError("Failed to delete employee");
+            setError("Failed to delete user");
         } finally {
             setDeleting(false);
             setShowConfirm(false);
@@ -224,7 +224,7 @@ const Employee: React.FC = () => {
 
             <div className="container mt-4">
                 <div className="d-flex justify-content-between align-items-center mb-3">
-                    <h2>Employee Management</h2>
+                    <h2>User Management</h2>
                     <div className="d-flex gap-2">
                         <button
                             className="btn btn-danger"
@@ -236,7 +236,7 @@ const Employee: React.FC = () => {
                             className="btn btn-primary"
                             onClick={openAddModal}
                         >
-                            Add Employee
+                            Add User
                         </button>
                     </div>
                 </div>
@@ -245,7 +245,7 @@ const Employee: React.FC = () => {
                     <input
                         type="text"
                         className="form-control"
-                        placeholder="Search employee..."
+                        placeholder="Search User..."
                         value={search}
                         onChange={(e) => {
                             setSearch(e.target.value);
@@ -293,7 +293,7 @@ const Employee: React.FC = () => {
                                     {paginatedEmployees.length === 0 ? (
                                         <tr>
                                             <td colSpan={7} className="text-center">
-                                                No employees found
+                                                No users found
                                             </td>
                                         </tr>
                                     ) : (
@@ -358,7 +358,7 @@ const Employee: React.FC = () => {
                             <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                                 <div className="modal-header border-0 px-4 pt-4 pb-0">
                                     <h5 className="modal-title fw-bold">
-                                        {editingEmployee ? "Edit Employee" : "Add Employee"}
+                                        {editingEmployee ? "Edit User" : "Add User"}
                                     </h5>
                                 </div>
                                 <div className="modal-body px-4">
@@ -505,7 +505,7 @@ const Employee: React.FC = () => {
             {showConfirm && (
                 <ConfirmModal
                     title="Confirm Delete"
-                    message="Are you sure you want to delete this employee?"
+                    message="Are you sure you want to delete this user?"
                     confirmText={deleting ? "Deleting..." : "Delete"}
                     isLoading={deleting}
                     onConfirm={handleDelete}
