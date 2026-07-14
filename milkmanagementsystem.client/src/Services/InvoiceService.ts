@@ -35,6 +35,12 @@ export interface BulkInvoiceResult {
     errors: string[];
 }
 
+export interface UpdatePaymentRequest {
+    totalPaidAmount: number;
+    paidDate?: string;
+    notes?: string;
+}
+
 const BASE = `${config.AUTH_URL}/api/Invoice`;
 
 export const InvoiceService = {
@@ -53,5 +59,8 @@ export const InvoiceService = {
     delete: (id: number) => axios.delete(`${BASE}/${id}`),
 
     getLastBalance: (empId: number) => axios.get<number>(`${BASE}/lastbalance/${empId}`).then(r => r.data),
+
+    updatePayment: (invoiceId: number, req: UpdatePaymentRequest) =>
+        axios.post<InvoiceDto>(`${BASE}/${invoiceId}/update-payment`, req).then(r => r.data),
 
 };

@@ -324,6 +324,77 @@ public class InvoiceService : IInvoiceService
         return true;
     }
 
+    public async Task<InvoiceDto> RecordPaymentAsync(long invoiceId, RecordPaymentRequest req)
+    {
+        if (req.Amount <= 0)
+            throw new Exception("Payment amount must be greater than zero.");
+
+        var invoice = await _db.Invoices.FindAsync(invoiceId)
+            ?? throw new Exception("Invoice not found.");
+
+        var paidDate = req.PaidDate ?? DateTime.Today;
+
+        var payment = new Payment
+        {
+            EmployeeID = (int)invoice.EmployeeID,
+            TotalAmount = req.Amount,
+            PaidDate = paidDate,
+
+        };
+        _db.Payments.Add(payment);
+
+        // Update the invoice itself
+        invoice.AmountPaid += req.Amount;
+        var grandTotal = invoice.TotalAmount + invoice.PreviousArrears;
+        invoice.BalanceDue = grandTotal - invoice.AmountPaid;
+        invoice.Status = invoice.BalanceDue <= 0
+            ? "Paid"
+            : invoice.AmountPaid > 0
+                ? "Partial"
+                : "Unpaid";
+
+        await _db.SaveChangesAsync();
+
+        return await MapDtoAsync(invoice);
+    }
+
+    public async Task<InvoiceDto> UpdatePaymentAsync(long invoiceId, UpdatePaymentRequest req)
+    {
+        if (req.TotalPaidAmount < 0)
+            throw new Exception("Paid amount cannot be negative.");
+
+        var invoice = await _db.Invoices.FindAsync(invoiceId)
+            ?? throw new Exception("Invoice not found.");
+
+        var paidDate = req.PaidDate ?? DateTime.Today;
+        var delta = req.TotalPaidAmount - invoice.AmountPaid;
+
+        if (delta != 0)
+        {
+            var payment = new Payment
+            {
+                EmployeeID = (int)invoice.EmployeeID,
+                TotalAmount = delta,
+                PaidDate = paidDate,
+
+            };
+            _db.Payments.Add(payment);
+        }
+
+        invoice.AmountPaid = req.TotalPaidAmount;
+        var grandTotal = invoice.TotalAmount + invoice.PreviousArrears;
+        invoice.BalanceDue = grandTotal - invoice.AmountPaid;
+        invoice.Status = invoice.BalanceDue <= 0
+            ? "Paid"
+            : invoice.AmountPaid > 0
+                ? "Partial"
+                : "Unpaid";
+
+        await _db.SaveChangesAsync();
+
+        return await MapDtoAsync(invoice);
+    }
+
     private async Task<InvoiceDto> MapDtoAsync(Invoice i)
     {
         DateTime.TryParseExact(

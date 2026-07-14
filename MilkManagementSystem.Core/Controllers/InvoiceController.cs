@@ -56,6 +56,20 @@ namespace API.Controllers
             }
         }
 
+        [HttpPost("{id}/update-payment")]
+        public async Task<IActionResult> UpdatePayment(long id, UpdatePaymentRequest req)
+        {
+            try
+            {
+                return Ok(await _svc.UpdatePaymentAsync(id, req));
+            }
+            catch (Exception ex) 
+            {
+                return BadRequest(ex.Message); 
+            }
+        }
+
+
         [HttpGet("lastbalance/{empId}")]
         public async Task<IActionResult> GetLastBalance(long empId) =>
             Ok(await _svc.GetLastBalanceAsync(empId));
