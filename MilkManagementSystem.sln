@@ -19,6 +19,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Services", "Services\Servic
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MilkManagementSystem.Core", "MilkManagementSystem.Core\MilkManagementSystem.Core.csproj", "{AD78D91D-CE5F-639D-F619-34ECFEE1D9BF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MilkManagementSystem.InvoiceWebJob", "MilkManagementSystem.InvoiceWebJob\MilkManagementSystem.InvoiceWebJob.csproj", "{7F027C2E-31B4-4B7C-B4F6-B7E16DBD00A3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +61,10 @@ Global
 		{AD78D91D-CE5F-639D-F619-34ECFEE1D9BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AD78D91D-CE5F-639D-F619-34ECFEE1D9BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AD78D91D-CE5F-639D-F619-34ECFEE1D9BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F027C2E-31B4-4B7C-B4F6-B7E16DBD00A3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F027C2E-31B4-4B7C-B4F6-B7E16DBD00A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F027C2E-31B4-4B7C-B4F6-B7E16DBD00A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F027C2E-31B4-4B7C-B4F6-B7E16DBD00A3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
