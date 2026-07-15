@@ -1,19 +1,23 @@
 ﻿using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Models.Dto;
-using Models.Request;
+using Azure.Storage.Queues;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 
 namespace Services
 {
     public class EmployeeService(
         IRepositary<Employee> appUserRespository,
         IRepositary<Role> roleRepository,
-        ILogger<EmployeeService> logger) : IEmployeeService
+        ILogger<EmployeeService> logger,
+        QueueClient queueClient) : IEmployeeService
     {
         private readonly string _Name = nameof(EmployeeService);
         private readonly ILogger<EmployeeService> _logger = logger;
         private readonly IRepositary<Employee> _appUserRespository = appUserRespository;
         private readonly IRepositary<Role> _roleRepository = roleRepository;
+        private readonly QueueClient _queueClient = queueClient;
 
         public async ValueTask<bool> CreateAppUserAsync(RegisterDto req)
         {
@@ -59,12 +63,35 @@ namespace Services
                 };
 
                 await _appUserRespository.CreateAsync(appUserEntity);
+
+                //send data to azure queue
+                await _queueClient.CreateIfNotExistsAsync();
+
+                var message = JsonSerializer.Serialize(new EmployeeDto
+                {
+                    ID = appUserEntity.ID,
+                    FirstName = appUserEntity.FirstName,
+                    LastName = appUserEntity.LastName,
+                    EmailId = appUserEntity.EmailId,
+                    Mobile = appUserEntity.Mobile,
+                    LocationID = appUserEntity.LocationID,
+                    RoleID = appUserEntity.RoleID
+                });
+
+                var messageBytes = System.Text.Encoding.UTF8.GetBytes(message);
+                var base64Message = Convert.ToBase64String(messageBytes);
+                var res = await _queueClient.SendMessageAsync(base64Message);
+                _logger.LogInformation($"MessageId: {res.Value.MessageId}, Queue: {_queueClient.Uri}");
+
+                _logger.LogInformation("Message send to Azure Storage Queue successfully");
                 return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error -> request {ex.Message}");
+                //_logger.LogError($"Error -> request {ex.Message}");
+                Console.WriteLine(ex.ToString());
                 throw;
+                
             }
             finally
             {

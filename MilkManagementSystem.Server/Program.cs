@@ -1,15 +1,15 @@
 using Common.Settings;
 using Microsoft.Extensions.Options;
 using Services;
+using Azure.Storage.Queues;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//// Database
+// Database
 //var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");// "server =anaiyaantechnologies.com; port=3306; database=anaiyaante_antechCMDS; user=anaiyaante_antechCMDS; password=Anaiyaan@123; Persist Security Info=False; Connect Timeout=300";
 //builder.Services.AddDbContext<AuthDbContext>(options =>
 //    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
 //);
-
 
 ServicesDIConfig.AddDbContext(builder.Services, builder.Configuration);
 // Services register
@@ -45,7 +45,17 @@ builder.Services.Configure<AuthSettings>(
     builder.Configuration.GetSection("AuthAPI:AuthSettings"));
 
 builder.Services.AddSingleton<IAuthSettings>(sp =>
-    sp.GetRequiredService<IOptions<AuthSettings>>().Value);
+   sp.GetRequiredService<IOptions<AuthSettings>>().Value);
+
+//Axure Storage Queue Client Register
+builder.Services.AddSingleton(x =>
+{
+    var config = x.GetRequiredService<IConfiguration>();
+
+    return new QueueClient(
+        config["AzureStorage:ConnectionString"],
+        config["AzureStorage:QueueName"]);
+});
 
 var app = builder.Build();
 
