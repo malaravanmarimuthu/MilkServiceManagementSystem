@@ -14,7 +14,6 @@ import SuccessModal from "../Components/Common/SuccessModal";
 import Loader from "../Components/Common/Loader";
 import { getEmployees } from "../Services/EmployeeService";
 import { LeaveRequestService } from "../Services/LeaveRequestService";
-import axiosInstance from "../Interceptors/axiosInstance";
 
 const getTodayISO = () => new Date().toISOString().split("T")[0];
 
