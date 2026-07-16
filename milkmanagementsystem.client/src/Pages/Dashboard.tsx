@@ -7,6 +7,7 @@ import { getSubscriptions } from "../Services/SubscriptionService";
 import { getEmployees } from "../Services/EmployeeService";
 import { LeaveRequestService } from "../Services/LeaveRequestService";
 import { getProfilePhotoUrl } from "../Services/ProfilePhotoService";
+import { MilkEntryService } from "../Services/MilkEntryService";
 import Loader from "../Components/Common/Loader";
 
 interface JwtPayload {
@@ -34,8 +35,9 @@ function Dashboard() {
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-    const [totalEmployees, setTotalEmployees] = useState(0);
-    const [activeEmployees, setActiveEmployees] = useState(0);
+
+    const [activeCustomers, setActiveCustomers] = useState(0);
+    const [activeFarmers, setActiveFarmers] = useState(0);
     const [todayLeaves, setTodayLeaves] = useState(0);
     const [pendingLeaves, setPendingLeaves] = useState(0);
 
@@ -61,28 +63,71 @@ function Dashboard() {
         try {
             setLoading(true);
 
+            // ---- Employees (Customers & Farmers by role) ----
             const empRes: any = await getEmployees();
             const empData = empRes?.data;
             const empArr = Array.isArray(empData)
                 ? empData
                 : empData?.$values ?? empData?.data ?? [];
-            setTotalEmployees(empArr.length);
-            setActiveEmployees(empArr.length); 
 
+            const roleNameOf = (e: any) => (e.roleName ?? e.RoleName ?? "").toLowerCase();
+
+            const customerCount = empArr.filter((e: any) =>
+                roleNameOf(e).includes("customer")
+            ).length;
+
+            const farmerCount = empArr.filter((e: any) =>
+                roleNameOf(e).includes("farmer")
+            ).length;
+
+            setActiveCustomers(customerCount);
+            setActiveFarmers(farmerCount);
+
+            // ---- Leave Requests (Approved only, covering today) ----
             const leaveData: any = await LeaveRequestService.getAll();
             const leaveArr = Array.isArray(leaveData)
                 ? leaveData
                 : leaveData?.$values ?? leaveData?.data ?? [];
 
             const today = new Date().toISOString().split("T")[0];
-            const todayLeaveList = leaveArr.filter((l: any) => {
-                const from = l.fromDate?.split("T")[0];
-                return from === today;
+
+            const employeesOnLeaveToday = new Set<number>();
+
+            leaveArr.forEach((l: any) => {
+                const status = (l.status ?? l.Status ?? "").toLowerCase().trim();
+                if (status !== "approved") return;
+
+                const from = (l.fromDate ?? l.FromDate ?? "").split("T")[0];
+                const rawTo = l.toDate ?? l.ToDate;
+                const to = rawTo && rawTo !== "Ongoing" ? rawTo.split("T")[0] : today;
+
+                if (today >= from && today <= to) {
+                    const empId = l.employeeID ?? l.employeeId ?? l.EmployeeId;
+                    if (empId) employeesOnLeaveToday.add(Number(empId));
+                }
             });
-            setTodayLeaves(todayLeaveList.length);
+
+            // ---- Milk Entries marked as "Leave" for today ----
+            try {
+                const milkArr = await MilkEntryService.getAll();
+
+                milkArr.forEach((m) => {
+                    const entryType = (m.entryType ?? "").toLowerCase();
+                    const entryDate = (m.entryDate ?? "").split("T")[0];
+
+                    if (entryType === "leave" && entryDate === today) {
+                        const empId = m.employeeID;
+                        if (empId) employeesOnLeaveToday.add(Number(empId));
+                    }
+                });
+            } catch (err) {
+                console.error("Failed to load milk entries for leave count", err);
+            }
+
+            setTodayLeaves(employeesOnLeaveToday.size);
 
             const pending = leaveArr.filter(
-                (l: any) => (l.status ?? "").toLowerCase() === "pending"
+                (l: any) => (l.status ?? l.Status ?? "").toLowerCase().trim() === "pending"
             );
             setPendingLeaves(pending.length);
 
@@ -232,17 +277,17 @@ function Dashboard() {
                                 <div className="row g-3 mb-4 mt-1">
                                     {[
                                         {
-                                            icon: "👥",
-                                            label: "Total Employees",
-                                            value: totalEmployees,
+                                            icon: "🧑‍🤝‍🧑",
+                                            label: "Active Customers",
+                                            value: activeCustomers,
                                             bg: "#1B4332",
                                             light: "#e8f5e9",
                                             link: "/employee",
                                         },
                                         {
-                                            icon: "✅",
-                                            label: "Active Employees",
-                                            value: activeEmployees,
+                                            icon: "🧑‍🌾",
+                                            label: "Active Farmers",
+                                            value: activeFarmers,
                                             bg: "#166534",
                                             light: "#dcfce7",
                                             link: "/employee",
@@ -328,15 +373,15 @@ function Dashboard() {
                                         },
                                         {
                                             icon: "👥",
-                                            label: "Manage Employees",
-                                            desc: "View and manage all employee records",
+                                            label: "Manage Users",
+                                            desc: "View and manage all user records",
                                             color: "#1e40af",
                                             link: "/employee",
                                         },
                                         {
                                             icon: "📋",
                                             label: "Leave Requests",
-                                            desc: "Review and approve employee leave requests",
+                                            desc: "Review and approve leave requests",
                                             color: "#92400e",
                                             link: "/leave-request",
                                         },
