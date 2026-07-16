@@ -14,6 +14,7 @@ import SuccessModal from "../Components/Common/SuccessModal";
 import Loader from "../Components/Common/Loader";
 import { getEmployees } from "../Services/EmployeeService";
 import { LeaveRequestService } from "../Services/LeaveRequestService";
+import axiosInstance from "../Interceptors/axiosInstance";
 
 const getTodayISO = () => new Date().toISOString().split("T")[0];
 
@@ -36,6 +37,7 @@ const MilkConsumption: React.FC = () => {
     const [savingId, setSavingId] = useState<number | null>(null);
     const [payingId, setPayingId] = useState<number | null>(null);
     const [completingAll, setCompletingAll] = useState(false);
+    const [showProcessingModal, setShowProcessingModal] = useState(false);
     const [rowType, setRowType] = useState<Record<number, string>>({});
     const [otherQty, setOtherQty] = useState<Record<number, string>>({});
     const [otherAmount, setOtherAmount] = useState<Record<number, string>>({});
@@ -287,6 +289,30 @@ const MilkConsumption: React.FC = () => {
         }
     };
 
+    const pollJobStatus = (jobId: string) => {
+        const interval = setInterval(async () => {
+            try {
+                const res = await axiosInstance.get(`/api/MilkConsumption/job-status/${jobId}`);
+                const data = res.data;
+
+                if (data.status === "Completed") {
+                    clearInterval(interval);
+                    setCompletingAll(false);
+                    await fetchAll();
+                    setSuccess(data.resultMessage || "All entries completed!");
+                } else if (data.status === "Failed") {
+                    clearInterval(interval);
+                    setCompletingAll(false);
+                    setError(data.resultMessage || "Complete All failed.");
+                }
+            } catch {
+                clearInterval(interval);
+                setCompletingAll(false);
+                setError("Job status check failed.");
+            }
+        }, 2000);
+    };
+
     const handleCompleteAll = async () => {
         if (pendingSubs.length === 0) {
             setSuccess("All entries are already completed for this date.");
@@ -294,30 +320,56 @@ const MilkConsumption: React.FC = () => {
         }
 
         setCompletingAll(true);
-        const newEntries: MilkEntryDto[] = [];
+
         try {
-            for (const sub of pendingSubs) {
-                const empId = sub.employeeId ?? sub.EmployeeId;
-                const qty = sub.quantity ?? 0;
-                const onLeave = isOnLeaveForDate(empId, selectedDate);
-                const { entry } = await createEntry(sub, onLeave ? "Leave" : "Actual", onLeave ? 0 : qty, false);
-                newEntries.push(entry);
-            }
-            setEntries((prev) => [...prev, ...newEntries]);
-            setSuccess(
-                `Completed ${newEntries.length} ${newEntries.length === 1 ? "entry" : "entries"}!`
-            );
+            const res = await axiosInstance.post("/api/MilkConsumption/complete-all", {
+                date: selectedDate,
+                locationId: selectedLocationID > 0 ? selectedLocationID : null,
+            });
+
+            setShowProcessingModal(true);
+            pollJobStatus(res.data.jobId);
         } catch {
-            setEntries((prev) => [...prev, ...newEntries]);
-            setError("Some entries could not be completed. Please check and retry.");
-        } finally {
             setCompletingAll(false);
+            setError("Failed to start Complete All. Please try again.");
         }
     };
+    // ===== END =====
+
     return (
         <>
             <ErrorModal message={error} onClose={() => setError("")} />
             <SuccessModal message={success} onClose={() => setSuccess("")} />
+
+            {showProcessingModal && (
+                <div
+                    className="modal d-block"
+                    style={{ background: "rgba(0,0,0,0.5)" }}
+                    tabIndex={-1}
+                >
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+                            <div className="modal-header" style={{ background: "#1B4332", color: "#fff" }}>
+                                <h5 className="modal-title">Processing Started</h5>
+                            </div>
+                            <div className="modal-body">
+                                <p className="mb-0">
+                                    Processing...Please wait...
+                                </p>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    className="btn fw-semibold"
+                                    style={{ background: "#1B4332", color: "#fff" }}
+                                    onClick={() => setShowProcessingModal(false)}
+                                >
+                                    OK
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="container-fluid mt-3 px-4">
                 <h4 className="fw-bold mb-3">Milk Consumption</h4>
@@ -364,9 +416,11 @@ const MilkConsumption: React.FC = () => {
                             {completingAll ? (
                                 <span className="spinner-border spinner-border-sm me-2" />
                             ) : null}
-                            {pendingSubs.length === 0
-                                ? "All Completed"
-                                : `Complete All (${pendingSubs.length} Pending)`}
+                            {completingAll
+                                ? "Processing in background..."
+                                : pendingSubs.length === 0
+                                    ? "All Completed"
+                                    : `Complete All (${pendingSubs.length} Pending)`}
                         </button>
                         <button
                             className="btn fw-semibold d-flex align-items-center gap-2"

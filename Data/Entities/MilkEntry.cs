@@ -17,7 +17,6 @@ namespace Models.Models
         public decimal Quantity { get; set; }
         public string? Notes { get; set; }
         public DateTime CreatedDate { get; set; }
-
         public virtual Employee Employee { get; set; }
         public virtual Location Location { get; set; }
     }
