@@ -63,7 +63,7 @@ export default function LoginForm({ setIsRegister }: Props) {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+                    background: linear-gradient(135deg, #081c14, #1B4332, #0d2a1e);
                     background-size: 400% 400%;
                     animation: lgBgShift 10s ease infinite;
                     overflow: hidden;
@@ -87,20 +87,20 @@ export default function LoginForm({ setIsRegister }: Props) {
                 }
                 .lg-orb-1 {
                     width: 300px; height: 300px;
-                    background: radial-gradient(circle, #00c9a7, transparent);
+                    background: radial-gradient(circle, #40916c, transparent);
                     top: -60px; left: -60px;
                     animation-duration: 14s;
                 }
                 .lg-orb-2 {
                     width: 250px; height: 250px;
-                    background: radial-gradient(circle, #845ec2, transparent);
+                    background: radial-gradient(circle, #74c69d, transparent);
                     bottom: -50px; right: -50px;
                     animation-duration: 18s;
                     animation-direction: reverse;
                 }
                 .lg-orb-3 {
                     width: 160px; height: 160px;
-                    background: radial-gradient(circle, #00b4d8, transparent);
+                    background: radial-gradient(circle, #95d5b2, transparent);
                     top: 55%; left: 65%;
                     animation-duration: 22s;
                 }
@@ -151,14 +151,14 @@ export default function LoginForm({ setIsRegister }: Props) {
                 /* ── LOGO ICON ── */
                 .login-logo {
                     width: 58px; height: 58px;
-                    background: linear-gradient(135deg, #00c9a7, #845ec2);
+                    background: linear-gradient(135deg, #40916c, #1B4332);
                     border-radius: 16px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     margin: 0 auto 16px;
                     font-size: 1.6rem;
-                    box-shadow: 0 6px 20px rgba(0,201,167,0.35);
+                    box-shadow: 0 6px 20px rgba(64,145,108,0.4);
                     animation: lgLogoIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
                 }
                 @keyframes lgLogoIn {
@@ -172,7 +172,7 @@ export default function LoginForm({ setIsRegister }: Props) {
                     font-weight: 800;
                     text-align: center;
                     margin-bottom: 4px;
-                    background: linear-gradient(90deg, #00c9a7, #845ec2, #00b4d8, #00c9a7);
+                    background: linear-gradient(90deg, #74c69d, #95d5b2, #40916c, #74c69d);
                     background-size: 300% auto;
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
@@ -185,7 +185,7 @@ export default function LoginForm({ setIsRegister }: Props) {
                 }
                 .login-subtitle {
                     text-align: center;
-                    color: rgba(255,255,255,0.4);
+                    color: rgba(255,255,255,0.45);
                     font-size: 0.8rem;
                     margin-bottom: 28px;
                 }
@@ -227,8 +227,8 @@ export default function LoginForm({ setIsRegister }: Props) {
                 }
                 .lg-input::placeholder { color: rgba(255,255,255,0.28); }
                 .lg-input:focus {
-                    border-color: #00c9a7;
-                    box-shadow: 0 0 0 3px rgba(0,201,167,0.2), 0 0 12px rgba(0,201,167,0.12);
+                    border-color: #74c69d;
+                    box-shadow: 0 0 0 3px rgba(116,198,157,0.2), 0 0 12px rgba(116,198,157,0.12);
                     background: rgba(255,255,255,0.12);
                     transform: translateY(-1px);
                 }
@@ -249,7 +249,7 @@ export default function LoginForm({ setIsRegister }: Props) {
                     font-size: 0.92rem;
                     transition: color 0.2s;
                 }
-                .lg-pw-toggle:hover { color: #00c9a7; }
+                .lg-pw-toggle:hover { color: #74c69d; }
 
                 /* ── ERROR ── */
                 .lg-error {
@@ -268,8 +268,8 @@ export default function LoginForm({ setIsRegister }: Props) {
 
                 /* ── SUCCESS BANNER ── */
                 .lg-success {
-                    background: linear-gradient(135deg, rgba(0,201,167,0.18), rgba(0,180,216,0.18));
-                    border: 1px solid rgba(0,201,167,0.4);
+                    background: linear-gradient(135deg, rgba(64,145,108,0.18), rgba(116,198,157,0.18));
+                    border: 1px solid rgba(116,198,157,0.4);
                     border-radius: 10px;
                     padding: 11px 15px;
                     display: flex;
@@ -277,7 +277,7 @@ export default function LoginForm({ setIsRegister }: Props) {
                     gap: 9px;
                     font-size: 0.86rem;
                     font-weight: 600;
-                    color: #00c9a7;
+                    color: #95d5b2;
                     margin-bottom: 18px;
                     animation: lgSuccessPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
                 }
@@ -294,7 +294,7 @@ export default function LoginForm({ setIsRegister }: Props) {
                     border-radius: 12px;
                     font-size: 0.95rem;
                     font-weight: 700;
-                    background: linear-gradient(135deg, #00c9a7, #845ec2);
+                    background: linear-gradient(135deg, #40916c, #1B4332);
                     background-size: 200% auto;
                     color: #fff;
                     cursor: pointer;
@@ -307,7 +307,7 @@ export default function LoginForm({ setIsRegister }: Props) {
                 .btn-login:hover:not(:disabled) {
                     background-position: right center;
                     transform: translateY(-2px);
-                    box-shadow: 0 8px 24px rgba(0,201,167,0.38);
+                    box-shadow: 0 8px 24px rgba(64,145,108,0.4);
                 }
                 .btn-login:active:not(:disabled) { transform: translateY(0); }
                 .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -353,20 +353,20 @@ export default function LoginForm({ setIsRegister }: Props) {
                 .btn-lg-register {
                     width: 100%;
                     padding: 10px;
-                    border: 1px solid rgba(0,201,167,0.35);
+                    border: 1px solid rgba(116,198,157,0.35);
                     border-radius: 12px;
                     font-size: 0.88rem;
                     font-weight: 600;
-                    background: rgba(0,201,167,0.08);
-                    color: #00c9a7;
+                    background: rgba(64,145,108,0.1);
+                    color: #95d5b2;
                     cursor: pointer;
                     transition: all 0.25s;
                     margin-top: 10px;
                 }
                 .btn-lg-register:hover:not(:disabled) {
-                    background: rgba(0,201,167,0.16);
-                    border-color: #00c9a7;
-                    box-shadow: 0 4px 16px rgba(0,201,167,0.2);
+                    background: rgba(64,145,108,0.18);
+                    border-color: #74c69d;
+                    box-shadow: 0 4px 16px rgba(64,145,108,0.25);
                     transform: translateY(-1px);
                 }
                 .btn-lg-register:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -412,6 +412,7 @@ export default function LoginForm({ setIsRegister }: Props) {
                     </div>
 
                     <div className="login-title">4K Fresh</div>
+                    <div className="login-subtitle">Welcome back, login to continue</div>
 
                     {message && (
                         <div className="lg-success">

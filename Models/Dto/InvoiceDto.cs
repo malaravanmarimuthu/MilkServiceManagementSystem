@@ -41,4 +41,18 @@
         public int FailedCount { get; set; }
         public List<string> Errors { get; set; } = new();
     }
+
+    public class RecordPaymentRequest
+    {
+        public decimal Amount { get; set; }
+        public DateTime? PaidDate { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public class UpdatePaymentRequest
+    {
+        public decimal TotalPaidAmount { get; set; }
+        public DateTime? PaidDate { get; set; }
+        public string? Notes { get; set; }
+    }
 }

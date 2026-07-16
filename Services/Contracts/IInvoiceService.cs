@@ -9,4 +9,5 @@ public interface IInvoiceService
     Task<bool> DeleteAsync(long id);
     Task<decimal> GetLastBalanceAsync(long empId);
     Task<BulkInvoiceResultDto> CreateAllAsync(string monthYear);
+    Task<InvoiceDto> UpdatePaymentAsync(long invoiceId, UpdatePaymentRequest req);
 }

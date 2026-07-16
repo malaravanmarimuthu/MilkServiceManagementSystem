@@ -14,6 +14,7 @@ import SuccessModal from "../Components/Common/SuccessModal";
 import Loader from "../Components/Common/Loader";
 import { getEmployees } from "../Services/EmployeeService";
 import { LeaveRequestService } from "../Services/LeaveRequestService";
+import axiosInstance from "../Interceptors/axiosInstance";
 
 const getTodayISO = () => new Date().toISOString().split("T")[0];
 
@@ -36,6 +37,7 @@ const MilkConsumption: React.FC = () => {
     const [savingId, setSavingId] = useState<number | null>(null);
     const [payingId, setPayingId] = useState<number | null>(null);
     const [completingAll, setCompletingAll] = useState(false);
+    const [showProcessingModal, setShowProcessingModal] = useState(false);
     const [rowType, setRowType] = useState<Record<number, string>>({});
     const [otherQty, setOtherQty] = useState<Record<number, string>>({});
     const [otherAmount, setOtherAmount] = useState<Record<number, string>>({});
@@ -287,37 +289,99 @@ const MilkConsumption: React.FC = () => {
         }
     };
 
-    const handleCompleteAll = async () => {
-        if (pendingSubs.length === 0) {
-            setSuccess("All entries are already completed for this date.");
-            return;
-        }
 
-        setCompletingAll(true);
-        const newEntries: MilkEntryDto[] = [];
+    const handleCompleteAll = async () => {
         try {
-            for (const sub of pendingSubs) {
-                const empId = sub.employeeId ?? sub.EmployeeId;
-                const qty = sub.quantity ?? 0;
-                const onLeave = isOnLeaveForDate(empId, selectedDate);
-                const { entry } = await createEntry(sub, onLeave ? "Leave" : "Actual", onLeave ? 0 : qty, false);
-                newEntries.push(entry);
-            }
-            setEntries((prev) => [...prev, ...newEntries]);
-            setSuccess(
-                `Completed ${newEntries.length} ${newEntries.length === 1 ? "entry" : "entries"}!`
+            setCompletingAll(true);
+
+            const result = await MilkEntryService.completeAll(
+                selectedLocationID,
+                selectedDate
             );
-        } catch {
-            setEntries((prev) => [...prev, ...newEntries]);
-            setError("Some entries could not be completed. Please check and retry.");
-        } finally {
+
+            setSuccess(result.message);
+
+            await pollForNewEntries();
+        }
+        catch {
+            setError("Unable to process.");
+        }
+        finally {
             setCompletingAll(false);
         }
     };
+
+    const pollForNewEntries = async () => {
+        const maxAttempts = 10;
+        const intervalMs = 3000;
+
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            await new Promise((resolve) => setTimeout(resolve, intervalMs));
+
+            try {
+                const entryData = await MilkEntryService.getAll();
+                const freshEntries: MilkEntryDto[] = Array.isArray(entryData)
+                    ? entryData
+                    : (entryData as any)?.$values ?? [];
+
+                setEntries(freshEntries);
+
+                const stillPending = activeSubscriptions
+                    .filter((s: any) => {
+                        if (selectedLocationID === 0) return true;
+                        const emp = employees.find(
+                            (e: any) => (e.id ?? e.ID) === (s.employeeId ?? s.EmployeeId)
+                        );
+                        return (emp?.locationID ?? emp?.LocationID ?? 0) === selectedLocationID;
+                    })
+                    .some((sub: any) => {
+                        const empId = sub.employeeId ?? sub.EmployeeId;
+                        return !freshEntries.some(
+                            (e) => e.employeeID === empId && e.entryDate?.split("T")[0] === selectedDate
+                        );
+                    });
+
+                if (!stillPending) break;
+            } catch {
+                // ignore transient errors during polling, try again next loop
+            }
+        }
+    };
+
     return (
         <>
             <ErrorModal message={error} onClose={() => setError("")} />
             <SuccessModal message={success} onClose={() => setSuccess("")} />
+
+            {showProcessingModal && (
+                <div
+                    className="modal d-block"
+                    style={{ background: "rgba(0,0,0,0.5)" }}
+                    tabIndex={-1}
+                >
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content">
+                            <div className="modal-header" style={{ background: "#1B4332", color: "#fff" }}>
+                                <h5 className="modal-title">Processing Started</h5>
+                            </div>
+                            <div className="modal-body">
+                                <p className="mb-0">
+                                    Processing...Please wait...
+                                </p>
+                            </div>
+                            <div className="modal-footer">
+                                <button
+                                    className="btn fw-semibold"
+                                    style={{ background: "#1B4332", color: "#fff" }}
+                                    onClick={() => setShowProcessingModal(false)}
+                                >
+                                    OK
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="container-fluid mt-3 px-4">
                 <h4 className="fw-bold mb-3">Milk Consumption</h4>
@@ -364,9 +428,11 @@ const MilkConsumption: React.FC = () => {
                             {completingAll ? (
                                 <span className="spinner-border spinner-border-sm me-2" />
                             ) : null}
-                            {pendingSubs.length === 0
-                                ? "All Completed"
-                                : `Complete All (${pendingSubs.length} Pending)`}
+                            {completingAll
+                                ? "Processing in background..."
+                                : pendingSubs.length === 0
+                                    ? "All Completed"
+                                    : `Complete All (${pendingSubs.length} Pending)`}
                         </button>
                         <button
                             className="btn fw-semibold d-flex align-items-center gap-2"

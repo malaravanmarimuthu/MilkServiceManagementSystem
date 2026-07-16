@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Models.Dto;
+using Models.Request;
 using Services.Contracts;
 
 namespace API.Controllers
@@ -84,6 +85,20 @@ namespace API.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        [HttpPost("CompleteAll")]
+        public async Task<IActionResult> CompleteAll(
+    MilkConsumptionQueueRequest request,
+    [FromServices] QueueService queueService)
+        {
+            await queueService.SendMessageAsync(request);
+
+            return Ok(new
+            {
+                Success = true,
+                Message = "Processing... Please wait."
+            });
         }
     }
 }

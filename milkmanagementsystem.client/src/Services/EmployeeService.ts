@@ -40,6 +40,9 @@ export const changePassword = async (
     });
 };
 
+export const resetEmployeePassword = (id: number) =>
+    axiosInstance.post(`${API}/${id}/reset-password`);
+
 export const deleteEmployee = (id: number) =>
     axiosInstance.delete(`${API}/${id}`);
 

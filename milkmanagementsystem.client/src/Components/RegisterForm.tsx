@@ -21,7 +21,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
     const [emailId, setEmailId] = useState("");
     const [mobile, setMobile] = useState("");
     const [locationID, setLocationID] = useState(0);
-    const [, setLocations] = useState<any[]>([]);
+    const [locations, setLocations] = useState<any[]>([]);
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
@@ -58,7 +58,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
     const handleRegister = async () => {
         const validationErrors = validateRegisterForm({
             firstName, lastName, emailId, mobile, password, confirmPassword,
-            location: locationID > 0 ? "selected" :""
+            location: locationID > 0 ? "selected" : ""
         });
         setErrors(validationErrors);
         if (Object.keys(validationErrors).length > 0) {
@@ -89,20 +89,20 @@ export default function RegisterForm({ setIsRegister }: Props) {
             <style>{`
                 /* ── PAGE BACKGROUND ── */
                 .reg-page {
-    min-height: 100vh;
-    width: 100%;
-    margin: 0;
-    padding: 30px 16px;
-    position: relative;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-    background-size: 400% 400%;
-    animation: bgShift 10s ease infinite;
-    overflow-y: auto;
-    z-index: 9999;
-}
+                    min-height: 100vh;
+                    width: 100%;
+                    margin: 0;
+                    padding: 30px 16px;
+                    position: relative;
+                    display: flex;
+                    align-items: flex-start;
+                    justify-content: center;
+                    background: linear-gradient(135deg, #081c14, #1B4332, #0d2a1e);
+                    background-size: 400% 400%;
+                    animation: bgShift 10s ease infinite;
+                    overflow-y: auto;
+                    z-index: 9999;
+                }
 
                 @keyframes bgShift {
                     0%   { background-position: 0% 50%; }
@@ -121,20 +121,20 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 }
                 .orb-1 {
                     width: 320px; height: 320px;
-                    background: radial-gradient(circle, #00c9a7, transparent);
+                    background: radial-gradient(circle, #40916c, transparent);
                     top: -80px; left: -80px;
                     animation-duration: 14s;
                 }
                 .orb-2 {
                     width: 260px; height: 260px;
-                    background: radial-gradient(circle, #845ec2, transparent);
+                    background: radial-gradient(circle, #74c69d, transparent);
                     bottom: -60px; right: -60px;
                     animation-duration: 18s;
                     animation-direction: reverse;
                 }
                 .orb-3 {
                     width: 180px; height: 180px;
-                    background: radial-gradient(circle, #00b4d8, transparent);
+                    background: radial-gradient(circle, #95d5b2, transparent);
                     top: 50%; left: 60%;
                     animation-duration: 22s;
                 }
@@ -180,7 +180,6 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 }
                 @keyframes cardIn {
                     from { opacity: 0; transform: translateY(40px) scale(0.95); }
-                    from { opacity: 0; transform: translateY(40px) scale(0.95); }
                     to   { opacity: 1; transform: translateY(0) scale(1); }
                 }
 
@@ -190,7 +189,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                     font-weight: 800;
                     text-align: center;
                     margin-bottom: 4px;
-                    background: linear-gradient(90deg, #00c9a7, #845ec2, #00b4d8, #00c9a7);
+                    background: linear-gradient(90deg, #74c69d, #95d5b2, #40916c, #74c69d);
                     background-size: 300% auto;
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
@@ -203,7 +202,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 }
                 .reg-subtitle {
                     text-align: center;
-                    color: rgba(255,255,255,0.45);
+                    color: rgba(255,255,255,0.5);
                     font-size: 0.82rem;
                     margin-bottom: 20px;
                 }
@@ -264,8 +263,8 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 }
                 .reg-input::placeholder { color: rgba(255,255,255,0.3); }
                 .reg-input:focus, .reg-select:focus {
-                    border-color: #00c9a7;
-                    box-shadow: 0 0 0 3px rgba(0,201,167,0.2), 0 0 12px rgba(0,201,167,0.15);
+                    border-color: #74c69d;
+                    box-shadow: 0 0 0 3px rgba(116,198,157,0.2), 0 0 12px rgba(116,198,157,0.15);
                     background: rgba(255,255,255,0.12);
                     transform: translateY(-1px);
                 }
@@ -282,7 +281,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                     background-position: right 13px center;
                     cursor: pointer;
                 }
-                .reg-select option { background: #302b63; color: #fff; }
+                .reg-select option { background: #1B4332; color: #fff; }
 
                 /* ── ERROR ── */
                 .error-text {
@@ -312,7 +311,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                     font-size: 0.92rem;
                     transition: color 0.2s;
                 }
-                .pw-toggle:hover { color: #00c9a7; }
+                .pw-toggle:hover { color: #74c69d; }
 
                 /* ── DIVIDER ── */
                 .divider-label {
@@ -340,7 +339,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                     border-radius: 12px;
                     font-size: 0.95rem;
                     font-weight: 700;
-                    background: linear-gradient(135deg, #00c9a7, #845ec2);
+                    background: linear-gradient(135deg, #40916c, #1B4332);
                     background-size: 200% auto;
                     color: #fff;
                     cursor: pointer;
@@ -362,7 +361,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                 .btn-register:hover:not(:disabled) {
                     background-position: right center;
                     transform: translateY(-2px);
-                    box-shadow: 0 8px 24px rgba(0,201,167,0.4);
+                    box-shadow: 0 8px 24px rgba(64,145,108,0.4);
                 }
                 .btn-register:hover:not(:disabled)::after { opacity: 1; }
                 .btn-register:active:not(:disabled) { transform: translateY(0); }
@@ -391,8 +390,8 @@ export default function RegisterForm({ setIsRegister }: Props) {
 
                 /* ── SUCCESS BANNER ── */
                 .success-banner {
-                    background: linear-gradient(135deg, rgba(0,201,167,0.2), rgba(0,180,216,0.2));
-                    border: 1px solid rgba(0,201,167,0.4);
+                    background: linear-gradient(135deg, rgba(64,145,108,0.2), rgba(116,198,157,0.2));
+                    border: 1px solid rgba(116,198,157,0.4);
                     border-radius: 12px;
                     padding: 12px 16px;
                     display: flex;
@@ -400,7 +399,7 @@ export default function RegisterForm({ setIsRegister }: Props) {
                     gap: 10px;
                     font-size: 0.87rem;
                     font-weight: 600;
-                    color: #00c9a7;
+                    color: #95d5b2;
                     margin-bottom: 16px;
                     animation: successPop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
                 }
@@ -514,15 +513,21 @@ export default function RegisterForm({ setIsRegister }: Props) {
                             value={locationID}
                             onChange={(e) => {
                                 setLocationID(Number(e.target.value));
-
                                 if (errors.location) {
-                                    setErrors((prev: any) => ({
-                                        ...prev,
-                                        location: undefined,
-                                    }));
+                                    setErrors((prev: any) => ({ ...prev, location: undefined }));
                                 }
                             }}
                         >
+                            <option value={0}>-- Select Location --</option>
+                            {locations.map((loc: any) => {
+                                const locId = loc.locationID ?? loc.LocationID;
+                                const locName = loc.locationName ?? loc.LocationName;
+                                return (
+                                    <option key={locId} value={locId}>
+                                        {locName}
+                                    </option>
+                                );
+                            })}
                         </select>
                         {errors.location && (
                             <div className="error-text">
