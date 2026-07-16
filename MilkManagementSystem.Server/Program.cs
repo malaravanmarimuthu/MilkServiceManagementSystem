@@ -31,7 +31,7 @@ builder.Services.AddCors(Options =>
 
 // Controllers
 builder.Services.AddControllers();
-builder.Services.AddSingleton<IJobQueueService>(_ => new AzureQueueJobService());
+builder.Services.AddSingleton<QueueService>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();

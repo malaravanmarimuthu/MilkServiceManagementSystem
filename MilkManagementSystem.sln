@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MilkManagementSystem.WebJob
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MilkConsumptions.WebJob", "MilkConsumptions.WebJob\MilkConsumptions.WebJob.csproj", "{F5FB387D-C131-440D-A7D9-0C20D1DAD840}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AzureMilkConsumption.WebJob", "MilkConsumption\AzureMilkConsumption.WebJob.csproj", "{E5AD56C3-B6A8-40BE-8981-8283B58F5917}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -71,6 +73,10 @@ Global
 		{F5FB387D-C131-440D-A7D9-0C20D1DAD840}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F5FB387D-C131-440D-A7D9-0C20D1DAD840}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F5FB387D-C131-440D-A7D9-0C20D1DAD840}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E5AD56C3-B6A8-40BE-8981-8283B58F5917}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E5AD56C3-B6A8-40BE-8981-8283B58F5917}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E5AD56C3-B6A8-40BE-8981-8283B58F5917}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E5AD56C3-B6A8-40BE-8981-8283B58F5917}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

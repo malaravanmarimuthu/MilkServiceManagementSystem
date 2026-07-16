@@ -289,52 +289,64 @@ const MilkConsumption: React.FC = () => {
         }
     };
 
-    const pollJobStatus = (jobId: string) => {
-        const interval = setInterval(async () => {
-            try {
-                const res = await axiosInstance.get(`/api/MilkConsumption/job-status/${jobId}`);
-                const data = res.data;
-
-                if (data.status === "Completed") {
-                    clearInterval(interval);
-                    setCompletingAll(false);
-                    await fetchAll();
-                    setSuccess(data.resultMessage || "All entries completed!");
-                } else if (data.status === "Failed") {
-                    clearInterval(interval);
-                    setCompletingAll(false);
-                    setError(data.resultMessage || "Complete All failed.");
-                }
-            } catch {
-                clearInterval(interval);
-                setCompletingAll(false);
-                setError("Job status check failed.");
-            }
-        }, 2000);
-    };
 
     const handleCompleteAll = async () => {
-        if (pendingSubs.length === 0) {
-            setSuccess("All entries are already completed for this date.");
-            return;
-        }
-
-        setCompletingAll(true);
-
         try {
-            const res = await axiosInstance.post("/api/MilkConsumption/complete-all", {
-                date: selectedDate,
-                locationId: selectedLocationID > 0 ? selectedLocationID : null,
-            });
+            setCompletingAll(true);
 
-            setShowProcessingModal(true);
-            pollJobStatus(res.data.jobId);
-        } catch {
+            const result = await MilkEntryService.completeAll(
+                selectedLocationID,
+                selectedDate
+            );
+
+            setSuccess(result.message);
+
+            await pollForNewEntries();
+        }
+        catch {
+            setError("Unable to process.");
+        }
+        finally {
             setCompletingAll(false);
-            setError("Failed to start Complete All. Please try again.");
         }
     };
-    // ===== END =====
+
+    const pollForNewEntries = async () => {
+        const maxAttempts = 10;
+        const intervalMs = 3000;
+
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            await new Promise((resolve) => setTimeout(resolve, intervalMs));
+
+            try {
+                const entryData = await MilkEntryService.getAll();
+                const freshEntries: MilkEntryDto[] = Array.isArray(entryData)
+                    ? entryData
+                    : (entryData as any)?.$values ?? [];
+
+                setEntries(freshEntries);
+
+                const stillPending = activeSubscriptions
+                    .filter((s: any) => {
+                        if (selectedLocationID === 0) return true;
+                        const emp = employees.find(
+                            (e: any) => (e.id ?? e.ID) === (s.employeeId ?? s.EmployeeId)
+                        );
+                        return (emp?.locationID ?? emp?.LocationID ?? 0) === selectedLocationID;
+                    })
+                    .some((sub: any) => {
+                        const empId = sub.employeeId ?? sub.EmployeeId;
+                        return !freshEntries.some(
+                            (e) => e.employeeID === empId && e.entryDate?.split("T")[0] === selectedDate
+                        );
+                    });
+
+                if (!stillPending) break;
+            } catch {
+                // ignore transient errors during polling, try again next loop
+            }
+        }
+    };
 
     return (
         <>
