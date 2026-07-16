@@ -1,3 +1,4 @@
+using Common.Queue;
 using Common.Settings;
 using Microsoft.Extensions.Options;
 using Services;
@@ -30,6 +31,7 @@ builder.Services.AddCors(Options =>
 
 // Controllers
 builder.Services.AddControllers();
+builder.Services.AddSingleton<QueueService>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();

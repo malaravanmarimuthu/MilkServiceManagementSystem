@@ -58,53 +58,19 @@ function Contact() {
                     font-size: 0.88rem;
                     color: #5C7268;
                 }
-                .contact-form-wrap {
-                    background: #1B4332;
-                    border-radius: 28px;
-                    padding: 52px;
-                    box-shadow: 0 24px 50px rgba(27,67,50,0.22);
+                .contact-info-text a {
+                    color: #5C7268;
+                    text-decoration: none;
                 }
-                .contact-form-label {
-                    font-family: 'Inter', sans-serif;
-                    font-size: 0.78rem;
-                    font-weight: 600;
-                    color: rgba(255,255,255,0.6);
-                    text-transform: uppercase;
-                    letter-spacing: 1px;
-                    margin-bottom: 6px;
-                    display: block;
-                }
-                .contact-input {
-                    width: 100%;
-                    background: rgba(255,255,255,0.08);
-                    border: 1px solid rgba(255,255,255,0.18);
-                    border-radius: 10px;
-                    padding: 12px 16px;
-                    color: #fff;
-                    font-family: 'Inter', sans-serif;
-                    font-size: 0.92rem;
-                    outline: none;
-                    transition: all 0.2s;
-                }
-                .contact-input::placeholder { color: rgba(255,255,255,0.32); }
-                .contact-input:focus {
-                    border-color: #52B788;
-                    background: rgba(255,255,255,0.12);
-                }
-                .contact-submit-btn {
-                    background: #fff;
+                .contact-info-text a:hover {
                     color: #1B4332;
-                    border: none;
-                    padding: 14px 44px;
-                    border-radius: 100px;
-                    font-family: 'Inter', sans-serif;
-                    font-weight: 700;
-                    font-size: 0.92rem;
-                    transition: all 0.25s ease;
+                    text-decoration: underline;
                 }
-                .contact-submit-btn:hover {
-                    background: #95D5B2;
-                    transform: translateY(-2px);
+                .contact-map-wrap {
+                    border-radius: 20px;
+                    overflow: hidden;
+                    box-shadow: 0 16px 32px rgba(27,67,50,0.1);
+                    border: 1px solid rgba(82,183,136,0.15);
                 }
             `}</style>
 
@@ -121,7 +87,11 @@ function Contact() {
                                 <i className="bi bi-geo-alt-fill" />
                             </div>
                             <div className="contact-info-title">Depot Address</div>
-                            <div className="contact-info-text">123 Anna Salai, Chennai</div>
+                            <div className="contact-info-text">
+                                No:239, Gangai Vinayagar Kovil Street,<br />
+                                New Dharapuram Road, R.M.K Nagar,<br />
+                                Palani - 624601
+                            </div>
                         </div>
                     </div>
                     <div className="col-lg-4">
@@ -130,7 +100,9 @@ function Contact() {
                                 <i className="bi bi-telephone-fill" />
                             </div>
                             <div className="contact-info-title">Call Us</div>
-                            <div className="contact-info-text">+91 98765 43210</div>
+                            <div className="contact-info-text">
+                                <a href="tel:+917845085110">+91 78450 85110</a>
+                            </div>
                         </div>
                     </div>
                     <div className="col-lg-4">
@@ -139,39 +111,26 @@ function Contact() {
                                 <i className="bi bi-envelope-fill" />
                             </div>
                             <div className="contact-info-title">Email Us</div>
-                            <div className="contact-info-text">hello@4kfresh.com</div>
+                            <div className="contact-info-text">
+                                <a href="mailto:customercare@fourkfresh.com">customercare@fourkfresh.com</a>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <div className="row justify-content-center">
                     <div className="col-lg-9">
-                        <div className="contact-form-wrap">
-                            <form>
-                                <div className="row g-4">
-                                    <div className="col-md-6">
-                                        <label className="contact-form-label">Your Name</label>
-                                        <input type="text" placeholder="Enter your name" className="contact-input" />
-                                    </div>
-                                    <div className="col-md-6">
-                                        <label className="contact-form-label">Your Email</label>
-                                        <input type="email" placeholder="you@email.com" className="contact-input" />
-                                    </div>
-                                    <div className="col-12">
-                                        <label className="contact-form-label">Subject</label>
-                                        <input type="text" placeholder="What's this about?" className="contact-input" />
-                                    </div>
-                                    <div className="col-12">
-                                        <label className="contact-form-label">Message</label>
-                                        <textarea rows={5} placeholder="Tell us more..." className="contact-input" style={{ resize: "none" }}></textarea>
-                                    </div>
-                                    <div className="col-12 text-center pt-2">
-                                        <button type="submit" className="contact-submit-btn">
-                                            Send Message
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
+                        <div className="contact-map-wrap">
+                            <iframe
+                                title="FourKFresh Dairy Location"
+                                src="https://www.google.com/maps?q=FourKFresh+Dairy,+Gangai+Vinayagar+Street,+RMK+Nagar,+Kodaimangalam,+Palani,+Tamil+Nadu+624601&output=embed"
+                                width="100%"
+                                height="350"
+                                style={{ border: 0 }}
+                                allowFullScreen
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                            />
                         </div>
                     </div>
                 </div>

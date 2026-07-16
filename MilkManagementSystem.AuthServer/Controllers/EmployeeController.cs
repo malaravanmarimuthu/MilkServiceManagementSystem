@@ -135,5 +135,35 @@ namespace API.Controllers
                 _logger.LogInformation($"Completed -> {_Name}.Delete Request Id : {id}");
             }
         }
+
+        // RESET PASSWORD (to mobile number)
+        [HttpPost("{id}/reset-password")]
+        public async Task<IActionResult> ResetPassword(long id)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> {_Name}.ResetPassword Request Id : {id}");
+
+                var employee = await _employeeService.GetById(id);
+                if (employee == null)
+                    return NotFound("Employee not found");
+
+                if (string.IsNullOrEmpty(employee.Mobile))
+                    return BadRequest("Employee has no mobile number to reset password to.");
+
+                var result = await _employeeService.ChangePassword(id, employee.Mobile);
+
+                return Ok(new { success = result, message = "Password reset to mobile number successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> {_Name}.ResetPassword : {ex.Message}");
+                return BadRequest(ex.Message);
+            }
+            finally
+            {
+                _logger.LogInformation($"Completed -> {_Name}.ResetPassword Request Id : {id}");
+            }
+        }
     }
 }

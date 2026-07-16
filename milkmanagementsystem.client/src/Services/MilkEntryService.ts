@@ -36,4 +36,13 @@ export const MilkEntryService = {
         const res = await axiosInstance.delete(`${BASE}/${id}`);
         return res.data;
     },
+
+    completeAll: async (locationID: number, entryDate: string) => {
+        const res = await axiosInstance.post(`${BASE}/CompleteAll`, {
+            locationID,
+            entryDate
+        });
+
+        return res.data;
+    },
 };

@@ -7,6 +7,7 @@ import {
     addEmployee,
     updateEmployee,
     deleteEmployee,
+    resetEmployeePassword,
 } from "../Services/EmployeeService";
 import { getLocations } from "../Services/LocationService";
 import type { LocationType } from "../Services/LocationService";
@@ -49,6 +50,9 @@ const Employee: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [search, setSearch] = useState("");
     const [roleFilter, setRoleFilter] = useState<number>(0);
+    const [resettingId, setResettingId] = useState<number | null>(null);
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
+    const [resetTarget, setResetTarget] = useState<any | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -214,6 +218,30 @@ const Employee: React.FC = () => {
         }
     };
 
+    const confirmResetPassword = (emp: any) => {
+        setResetTarget(emp);
+        setShowResetConfirm(true);
+    };
+
+    const handleResetPassword = async () => {
+        if (!resetTarget) return;
+        const id = resetTarget.id ?? resetTarget.ID ?? resetTarget.Id;
+        const mobile = resetTarget.mobile ?? resetTarget.Mobile;
+
+        setResettingId(id);
+        try {
+            await resetEmployeePassword(id);
+            setSuccessMessage(`Password reset to mobile number (${mobile}) successfully!`);
+        } catch (err) {
+            console.error(err);
+            setError("Failed to reset password");
+        } finally {
+            setResettingId(null);
+            setShowResetConfirm(false);
+            setResetTarget(null);
+        }
+    };
+
     return (
         <>
             <ErrorModal message={error} onClose={() => setError("")} />
@@ -313,6 +341,12 @@ const Employee: React.FC = () => {
                                                             onClick={() => openEditModal(emp)}
                                                         >
                                                             Edit
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-sm btn-info me-2"
+                                                            onClick={() => confirmResetPassword(emp)}
+                                                        >
+                                                            Forgot
                                                         </button>
                                                         <button
                                                             className="btn btn-sm btn-danger"
@@ -510,6 +544,17 @@ const Employee: React.FC = () => {
                     isLoading={deleting}
                     onConfirm={handleDelete}
                     onClose={() => setShowConfirm(false)}
+                />
+            )}
+
+            {showResetConfirm && (
+                <ConfirmModal
+                    title="Reset Password"
+                    message={`Are you sure you want to reset the password for ${resetTarget?.firstName ?? resetTarget?.FirstName} to their mobile number (${resetTarget?.mobile ?? resetTarget?.Mobile})?`}
+                    confirmText={resettingId !== null ? "Resetting..." : "Reset"}
+                    isLoading={resettingId !== null}
+                    onConfirm={handleResetPassword}
+                    onClose={() => setShowResetConfirm(false)}
                 />
             )}
         </>
