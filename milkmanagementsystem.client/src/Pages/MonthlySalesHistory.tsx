@@ -275,11 +275,17 @@ const MonthlySalesHistory: React.FC = () => {
                         </button>
 
                         {showPicker && (
-                            <div className="position-absolute end-0 mt-2 shadow-lg"
+                            <div className="position-fixed shadow-lg"
                                 style={{
                                     background: "#fff", border: "1px solid #dee2e6",
                                     borderRadius: "12px", zIndex: 1050,
-                                    width: "280px", padding: "16px"
+                                    width: "min(280px, 90vw)",
+                                    left: "33%",
+                                    top: "50%",
+                                    transform: "translate(-50%, -50%)",
+                                    padding: "16px",
+                                    maxHeight: "80vh",
+                                    overflowY: "auto"
                                 }}>
                                 <div className="d-flex align-items-center justify-content-between mb-3">
                                     <button className="btn btn-sm btn-outline-secondary px-2 py-1"
