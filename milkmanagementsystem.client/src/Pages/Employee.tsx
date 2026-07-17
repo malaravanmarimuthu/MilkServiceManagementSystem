@@ -342,17 +342,20 @@ const Employee: React.FC = () => {
                                                         >
                                                             Edit
                                                         </button>
+                                                        
                                                         <button
-                                                            className="btn btn-sm btn-info me-2"
-                                                            onClick={() => confirmResetPassword(emp)}
-                                                        >
-                                                            Forgot
-                                                        </button>
-                                                        <button
-                                                            className="btn btn-sm btn-danger"
+                                                            className="btn btn-sm btn-danger me-2"
                                                             onClick={() => confirmDelete(id)}
                                                         >
                                                             Delete
+                                                        </button>
+
+
+                                                        <button
+                                                            className="btn btn-sm btn-info "
+                                                            onClick={() => confirmResetPassword(emp)}
+                                                        >
+                                                            Reset Password
                                                         </button>
                                                     </td>
                                                 </tr>
