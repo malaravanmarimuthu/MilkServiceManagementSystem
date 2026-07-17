@@ -39,16 +39,6 @@ const NO_TO_DATE_TYPES = ["Vacation/Freeze Leave", "Cancel", "Emergency Leave"];
 
 const INFINITY_DATE = "9999-12-31";
 
-const getRange = (fromDate: string, toDate: string, leaveType: string) => {
-    const from = fromDate?.split("T")[0] ?? fromDate;
-    const ongoing = NO_TO_DATE_TYPES.includes(leaveType);
-    const to = ongoing ? INFINITY_DATE : (toDate?.split("T")[0] ?? toDate ?? from);
-    return { from, to };
-};
-
-const rangesOverlap = (aFrom: string, aTo: string, bFrom: string, bTo: string) =>
-    aFrom <= bTo && bFrom <= aTo;
-
 interface JwtPayload {
     userid: string;
     firstname: string;
@@ -280,22 +270,6 @@ const LeaveRequestPage: React.FC = () => {
             return;
         }
 
-        const newRange = getRange(formData.fromDate, formData.toDate, formData.leaveType);
-        const conflict = leaveList.find((l) => {
-            if (l.employeeID !== formData.employeeID) return false;
-            if (editingLeave && l.leaveRequestID === editingLeave.leaveRequestID) return false;
-            if (l.status === "Rejected") return false;
-            const exRange = getRange(l.fromDate, l.toDate, l.leaveType);
-            return rangesOverlap(newRange.from, newRange.to, exRange.from, exRange.to);
-        });
-
-        if (conflict) {
-            setFormError(
-                "You already have a leave request covering one or more of these dates. Only one request per day is allowed."
-            );
-            return;
-        }
-
         setSaving(true);
         try {
             // Ongoing leave types (Cancel / Vacation / Emergency) are stored
@@ -372,33 +346,33 @@ const LeaveRequestPage: React.FC = () => {
     };
 
     const handleResume = async (mode: "today" | "tomorrow") => {
-    if (!resumeItem) return;
-    setResuming(true);
-    try {
-        const fromDate = resumeItem.fromDate?.split("T")[0] ?? resumeItem.fromDate;
-        let newToDate = mode === "today" ? getYesterdayStr() : getTodayStr();
+        if (!resumeItem) return;
+        setResuming(true);
+        try {
+            const fromDate = resumeItem.fromDate?.split("T")[0] ?? resumeItem.fromDate;
+            let newToDate = mode === "today" ? getYesterdayStr() : getTodayStr();
 
-        if (newToDate < fromDate) {
-            newToDate = fromDate;
+            if (newToDate < fromDate) {
+                newToDate = fromDate;
+            }
+
+            await LeaveRequestService.update(resumeItem.leaveRequestID, {
+                ...resumeItem,
+                toDate: newToDate,
+            });
+            setSuccessMessage(
+                mode === "today"
+                    ? "User resumed from today!"
+                    : "User will resume from tomorrow!"
+            );
+            fetchAll();
+        } catch {
+            setError("Failed to resume User.");
+        } finally {
+            setResuming(false);
+            setResumeItem(null);
         }
-
-        await LeaveRequestService.update(resumeItem.leaveRequestID, {
-            ...resumeItem,
-            toDate: newToDate,
-        });
-        setSuccessMessage(
-            mode === "today"
-                ? "User resumed from today!"
-                : "User will resume from tomorrow!"
-        );
-        fetchAll();
-    } catch {
-        setError("Failed to resume User.");
-    } finally {
-        setResuming(false);
-        setResumeItem(null);
-    }
-};
+    };
 
     const isOngoing = (item: LeaveRequestDto) =>
         (item.toDate?.split("T")[0] ?? "") === INFINITY_DATE;

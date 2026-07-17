@@ -6,26 +6,29 @@ using Azure.Storage.Queues;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Database
-//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");// "server =anaiyaantechnologies.com; port=3306; database=anaiyaante_antechCMDS; user=anaiyaante_antechCMDS; password=Anaiyaan@123; Persist Security Info=False; Connect Timeout=300";
-//builder.Services.AddDbContext<AuthDbContext>(options =>
-//    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
-//);
-
-ServicesDIConfig.AddDbContext(builder.Services, builder.Configuration);
-// Services register
-//ServicesDIConfig.AddMapster(builder.Services);
-ServicesDIConfig.AddBLServices(builder.Services);
-ServicesDIConfig.AddDALServices(builder.Services);
-
-//CORS
-builder.Services.AddCors(Options =>
+try
 {
-    Options.AddPolicy("AllowAll", policy =>
+    // Database
+    ServicesDIConfig.AddDbContext(builder.Services, builder.Configuration);
+
+    // Services register
+    ServicesDIConfig.AddBLServices(builder.Services);
+    ServicesDIConfig.AddDALServices(builder.Services);
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"[STARTUP ERROR - DI/DB] {ex}");
+    throw;
+}
+
+// CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
     {
         policy.AllowAnyOrigin()
-        .AllowAnyMethod()
-        .AllowAnyHeader();
+              .AllowAnyMethod()
+              .AllowAnyHeader();
     });
 });
 
@@ -47,19 +50,53 @@ builder.Services.Configure<AuthSettings>(
     builder.Configuration.GetSection("AuthAPI:AuthSettings"));
 
 builder.Services.AddSingleton<IAuthSettings>(sp =>
-   sp.GetRequiredService<IOptions<AuthSettings>>().Value);
+    sp.GetRequiredService<IOptions<AuthSettings>>().Value);
 
-//Axure Storage Queue Client Register
-builder.Services.AddSingleton(x =>
+// Azure Storage Queue Client Register
+try
 {
-    var config = x.GetRequiredService<IConfiguration>();
+    builder.Services.AddSingleton(x =>
+    {
+        var config = x.GetRequiredService<IConfiguration>();
+        var connStr = config["AzureStorage:ConnectionString"];
+        var queueName = config["AzureStorage:QueueName"];
 
-    return new QueueClient(
-        config["AzureStorage:ConnectionString"],
-        config["AzureStorage:QueueName"]);
-});
+        if (string.IsNullOrWhiteSpace(connStr) || string.IsNullOrWhiteSpace(queueName))
+        {
+            Console.WriteLine("[STARTUP WARNING] AzureStorage config missing - QueueClient not created properly.");
+        }
+
+        return new QueueClient(connStr, queueName);
+    });
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"[STARTUP ERROR - QueueClient] {ex}");
+    throw;
+}
 
 var app = builder.Build();
+
+app.UseExceptionHandler(errApp =>
+{
+    errApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+
+        var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        var ex = feature?.Error;
+
+        Console.WriteLine($"[UNHANDLED EXCEPTION] {ex}");
+
+        await context.Response.WriteAsync(
+            System.Text.Json.JsonSerializer.Serialize(new
+            {
+                error = "Internal Server Error",
+                message = ex?.Message
+            }));
+    });
+});
 
 // Order matters!
 app.UseDefaultFiles();
@@ -67,17 +104,15 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-//if (app.Environment.IsDevelopment())
-//{
-    app.UseSwagger();
+app.UseCors("AllowAll");
+
+app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "4K Fresh");
 });
-//}
 
 app.UseHttpsRedirection();
-app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
 app.MapFallbackToFile("/index.html");
