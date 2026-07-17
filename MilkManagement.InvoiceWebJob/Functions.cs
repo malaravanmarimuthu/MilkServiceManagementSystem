@@ -25,7 +25,7 @@ namespace MilkManagement.InvoiceWebJob
             Console.WriteLine($"Invoice generation started at {DateTime.Now}");
 
             var connStr = GetConnectionString();
-            var monthYear = DateTime.Today.AddMonths(-1).ToString("yyyy-MM");
+            var monthYear = DateTime.Today. AddMonths(-1).ToString("yyyy-MM");
 
             try
             {
