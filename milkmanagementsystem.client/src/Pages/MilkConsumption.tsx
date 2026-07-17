@@ -19,6 +19,8 @@ const getTodayISO = () => new Date().toISOString().split("T")[0];
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 
+const getProcessingKey = (locId: number, date: string) => `milk_processing_${locId}_${date}`;
+
 const MilkConsumption: React.FC = () => {
     const [locations, setLocations] = useState<any[]>([]);
     const [empSubscriptions, setEmpSubscriptions] = useState<any[]>([]);
@@ -44,7 +46,15 @@ const MilkConsumption: React.FC = () => {
     const [search, setSearch] = useState("");
     const [inlineMsg, setInlineMsg] = useState<Record<number, string>>({});
 
-    useEffect(() => { fetchAll(); }, []);
+    useEffect(() => {
+        fetchAll();
+
+        const key = getProcessingKey(selectedLocationID, selectedDate);
+        if (localStorage.getItem(key) === "1") {
+            setCompletingAll(true);
+            pollForNewEntries();
+        }
+    }, [selectedLocationID, selectedDate]);
 
     const showInlineMsg = (empId: number, msg: string) => {
         setInlineMsg((prev) => ({ ...prev, [empId]: msg }));
@@ -288,10 +298,11 @@ const MilkConsumption: React.FC = () => {
         }
     };
 
-
     const handleCompleteAll = async () => {
+        const key = getProcessingKey(selectedLocationID, selectedDate);
         try {
             setCompletingAll(true);
+            localStorage.setItem(key, "1");
 
             const result = await MilkEntryService.completeAll(
                 selectedLocationID,
@@ -301,18 +312,21 @@ const MilkConsumption: React.FC = () => {
             setSuccess(result.message);
 
             await pollForNewEntries();
-        }
-        catch {
+
+            await fetchAll();
+
+        } catch {
             setError("Unable to process.");
-        }
-        finally {
+        } finally {
             setCompletingAll(false);
+            localStorage.removeItem(key);
         }
     };
 
     const pollForNewEntries = async () => {
         const maxAttempts = 10;
         const intervalMs = 3000;
+        const key = getProcessingKey(selectedLocationID, selectedDate);
 
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
             await new Promise((resolve) => setTimeout(resolve, intervalMs));
@@ -340,11 +354,16 @@ const MilkConsumption: React.FC = () => {
                         );
                     });
 
-                if (!stillPending) break;
+                if (!stillPending) {
+                    localStorage.removeItem(key);
+                    break;
+                }
             } catch {
                 // ignore transient errors during polling, try again next loop
             }
         }
+
+        setCompletingAll(false);
     };
 
     return (

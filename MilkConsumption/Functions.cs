@@ -17,17 +17,20 @@ namespace AzureMilkConsumption.WebJob
         {
             try
             {
-                logger.LogInformation("=====================================");
-                logger.LogInformation("Queue Message Received");
+                logger.LogInformation("========== START ==========");
+                logger.LogInformation("Raw Queue Message:");
                 logger.LogInformation(message);
 
-                MilkConsumptionQueueModel model =
-                    JsonConvert.DeserializeObject<MilkConsumptionQueueModel>(message);
+                var model = JsonConvert.DeserializeObject<MilkConsumptionQueueModel>(message);
 
-                using (IDbConnection db =
-                    new MySqlConnection(DbHelper.ConnectionString))
+                logger.LogInformation($"LocationID : {model.LocationID}");
+                logger.LogInformation($"EntryDate  : {model.EntryDate}");
+
+                using (IDbConnection db = new MySqlConnection(DbHelper.ConnectionString))
                 {
                     db.Open();
+
+                    logger.LogInformation("Database Connected");
 
                     db.Execute(
                         "sp_CompleteMilkConsumption",
@@ -38,15 +41,15 @@ namespace AzureMilkConsumption.WebJob
                         },
                         commandType: CommandType.StoredProcedure);
 
-                    db.Close();
+                    logger.LogInformation("Stored Procedure Executed");
                 }
 
-                logger.LogInformation("Stored Procedure Executed Successfully");
-                logger.LogInformation("=====================================");
+                logger.LogInformation("========== END ==========");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, ex.Message);
+                logger.LogError(ex, "WebJob Error");
+                throw;
             }
         }
     }
