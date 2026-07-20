@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Storage;
+
 
 namespace MilkManagement.InvoiceWebJob
 {

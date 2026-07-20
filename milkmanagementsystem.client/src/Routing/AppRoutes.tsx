@@ -18,6 +18,8 @@ import MyConsumption from "../Pages/MyConsumption";
 import MyBills from "../Pages/MyBills";
 import ProcurementRate from "../Pages/ProcurementRate";
 import ProcurementEntry from "../Pages/ProcurementEntry";
+import Expense from "../Pages/Expense";
+
 
 
 function AppRoutes() {
@@ -155,6 +157,14 @@ function AppRoutes() {
                 element={
                     <ProtectedRoute>
                         <ProcurementRate />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/expense"
+                element={
+                    <ProtectedRoute>
+                        <Expense />
                     </ProtectedRoute>
                 }
             />
