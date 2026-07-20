@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/immutability */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useEffect, useRef } from "react";
 import { ExpenseService, type ExpenseDto, type CreateExpenseRequest } from "../Services/ExpenseService";
@@ -14,26 +16,6 @@ const getTypeBadgeStyle = (type: string): React.CSSProperties => {
         case "Salary": return { background: "#dcfce7", color: "#15803d", padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 700 };
         case "Material": return { background: "#fef3c7", color: "#92400e", padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 700 };
         default: return { background: "#f3e8ff", color: "#7e22ce", padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 700 };
-    }
-};
-
-const formatDate = (dateStr: string): string => {
-    if (!dateStr) return "";
-    try {
-        // Handle "dd-MM-yyyy" format from backend
-        const parts = dateStr.split("T")[0].split(/[-\/]/);
-        if (parts.length === 3) {
-            if (parts[0].length === 4) {
-                // yyyy-MM-dd
-                return `${parts[2]}-${parts[1]}-${parts[0]}`;
-            } else {
-                // dd-MM-yyyy already
-                return `${parts[0]}-${parts[1]}-${parts[2]}`;
-            }
-        }
-        return dateStr;
-    } catch {
-        return dateStr;
     }
 };
 
@@ -135,10 +117,10 @@ const Expense: React.FC = () => {
 
     const openDatePicker = () => {
         if (dateInputRef.current) {
-            if ("showPicker" in dateInputRef.current) {
+            try {
                 (dateInputRef.current as any).showPicker();
-            } else {
-                dateInputRef.current.focus();
+            } catch {
+                (dateInputRef.current as HTMLInputElement).focus();
             }
         }
     };
@@ -370,8 +352,8 @@ const Expense: React.FC = () => {
                                             Rs. {exp.amount.toFixed(2)}
                                         </td>
                                         <td style={{ padding: "12px 16px", fontSize: "0.88rem", color: "#6b7280" }}>
-                                            {exp.expenseDate ? exp.expenseDate.replace("T", " ").split(" ")[0].split("-").reverse().join("-") : ""}              
-                                       </td>
+                                            {exp.expenseDate ? exp.expenseDate.replace("T", " ").split(" ")[0].split("-").reverse().join("-") : ""}
+                                        </td>
                                         <td style={{ padding: "12px 16px" }}>
                                             <div style={{ display: "flex", gap: "8px" }}>
                                                 <button type="button"
