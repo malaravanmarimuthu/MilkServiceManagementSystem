@@ -28,6 +28,8 @@ namespace Data.Context
         public DbSet<Invoice> Invoices { get; set; }
         public DbSet<ProcurementRate> ProcurementRates { get; set; }
         public DbSet<ProcurementEntry> ProcurementEntries { get; set; }
- 
+        public DbSet<Expense> Expenses { get; set; }
+
+
     }
 }
