@@ -258,12 +258,122 @@ function Navbar() {
                                 </>
                             ) : (
                                 <>
-                                        {isAdmin ? (
-                                            <>
-                                                <li className="nav-item">
-                                                    <NavLink to="/dashboard" className="nav-link nav-link-fresh">
-                                                        Dashboard
-                                                    </NavLink>
+                                    {isAdmin ? (
+                                        <>
+                                            <li className="nav-item">
+                                                <NavLink to="/dashboard" className="nav-link nav-link-fresh">
+                                                    Dashboard
+                                                </NavLink>
+                                            </li>
+
+                                            <li className="nav-item dropdown">
+                                                <a
+                                                    className="nav-link dropdown-toggle nav-master-toggle"
+                                                    href="#"
+                                                    role="button"
+                                                    data-bs-toggle="dropdown"
+                                                >
+                                                    Master
+                                                </a>
+
+                                                <ul className="dropdown-menu nav-dropdown-fresh">
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/location">Location</NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/role">Role</NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/employee">Employee</NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/subscription">Subscription</NavLink>
+                                                    </li>
+
+                                                </ul>
+                                            </li>
+                                            <li className="nav-item dropdown">
+                                                <a
+                                                    className="nav-link dropdown-toggle nav-master-toggle"
+                                                    href="#"
+                                                    role="button"
+                                                    data-bs-toggle="dropdown"
+                                                >
+                                                    Consumption
+                                                </a>
+
+                                                <ul className="dropdown-menu nav-dropdown-fresh">
+
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/employeesubscription">User Subscription</NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/leave-request">Leave Request</NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/milk-Consumption">
+                                                            Milk Consumption
+                                                        </NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/view-past-consumption">
+                                                            View Past Consumption
+                                                        </NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/payment-history">
+                                                            Payment History
+                                                        </NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/My-consumption">
+                                                            User Consumption
+                                                        </NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/Monthly-Sales-History">
+                                                            Monthly Sales History
+                                                        </NavLink>
+
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/invoice">
+                                                            Invoice
+                                                        </NavLink>
+                                                    </li>
+                                                    
+
+                                                </ul>
+                                            </li>
+                                            <li className="nav-item dropdown">
+                                                <a
+                                                    className="nav-link dropdown-toggle nav-master-toggle"
+                                                    href="#"
+                                                    role="button"
+                                                    data-bs-toggle="dropdown"
+                                                >
+                                                    Procurement
+                                                </a>
+
+                                                <ul className="dropdown-menu nav-dropdown-fresh">
+
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/procurement-rate">
+                                                            Procurement Price
+                                                        </NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/procurement-entry">
+                                                            Procurement Entry
+                                                        </NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/procurement-monthly-sales-history">
+                                                            Procurement Montly History
+                                                        </NavLink>
+                                                    </li>
+                                                    
+                                                </ul>
                                                 </li>
 
                                                 <li className="nav-item dropdown">
@@ -273,104 +383,29 @@ function Navbar() {
                                                         role="button"
                                                         data-bs-toggle="dropdown"
                                                     >
-                                                        Master
-                                                    </a>
-
-                                                    <ul className="dropdown-menu nav-dropdown-fresh">
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/location">Location</NavLink>
-                                                        </li>
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/role">Role</NavLink>
-                                                        </li>
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/employee">Employee</NavLink>
-                                                        </li>
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/subscription">Subscription</NavLink>
-                                                        </li>
-                                                        
-                                                    </ul>
-                                                </li>
-                                                <li className="nav-item dropdown">
-                                                    <a
-                                                        className="nav-link dropdown-toggle nav-master-toggle"
-                                                        href="#"
-                                                        role="button"
-                                                        data-bs-toggle="dropdown"
-                                                    >
-                                                        Consumption
-                                                    </a>
-
-                                                    <ul className="dropdown-menu nav-dropdown-fresh">
-                                                        
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/employeesubscription">User Subscription</NavLink>
-                                                        </li>
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/leave-request">Leave Request</NavLink>
-                                                        </li>
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/milk-Consumption">
-                                                                Milk Consumption
-                                                            </NavLink>
-                                                        </li>
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/view-past-consumption">
-                                                                View Past Consumption
-                                                            </NavLink>
-                                                        </li>
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/payment-history">
-                                                                Payment History
-                                                            </NavLink>
-                                                        </li>
-                                                         <li>
-                                                            <NavLink className="dropdown-item" to="/My-consumption">
-                                                                User Consumption
-                                                            </NavLink>
-                                                        </li>
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/Monthly-Sales-History">
-                                                                Monthly Sales History
-                                                            </NavLink>
-                                                           
-                                                        </li>
-                                                            <li>
-                                                                <NavLink className="dropdown-item" to="/invoice">
-                                                                    Invoice
-                                                                </NavLink>
-                                                            </li>
-                                                         
-                                                    </ul>
-                                                </li>
-                                                <li className="nav-item dropdown">
-                                                    <a
-                                                        className="nav-link dropdown-toggle nav-master-toggle"
-                                                        href="#"
-                                                        role="button"
-                                                        data-bs-toggle="dropdown"
-                                                    >
-                                                        Procurement
+                                                        Reports
                                                     </a>
 
                                                     <ul className="dropdown-menu nav-dropdown-fresh">
 
                                                         <li>
-                                                            <NavLink className="dropdown-item" to="/procurement-rate">
-                                                                Procurement Price
+                                                            <NavLink
+                                                                className="dropdown-item"
+                                                                to="/milk-sales-report"
+                                                            >
+                                                                Milk Sales Report
                                                             </NavLink>
                                                         </li>
+
                                                         <li>
-                                                            <NavLink className="dropdown-item" to="/procurement-entry">
-                                                                Procurement Entry
+                                                            <NavLink
+                                                                className="dropdown-item"
+                                                                to="/procurement-report"
+                                                            >
+                                                                Procurement Report
                                                             </NavLink>
                                                         </li>
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/procurement-monthly-sales-history">
-                                                                Procurement Montly History
-                                                            </NavLink>
-                                                        </li>
+
                                                     </ul>
                                                 </li>
                                                 <li className="nav-item dropdown">
@@ -394,14 +429,15 @@ function Navbar() {
                                                     </ul>
                                                 </li>
 
-                                                <li className="nav-item">
-                                                    <NavLink to="/my-profile" className="nav-link nav-link-fresh">
-                                                        My Profile
-                                                    </NavLink>
-                                                </li>
-                                            </>
-                                        ) : (
-                      
+
+                                            <li className="nav-item">
+                                                <NavLink to="/my-profile" className="nav-link nav-link-fresh">
+                                                    My Profile
+                                                </NavLink>
+                                            </li>
+                                        </>
+                                    ) : (
+
                                         <>
                                             <li className="nav-item">
                                                 <NavLink to="/my-profile" className="nav-link nav-link-fresh">
@@ -414,25 +450,25 @@ function Navbar() {
                                                 </NavLink>
                                             </li>
                                             <li className="nav-item">
-                                                        <NavLink to="/My-Consumption" className="nav-link nav-link-fresh">
-                                                            MyConsumption
+                                                <NavLink to="/My-Consumption" className="nav-link nav-link-fresh">
+                                                    MyConsumption
                                                 </NavLink>
                                             </li>
-                                                    <li className="nav-item">
-                                                        <NavLink to="/payment-history" className="nav-link nav-link-fresh">
-                                                            Payment History
-                                                        </NavLink>
-                                                    </li>
-                                                    <li className="nav-item">
-                                                        <NavLink to="/my-bills" className="nav-link nav-link-fresh">
-                                                            My Bills
-                                                        </NavLink>
-                                                    </li>
+                                            <li className="nav-item">
+                                                <NavLink to="/payment-history" className="nav-link nav-link-fresh">
+                                                    Payment History
+                                                </NavLink>
+                                            </li>
+                                            <li className="nav-item">
+                                                <NavLink to="/my-bills" className="nav-link nav-link-fresh">
+                                                    My Bills
+                                                </NavLink>
+                                            </li>
 
                                         </>
                                     )}
 
-       
+
                                     <li className="nav-item ms-lg-2 mt-2 mt-lg-0">
                                         <button
                                             className="btn nav-logout-btn"

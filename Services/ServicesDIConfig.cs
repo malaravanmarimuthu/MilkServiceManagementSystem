@@ -46,6 +46,7 @@ namespace Services
             services.AddScoped<IProcurementEntryService, ProcurementEntryService>();
             services.AddScoped<IProcurementRateService, ProcurementRateService>();
             services.AddScoped<IExpenseService, ExpenseService>();   
+            services.AddScoped<IReportService, ReportService>();
 
         }
 
