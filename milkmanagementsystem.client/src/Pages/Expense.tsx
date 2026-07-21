@@ -1,7 +1,8 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 /* eslint-disable react-hooks/immutability */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type CSSProperties } from "react";
 import { ExpenseService, type ExpenseDto, type CreateExpenseRequest } from "../Services/ExpenseService";
 import Loader from "../Components/Common/Loader";
 import ErrorModal from "../Components/Common/ErrorModal";
@@ -10,7 +11,14 @@ import ConfirmModal from "../Components/Common/ConfirmModal";
 
 const EXPENSE_TYPES = ["Bike", "Salary", "Material", "Others"];
 
-const getTypeBadgeStyle = (type: string): React.CSSProperties => {
+const GREEN = "#1B4332";
+const GREEN_LIGHT = "#e8f5e9";
+const GREEN_BORDER = "#a5d6a7";
+const TEAL = "#0d9488";
+const TEAL_LIGHT = "#ccfbf1";
+const TEAL_BORDER = "#99f6e4";
+
+const getTypeBadgeStyle = (type: string): CSSProperties => {
     switch (type) {
         case "Bike": return { background: "#dbeafe", color: "#1d4ed8", padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 700 };
         case "Salary": return { background: "#dcfce7", color: "#15803d", padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 700 };
@@ -18,6 +26,29 @@ const getTypeBadgeStyle = (type: string): React.CSSProperties => {
         default: return { background: "#f3e8ff", color: "#7e22ce", padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: 700 };
     }
 };
+
+const formatDate = (dateStr: string): string => {
+    if (!dateStr) return "";
+    try {
+        const datePart = dateStr.split(" ")[0]; 
+        const parts = datePart.split("/");
+        if (parts.length === 3) {
+            const m = parts[0].padStart(2, "0"); 
+            const d = parts[1].padStart(2, "0");
+            const y = parts[2];                  
+            return `${d}-${m}-${y}`;             
+        }
+        return dateStr;
+    } catch {
+        return dateStr;
+    }
+};
+
+const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+];
+const monthShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 const Expense: React.FC = () => {
     const [expenses, setExpenses] = useState<ExpenseDto[]>([]);
@@ -34,6 +65,15 @@ const Expense: React.FC = () => {
     const [filterType, setFilterType] = useState("");
     const [searchText, setSearchText] = useState("");
 
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [showPicker, setShowPicker] = useState(false);
+    const [pickerYear, setPickerYear] = useState(currentYear);
+    const pickerRef = useRef<HTMLDivElement>(null);
+
     const dateInputRef = useRef<HTMLInputElement>(null);
     const today = new Date().toISOString().slice(0, 10);
 
@@ -48,6 +88,19 @@ const Expense: React.FC = () => {
     const [form, setForm] = useState<CreateExpenseRequest>(emptyForm);
 
     useEffect(() => { fetchAll(); }, []);
+
+    useEffect(() => {
+        if (showPicker) setPickerYear(selectedYear);
+    }, [showPicker]);
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (pickerRef.current && !pickerRef.current.contains(e.target as Node))
+                setShowPicker(false);
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const fetchAll = async () => {
         setLoading(true);
@@ -142,45 +195,118 @@ const Expense: React.FC = () => {
         }
     };
 
+    const isFutureMonth = (month: number, year: number) => {
+        if (year > currentYear) return true;
+        if (year === currentYear && month > currentMonth) return true;
+        return false;
+    };
+
+    const handleMonthSelect = (month: number) => {
+        if (isFutureMonth(month, pickerYear)) return;
+        setSelectedMonth(month);
+        setSelectedYear(pickerYear);
+        setShowPicker(false);
+    };
+
     const filteredExpenses = expenses.filter((exp) => {
+        const raw = exp.expenseDate ?? "";
+        let expMonth = 0, expYear = 0;
+        const datePart = raw.split(" ")[0];
+        const parts = datePart.split("/");
+        if (parts.length === 3) {
+            expMonth = Number(parts[0]);
+            expYear = Number(parts[2]);
+        }
+        const matchesMonth = expMonth === selectedMonth && expYear === selectedYear;
         const matchesType = !filterType || exp.expenseType === filterType;
         const matchesSearch = !searchText.trim() ||
             exp.description.toLowerCase().includes(searchText.trim().toLowerCase()) ||
             (exp.notes ?? "").toLowerCase().includes(searchText.trim().toLowerCase());
-        return matchesType && matchesSearch;
+        return matchesMonth && matchesType && matchesSearch;
     });
 
     const totalAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-
-    // Green theme colors
-    const GREEN = "#1B4332";
-    const GREEN_LIGHT = "#e8f5e9";
-    const GREEN_BORDER = "#a5d6a7";
-    const TEAL = "#0d9488";
-    const TEAL_LIGHT = "#ccfbf1";
-    const TEAL_BORDER = "#99f6e4";
 
     return (
         <div style={{ padding: "24px 32px 60px" }}>
             <ErrorModal message={error} onClose={() => setError("")} />
             <SuccessModal message={success} onClose={() => setSuccess("")} />
-            <ConfirmModal
-                title="Delete Expense"
-                message={deleteTargetId !== null ? "Are you sure you want to delete this expense?" : ""}
-                confirmText={deleteLoading ? "Deleting..." : "Delete"}
-                onConfirm={confirmDelete}
-                onClose={() => setDeleteTargetId(null)}
-                isLoading={deleteLoading}
-            />
+            {deleteTargetId !== null && (
+                <ConfirmModal
+                    title="Delete Expense"
+                    message="Are you sure you want to delete this expense?"
+                    confirmText={deleteLoading ? "Deleting..." : "Delete"}
+                    onConfirm={confirmDelete}
+                    onClose={() => setDeleteTargetId(null)}
+                    isLoading={deleteLoading}
+                />
+            )}
 
             {/* Header */}
-            <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: GREEN_LIGHT, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <i className="bi bi-cash-coin" style={{ fontSize: "1.3rem", color: GREEN }} />
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: GREEN_LIGHT, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <i className="bi bi-cash-coin" style={{ fontSize: "1.3rem", color: GREEN }} />
+                    </div>
+                    <div>
+                        <h4 style={{ fontWeight: 700, margin: 0 }}>Expense Management</h4>
+                        <div style={{ fontSize: "0.84rem", color: "#6b7280" }}>Track bike, salary, material & other expenses</div>
+                    </div>
                 </div>
-                <div>
-                    <h4 style={{ fontWeight: 700, margin: 0 }}>Expense Management</h4>
-                    <div style={{ fontSize: "0.84rem", color: "#6b7280" }}>Track bike, salary, material & other expenses</div>
+
+                {/* Month Picker */}
+                <div style={{ position: "relative" }} ref={pickerRef}>
+                    <button
+                        style={{
+                            background: GREEN, color: "#fff", border: "none", borderRadius: 8,
+                            padding: "8px 16px", fontWeight: 600, fontSize: "0.95rem",
+                            display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", minWidth: "180px", justifyContent: "space-between"
+                        }}
+                        onClick={() => setShowPicker(p => !p)}
+                    >
+                        <span>📅</span>
+                        <span>{monthNames[selectedMonth - 1]} {selectedYear}</span>
+                        <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>▼</span>
+                    </button>
+
+                    {showPicker && (
+                        <div style={{
+                            position: "absolute", right: 0, top: "110%", background: "#fff",
+                            border: "1px solid #dee2e6", borderRadius: 12, zIndex: 1050,
+                            width: 280, padding: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.12)"
+                        }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                                <button className="btn btn-sm btn-outline-secondary px-2 py-1"
+                                    style={{ borderRadius: 6 }}
+                                    onClick={() => setPickerYear(y => y - 1)}>‹</button>
+                                <span style={{ fontWeight: 700, color: GREEN, fontSize: "1rem" }}>{pickerYear}</span>
+                                <button className="btn btn-sm btn-outline-secondary px-2 py-1"
+                                    style={{ borderRadius: 6 }}
+                                    onClick={() => setPickerYear(y => y + 1)}
+                                    disabled={pickerYear >= currentYear}>›</button>
+                            </div>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                                {monthShort.map((m, i) => {
+                                    const monthNum = i + 1;
+                                    const isSelected = monthNum === selectedMonth && pickerYear === selectedYear;
+                                    const isDisabled = isFutureMonth(monthNum, pickerYear);
+                                    return (
+                                        <button key={m} onClick={() => handleMonthSelect(monthNum)}
+                                            disabled={isDisabled}
+                                            style={{
+                                                border: isSelected ? `2px solid ${GREEN}` : "1px solid #dee2e6",
+                                                borderRadius: 8, padding: "8px 4px", fontSize: "0.85rem",
+                                                fontWeight: isSelected ? 700 : 400,
+                                                background: isSelected ? GREEN : isDisabled ? "#f8f9fa" : "#fff",
+                                                color: isSelected ? "#fff" : isDisabled ? "#ced4da" : "#212529",
+                                                cursor: isDisabled ? "not-allowed" : "pointer",
+                                            }}
+                                        >{m}</button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -234,12 +360,8 @@ const Expense: React.FC = () => {
                             <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                                 <input ref={dateInputRef} type="date" className="form-control form-control-sm"
                                     value={form.expenseDate} max={today}
-                                    style={{ paddingRight: "32px" }}
-                                    onChange={e => setForm({ ...form, expenseDate: e.target.value })} />
-                                <button type="button" onClick={openDatePicker} tabIndex={-1}
-                                    style={{ position: "absolute", right: 6, background: "none", border: "none", color: GREEN, cursor: "pointer", padding: 0 }}>
-                                    <i className="bi bi-calendar3" />
-                                </button>
+                                    style={{ paddingRight: "8px" }}
+                                    onChange={e => setForm({ ...form, expenseDate: e.target.value })} />                              
                             </div>
                         </div>
                         <div className="col-md-3">
@@ -307,9 +429,9 @@ const Expense: React.FC = () => {
 
             {/* Table */}
             <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 1px 6px rgba(0,0,0,0.08)", overflow: "hidden", marginBottom: "24px" }}>
-                <div style={{ background: GREEN, padding: "12px 20px", display: "flex", alignItems: "center" }}>
+                <div style={{ background: GREEN, padding: "12px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <h6 style={{ margin: 0, fontWeight: 700, color: "#fff" }}>
-                        <i className="bi bi-table me-2" />Expense Records
+                        <i className="bi bi-table me-2" />Expense Records — {monthNames[selectedMonth - 1]} {selectedYear}
                     </h6>
                 </div>
 
@@ -332,7 +454,7 @@ const Expense: React.FC = () => {
                                     <tr>
                                         <td colSpan={5} style={{ textAlign: "center", color: "#9ca3af", padding: "40px" }}>
                                             <i className="bi bi-inbox" style={{ fontSize: "2.5rem", display: "block", marginBottom: "8px", opacity: 0.4 }} />
-                                            No expenses found.
+                                            No expenses for {monthNames[selectedMonth - 1]} {selectedYear}.
                                         </td>
                                     </tr>
                                 ) : filteredExpenses.map(exp => (
@@ -352,7 +474,7 @@ const Expense: React.FC = () => {
                                             Rs. {exp.amount.toFixed(2)}
                                         </td>
                                         <td style={{ padding: "12px 16px", fontSize: "0.88rem", color: "#6b7280" }}>
-                                            {exp.expenseDate ? exp.expenseDate.replace("T", " ").split(" ")[0].split("-").reverse().join("-") : ""}
+                                            {formatDate(exp.expenseDate)}
                                         </td>
                                         <td style={{ padding: "12px 16px" }}>
                                             <div style={{ display: "flex", gap: "8px" }}>
