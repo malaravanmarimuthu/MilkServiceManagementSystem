@@ -10,15 +10,20 @@ namespace Data.Entities
     {
         public int EmployeeID { get; set; }
         public string EmployeeName { get; set; } = string.Empty;
+        public int LocationID { get; set; }
+        public string LocationName { get; set; } = string.Empty;
         public string EntryDate { get; set; } = string.Empty;
         public string EntryType { get; set; } = string.Empty;
         public double Quantity { get; set; }
+        public double TotalAmount { get; set; }
     }
 
     public class ProcurementReportRow
     {
         public int EmployeeID { get; set; }
         public string EmployeeName { get; set; } = string.Empty;
+        public int LocationID { get; set; }
+        public string LocationName { get; set; } = string.Empty;
         public string EntryDate { get; set; } = string.Empty;
         public string MilkType { get; set; } = string.Empty;
         public double Quantity { get; set; }

@@ -391,18 +391,18 @@ function Navbar() {
                                                         <li>
                                                             <NavLink
                                                                 className="dropdown-item"
-                                                                to="/milk-sales-report"
+                                                                to="/pie-chart-report"
                                                             >
-                                                                Milk Sales Report
+                                                                Pie Chart
                                                             </NavLink>
                                                         </li>
 
                                                         <li>
                                                             <NavLink
                                                                 className="dropdown-item"
-                                                                to="/procurement-report"
+                                                                to="/bar-chart-report"
                                                             >
-                                                                Procurement Report
+                                                                Bar Chart
                                                             </NavLink>
                                                         </li>
 
