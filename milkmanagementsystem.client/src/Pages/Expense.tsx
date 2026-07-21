@@ -168,15 +168,15 @@ const Expense: React.FC = () => {
         return today;
     };
 
-    const openDatePicker = () => {
-        if (dateInputRef.current) {
-            try {
-                (dateInputRef.current as any).showPicker();
-            } catch {
-                (dateInputRef.current as HTMLInputElement).focus();
-            }
-        }
-    };
+    //const openDatePicker = () => {
+    //    if (dateInputRef.current) {
+    //        try {
+    //            (dateInputRef.current as any).showPicker();
+    //        } catch {
+    //            (dateInputRef.current as HTMLInputElement).focus();
+    //        }
+    //    }
+    //};
 
     const requestDelete = (id: number) => setDeleteTargetId(id);
 
