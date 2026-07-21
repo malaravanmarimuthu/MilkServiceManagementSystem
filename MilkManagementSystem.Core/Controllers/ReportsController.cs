@@ -8,44 +8,52 @@ namespace MilkManagementSystem.Server.Controllers
     public class ReportsController : ControllerBase
     {
         private readonly IReportService _reportService;
+        private readonly ILogger<ReportsController> _logger;
 
-        public ReportsController(IReportService reportService)
+        public ReportsController(IReportService reportService, ILogger<ReportsController> logger)
         {
             _reportService = reportService;
+            _logger = logger;
         }
 
-        [HttpGet("milk-consumption")]
-        public async Task<IActionResult> GetMilkConsumptionReport([FromQuery] string monthYear)
+        [HttpGet("milk-sales")]
+        public async Task<IActionResult> GetMilkSalesReport([FromQuery] string mode, [FromQuery] string? monthYear)
         {
-            if (string.IsNullOrWhiteSpace(monthYear))
-                return BadRequest("monthYear is required (format: YYYY-MM).");
+            if (mode != "month" && mode != "6months")
+                return BadRequest("mode must be 'month' or '6months'.");
+            if (mode == "month" && string.IsNullOrWhiteSpace(monthYear))
+                return BadRequest("monthYear is required when mode='month'.");
 
-            var data = await _reportService.GetMilkConsumptionReportAsync(monthYear);
-            return Ok(data);
+            try
+            {
+                var data = await _reportService.GetMilkSalesReportAsync(mode, monthYear ?? "");
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetMilkSalesReport failed");
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
 
         [HttpGet("procurement")]
-        public async Task<IActionResult> GetProcurementReport([FromQuery] string monthYear)
+        public async Task<IActionResult> GetProcurementReport([FromQuery] string mode, [FromQuery] string? monthYear)
         {
-            if (string.IsNullOrWhiteSpace(monthYear))
-                return BadRequest("monthYear is required (format: YYYY-MM).");
+            if (mode != "month" && mode != "6months")
+                return BadRequest("mode must be 'month' or '6months'.");
+            if (mode == "month" && string.IsNullOrWhiteSpace(monthYear))
+                return BadRequest("monthYear is required when mode='month'.");
 
-            var data = await _reportService.GetProcurementReportAsync(monthYear);
-            return Ok(data);
-        }
-
-        [HttpGet("milk-consumption/6months")]
-        public async Task<IActionResult> GetMilkConsumptionReport6Months()
-        {
-            var data = await _reportService.GetMilkConsumptionReport6MonthsAsync();
-            return Ok(data);
-        }
-
-        [HttpGet("procurement/6months")]
-        public async Task<IActionResult> GetProcurementReport6Months()
-        {
-            var data = await _reportService.GetProcurementReport6MonthsAsync();
-            return Ok(data);
+            try
+            {
+                var data = await _reportService.GetProcurementReportAsync(mode, monthYear ?? "");
+                return Ok(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetProcurementReport failed");
+                return StatusCode(500, new { message = ex.Message });
+            }
         }
     }
 }
