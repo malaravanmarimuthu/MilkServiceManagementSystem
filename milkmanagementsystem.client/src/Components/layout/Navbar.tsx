@@ -33,21 +33,24 @@ function Navbar() {
         setOpenDropdown(null);
     };
 
+    // Desktop: hover any dropdown item -> switch to that submenu instantly
     const handleDropdownEnter = (key: string) => {
-        // only apply hover-open on desktop widths
         if (window.innerWidth >= 992) {
             setOpenDropdown(key);
         }
     };
 
-    const handleDropdownLeave = () => {
+    // Desktop: only close when leaving the whole nav-links area
+    // (prevents flicker when moving from one dropdown to another,
+    // and the CSS bridge below stops it firing too early on the gap)
+    const handleNavAreaLeave = () => {
         if (window.innerWidth >= 992) {
             setOpenDropdown(null);
         }
     };
 
+    // Mobile: click to toggle a dropdown open/closed
     const handleToggleClick = (key: string) => {
-        // for mobile (click based) toggle
         if (window.innerWidth < 992) {
             setOpenDropdown(prev => (prev === key ? null : key));
         }
@@ -164,6 +167,11 @@ function Navbar() {
                     color: #fff !important;
                 }
 
+                /* dropdown-container needs relative positioning as the anchor */
+                .nav-item.dropdown {
+                    position: relative;
+                }
+
                 .nav-dropdown-fresh {
                     border: none;
                     border-radius: 16px;
@@ -172,6 +180,25 @@ function Navbar() {
                     margin-top: 10px;
                     background: #fff;
                     min-width: 200px;
+                    display: none;
+                    position: absolute;
+                }
+
+                .nav-dropdown-fresh.show {
+                    display: block;
+                }
+
+                /* Invisible bridge over the gap between the toggle and the menu,
+                   so the pointer never leaves the dropdown's hoverable area
+                   while moving down into the submenu (fixes fast auto-close). */
+                .nav-dropdown-fresh::before {
+                    content: '';
+                    position: absolute;
+                    top: -10px;
+                    left: 0;
+                    right: 0;
+                    height: 10px;
+                    background: transparent;
                 }
 
                 .nav-dropdown-fresh .dropdown-item {
@@ -232,14 +259,6 @@ function Navbar() {
                     0% { background-position: -200% center; }
                     100% { background-position: 200% center; }
                 }
-
-                /* Controlled dropdown display (replaces pure CSS hover) */
-                .nav-dropdown-fresh {
-                    display: none;
-                }
-                .nav-dropdown-fresh.show {
-                    display: block;
-                }
             `}</style>
 
 
@@ -269,7 +288,10 @@ function Navbar() {
                     </button>
 
                     <div className="collapse navbar-collapse" id="navbarNav" ref={navRef}>
-                        <ul className="navbar-nav ms-auto align-items-lg-center gap-1">
+                        <ul
+                            className="navbar-nav ms-auto align-items-lg-center gap-1"
+                            onMouseLeave={handleNavAreaLeave}
+                        >
 
                             {!isLoggedIn ? (
                                 <>
@@ -310,7 +332,6 @@ function Navbar() {
                                             <li
                                                 className="nav-item dropdown"
                                                 onMouseEnter={() => handleDropdownEnter("master")}
-                                                onMouseLeave={handleDropdownLeave}
                                             >
                                                 <a
                                                     className="nav-link dropdown-toggle nav-master-toggle"
@@ -343,7 +364,6 @@ function Navbar() {
                                             <li
                                                 className="nav-item dropdown"
                                                 onMouseEnter={() => handleDropdownEnter("consumption")}
-                                                onMouseLeave={handleDropdownLeave}
                                             >
                                                 <a
                                                     className="nav-link dropdown-toggle nav-master-toggle"
@@ -400,7 +420,6 @@ function Navbar() {
                                             <li
                                                 className="nav-item dropdown"
                                                 onMouseEnter={() => handleDropdownEnter("procurement")}
-                                                onMouseLeave={handleDropdownLeave}
                                             >
                                                 <a
                                                     className="nav-link dropdown-toggle nav-master-toggle"
@@ -436,7 +455,6 @@ function Navbar() {
                                             <li
                                                 className="nav-item dropdown"
                                                 onMouseEnter={() => handleDropdownEnter("reports")}
-                                                onMouseLeave={handleDropdownLeave}
                                             >
                                                 <a
                                                     className="nav-link dropdown-toggle nav-master-toggle"
@@ -475,7 +493,6 @@ function Navbar() {
                                             <li
                                                 className="nav-item dropdown"
                                                 onMouseEnter={() => handleDropdownEnter("expense")}
-                                                onMouseLeave={handleDropdownLeave}
                                             >
                                                 <a
                                                     className="nav-link dropdown-toggle nav-master-toggle"
