@@ -29,6 +29,8 @@ type FormErrors = {
     status?: string;
 };
 
+type SortOrder = "asc" | "desc";
+
 function EmployeeSubscription() {
     const [employeeSubscriptions, setEmployeeSubscriptions] = useState<EmployeeSubscriptionType[]>([]);
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -62,7 +64,8 @@ function EmployeeSubscription() {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [searchTerm, setSearchTerm] = useState("");
 
-    const recordsPerPage = 10;
+    const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+    const [recordsPerPage, setRecordsPerPage] = useState<number>(10);
 
     const loadEmployeeSubscriptions = async () => {
         try {
@@ -156,12 +159,17 @@ function EmployeeSubscription() {
         return name || id;
     };
 
+    // NEW — only Customers can be assigned a subscription (Farmers excluded)
     const availableEmployees = employees.filter((emp) => {
         const id = emp.id ?? emp.ID;
         const alreadyAssigned = employeeSubscriptions.some(
             (x) => x.employeeId === id && x.employeeSubscriptionId !== editId
         );
-        return !alreadyAssigned;
+        const role = String(
+            emp.roleName ?? emp.RoleName ?? emp.role ?? emp.Role ?? ""
+        ).toLowerCase();
+        const isCustomer = role === "customer";
+        return !alreadyAssigned && isCustomer;
     });
 
     const filteredEmployeeSubscriptions = employeeSubscriptions
@@ -178,11 +186,13 @@ function EmployeeSubscription() {
                 statusText.includes(searchTerm.toLowerCase())
             );
         })
-        .sort((a, b) =>
-            String(getEmployeeName(a.employeeId)).localeCompare(
-                String(getEmployeeName(b.employeeId))
-            )
-        );
+        .sort((a, b) => {
+            const nameA = String(getEmployeeName(a.employeeId));
+            const nameB = String(getEmployeeName(b.employeeId));
+            return sortOrder === "asc"
+                ? nameA.localeCompare(nameB)
+                : nameB.localeCompare(nameA);
+        });
 
     const totalPages = Math.ceil(
         filteredEmployeeSubscriptions.length / recordsPerPage
@@ -380,18 +390,21 @@ function EmployeeSubscription() {
                 </div>
             </div>
 
-            <div className="mb-3" style={{ maxWidth: "400px" }}>
-                <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Search user subscription..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setCurrentPage(1);
-                    }}
-                />
-            </div>
+            {/* Toolbar: search + sort + page-size, shown above the table */}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                searchPlaceholder="Search user subscription..."
+                sortOrder={sortOrder}
+                onSortChange={setSortOrder}
+                pageSize={recordsPerPage}
+                onPageSizeChange={setRecordsPerPage}
+                pageSizeOptions={[10, 20, 30, 50, 100]}
+                hideNav
+            />
 
             {loading ? (
                 <Loader text="Loading User Subscriptions..." />
@@ -443,6 +456,7 @@ function EmployeeSubscription() {
                         </tbody>
                     </table>
 
+                    {/* Page-number navigation only, at the bottom */}
                     <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}
@@ -488,7 +502,7 @@ function EmployeeSubscription() {
                                     </div>
                                 )}
 
-                                {/* User Dropdown */}
+                                {/* User Dropdown — Customers only */}
                                 <div className="mb-3">
                                     <label className="form-label">
                                         User <span className="text-danger">*</span>

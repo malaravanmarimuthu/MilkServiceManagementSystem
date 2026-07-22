@@ -10,14 +10,16 @@ type PaginationProps = {
     onSearchChange?: (value: string) => void;
     searchPlaceholder?: string;
 
-    // Optional: sort toggle (ascending / descending)
+    // Sort dropdown (ascending / descending)
     sortOrder?: SortOrder;
     onSortChange?: (order: SortOrder) => void;
 
-    // Optional: dynamic page size selector
+    // Page size dropdown + Go button
     pageSize?: number;
     onPageSizeChange?: (size: number) => void;
     pageSizeOptions?: number[];
+
+    hideNav?: boolean;
 };
 
 const BRAND = "#1B4332";
@@ -36,8 +38,10 @@ const Pagination: React.FC<PaginationProps> = ({
     pageSize,
     onPageSizeChange,
     pageSizeOptions = [10, 20, 30, 50, 100],
+    hideNav = false,
 }) => {
     const [inputPage, setInputPage] = useState("");
+    const [pendingPageSize, setPendingPageSize] = useState<number | undefined>(pageSize);
 
     const getPages = (): (number | string)[] => {
         const pages: (number | string)[] = [];
@@ -67,11 +71,17 @@ const Pagination: React.FC<PaginationProps> = ({
         }
     };
 
+    const handlePageSizeGo = () => {
+        if (pendingPageSize && onPageSizeChange) {
+            onPageSizeChange(pendingPageSize);
+            onPageChange(1);
+        }
+    };
+
     const showToolbar = !!onSearchChange || !!onSortChange || !!onPageSizeChange;
 
     return (
         <div>
-            {/* Toolbar: search + sort + page size */}
             {showToolbar && (
                 <div
                     style={{
@@ -101,38 +111,35 @@ const Pagination: React.FC<PaginationProps> = ({
                     )}
 
                     {onSortChange && (
-                        <button
-                            type="button"
-                            onClick={() => onSortChange(sortOrder === "asc" ? "desc" : "asc")}
-                            title="Toggle sort order"
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                height: "38px",
-                                padding: "0 14px",
-                                borderRadius: "8px",
-                                border: `1px solid ${BRAND_BORDER}`,
-                                background: BRAND_LIGHT,
-                                color: BRAND,
-                                fontSize: "13px",
-                                fontWeight: 600,
-                                cursor: "pointer",
-                            }}
-                        >
-                            {sortOrder === "asc" ? "▲ Ascending" : "▼ Descending"}
-                        </button>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontSize: "13px", color: "#475569" }}>Sort</span>
+                            <select
+                                value={sortOrder ?? "asc"}
+                                onChange={(e) => onSortChange(e.target.value as SortOrder)}
+                                style={{
+                                    height: "38px",
+                                    borderRadius: "8px",
+                                    border: `1px solid ${BRAND_BORDER}`,
+                                    background: BRAND_LIGHT,
+                                    color: BRAND,
+                                    fontSize: "13px",
+                                    fontWeight: 600,
+                                    padding: "0 10px",
+                                    cursor: "pointer",
+                                }}
+                            >
+                                <option value="asc">▲ Ascending</option>
+                                <option value="desc">▼ Descending</option>
+                            </select>
+                        </div>
                     )}
 
                     {onPageSizeChange && (
                         <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                             <span style={{ fontSize: "13px", color: "#475569" }}>Show</span>
                             <select
-                                value={pageSize}
-                                onChange={(e) => {
-                                    onPageSizeChange(Number(e.target.value));
-                                    onPageChange(1);
-                                }}
+                                value={pendingPageSize ?? pageSize}
+                                onChange={(e) => setPendingPageSize(Number(e.target.value))}
                                 style={{
                                     height: "38px",
                                     borderRadius: "8px",
@@ -151,13 +158,29 @@ const Pagination: React.FC<PaginationProps> = ({
                                 ))}
                             </select>
                             <span style={{ fontSize: "13px", color: "#475569" }}>records</span>
+                            <button
+                                type="button"
+                                onClick={handlePageSizeGo}
+                                style={{
+                                    height: "38px",
+                                    padding: "0 14px",
+                                    borderRadius: "8px",
+                                    border: "none",
+                                    background: BRAND,
+                                    color: "#fff",
+                                    fontSize: "13px",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                }}
+                            >
+                                Go
+                            </button>
                         </div>
                     )}
                 </div>
             )}
 
-            {/* Pagination - only show if more than 1 page */}
-            {totalPages > 1 && (
+            {!hideNav && totalPages > 1 && (
                 <div
                     style={{
                         display: "flex",

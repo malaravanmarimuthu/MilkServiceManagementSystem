@@ -47,27 +47,32 @@ const num = (v: any): number => {
     return Number.isFinite(n) ? n : 0;
 };
 
-// Handles ISO ("YYYY-MM-DD..."), and US ("M/D/YYYY, h:mm:ss AM/PM") — Expense dates
-// come from .NET DateTime serialization in US format; Procurement/Sales dates
-// come from MySQL DATE type in ISO format.
 const monthKeyOf = (v: any): string => {
     if (!v) return "";
+
     const s = String(v).trim();
 
+    // yyyy-MM-dd
     const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (iso) return `${iso[1]}-${iso[2]}`;
 
+    // dd-MM-yyyy
+    const dm = s.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (dm) {
+        return `${dm[3]}-${dm[2]}`;
+    }
+
+    // MM/dd/yyyy
     const us = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     if (us) {
-        const month = us[1].padStart(2, "0");
-        const year = us[3];
-        return `${year}-${month}`;
+        return `${us[3]}-${us[1].padStart(2, "0")}`;
     }
 
     const d = new Date(s);
     if (!isNaN(d.getTime())) {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     }
+
     return "";
 };
 

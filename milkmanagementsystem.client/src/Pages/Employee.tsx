@@ -20,7 +20,7 @@ import Loader from "../Components/Common/Loader";
 import Pagination from "../Components/Common/Pagination";
 import { useNavigate } from "react-router-dom";
 
-const ITEMS_PER_PAGE = 10;
+type SortOrder = "asc" | "desc";
 
 const emptyForm = {
     firstName: "",
@@ -54,6 +54,9 @@ const Employee: React.FC = () => {
     const [showResetConfirm, setShowResetConfirm] = useState(false);
     const [resetTarget, setResetTarget] = useState<any | null>(null);
     const navigate = useNavigate();
+
+    const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+    const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
     useEffect(() => {
         fetchEmployees();
@@ -104,21 +107,29 @@ const Employee: React.FC = () => {
         }
     };
 
-    const filteredEmployees = employees.filter((e: any) => {
-        const full =
-            `${e.firstName ?? e.FirstName ?? ""} ${e.lastName ?? e.LastName ?? ""} ${e.emailId ?? e.EmailId ?? ""} ${e.mobile ?? e.Mobile ?? ""} `.toLowerCase();
-        const matchesSearch = full.includes(search.toLowerCase());
+    const filteredEmployees = employees
+        .filter((e: any) => {
+            const full =
+                `${e.firstName ?? e.FirstName ?? ""} ${e.lastName ?? e.LastName ?? ""} ${e.emailId ?? e.EmailId ?? ""} ${e.mobile ?? e.Mobile ?? ""} `.toLowerCase();
+            const matchesSearch = full.includes(search.toLowerCase());
 
-        const empRoleId = e.roleID ?? e.RoleID;
-        const matchesRole = roleFilter === 0 || empRoleId === roleFilter;
+            const empRoleId = e.roleID ?? e.RoleID;
+            const matchesRole = roleFilter === 0 || empRoleId === roleFilter;
 
-        return matchesSearch && matchesRole;
-    });
+            return matchesSearch && matchesRole;
+        })
+        .sort((a: any, b: any) => {
+            const nameA = `${a.firstName ?? a.FirstName ?? ""}`.toLowerCase();
+            const nameB = `${b.firstName ?? b.FirstName ?? ""}`.toLowerCase();
+            return sortOrder === "asc"
+                ? nameA.localeCompare(nameB)
+                : nameB.localeCompare(nameA);
+        });
 
-    const totalPages = Math.ceil(filteredEmployees.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
     const paginatedEmployees = filteredEmployees.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
     );
 
     const openAddModal = () => {
@@ -269,18 +280,24 @@ const Employee: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="d-flex gap-2 mb-3">
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Search User..."
-                        value={search}
-                        onChange={(e) => {
-                            setSearch(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                        style={{ maxWidth: "300px" }}
-                    />
+                {/* Top row: Search + Sort + Show (left/center) ... Role filter (far right) */}
+                <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div style={{ flex: 1, minWidth: "300px" }}>
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                            searchTerm={search}
+                            onSearchChange={setSearch}
+                            searchPlaceholder="Search User..."
+                            sortOrder={sortOrder}
+                            onSortChange={setSortOrder}
+                            pageSize={itemsPerPage}
+                            onPageSizeChange={setItemsPerPage}
+                            pageSizeOptions={[10, 20, 30, 50, 100]}
+                            hideNav
+                        />
+                    </div>
 
                     <select
                         className="form-select"
@@ -342,14 +359,13 @@ const Employee: React.FC = () => {
                                                         >
                                                             Edit
                                                         </button>
-                                                        
+
                                                         <button
                                                             className="btn btn-sm btn-danger me-2"
                                                             onClick={() => confirmDelete(id)}
                                                         >
                                                             Delete
                                                         </button>
-
 
                                                         <button
                                                             className="btn btn-sm btn-info "
@@ -366,16 +382,15 @@ const Employee: React.FC = () => {
                             </table>
                         </div>
 
-                        {totalPages > 1 && (
-                            <Pagination
-                                currentPage={currentPage}
-                                totalPages={totalPages}
-                                onPageChange={(page) => {
-                                    setCurrentPage(page);
-                                    window.scrollTo({ top: 0, behavior: "smooth" });
-                                }}
-                            />
-                        )}
+                        {/* Page-number navigation only, at the bottom */}
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={(page) => {
+                                setCurrentPage(page);
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                        />
                     </>
                 )}
             </div>
@@ -481,7 +496,6 @@ const Employee: React.FC = () => {
                                                 </select>
                                             </div>
 
-
                                             <div className="col-md-6 mb-3">
                                                 <label className="form-label">Role</label>
                                                 <select
@@ -510,7 +524,6 @@ const Employee: React.FC = () => {
                                         )}
 
                                         <div className="modal-footer border-0 justify-content-center pb-4 px-0">
-
                                             <button
                                                 type="button"
                                                 className="btn btn-danger rounded-pill px-4"
