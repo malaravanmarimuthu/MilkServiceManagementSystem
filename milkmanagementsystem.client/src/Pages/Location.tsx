@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -15,6 +16,8 @@ import SuccessModal from "../Components/Common/SuccessModal";
 import { handleApiSuccess } from "../Helpers/successHandler";
 import Loader from "../Components/Common/Loader";
 import Pagination from "../Components/Common/Pagination";
+
+type SortOrder = "asc" | "desc";
 
 function Location() {
     const [locations, setLocations] = useState<LocationType[]>([]);
@@ -40,7 +43,10 @@ function Location() {
 
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [searchTerm, setSearchTerm] = useState("");
-    const recordsPerPage = 10;
+
+    // NEW — sort order + dynamic page size (10/20/30/50/100/200)
+    const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+    const [recordsPerPage, setRecordsPerPage] = useState<number>(10);
 
     const loadLocations = async () => {
         try {
@@ -55,15 +61,22 @@ function Location() {
     };
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadLocations();
     }, []);
 
-    const filteredLocations = locations.filter((location) =>
-        location.locationName
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())
-    );
+    const filteredLocations = locations
+        .filter((location) =>
+            location.locationName
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+            const nameA = a.locationName.toLowerCase();
+            const nameB = b.locationName.toLowerCase();
+            return sortOrder === "asc"
+                ? nameA.localeCompare(nameB)
+                : nameB.localeCompare(nameA);
+        });
 
     const totalPages = Math.ceil(
         filteredLocations.length / recordsPerPage
@@ -106,8 +119,6 @@ function Location() {
     };
 
     const handleSubmit = async () => {
-        // All validation errors now show INSIDE the modal (formError)
-        // instead of closing the modal + showing the global ErrorModal.
         if (!locationName.trim() || !street.trim() || !pinCode.trim()) {
             setFormError("All fields are required.");
             return;
@@ -147,7 +158,6 @@ function Location() {
             return;
         }
 
-        
         const locationData = { locationName, street, pinCode };
 
         setLoading(true);
@@ -226,18 +236,21 @@ function Location() {
                 </div>
             </div>
 
-            <div className="mb-3" style={{ maxWidth: "400px" }}>
-                <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Search location..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setCurrentPage(1);
-                    }}
-                />
-            </div>
+            {/* Toolbar: search + sort + page-size, shown above the table */}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                searchPlaceholder="Search location..."
+                sortOrder={sortOrder}
+                onSortChange={setSortOrder}
+                pageSize={recordsPerPage}
+                onPageSizeChange={setRecordsPerPage}
+                pageSizeOptions={[10, 20, 30, 50, 100, 200]}
+                hideNav
+            />
 
             {loading ? (
                 <Loader text="Loading Location..." />
@@ -286,6 +299,8 @@ function Location() {
                             )}
                         </tbody>
                     </table>
+
+                    {/* Page-number navigation only, at the bottom */}
                     <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}

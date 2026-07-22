@@ -12,7 +12,7 @@ import Loader from "../Components/Common/Loader";
 import Pagination from "../Components/Common/Pagination";
 import { jwtDecode } from "jwt-decode";
 
-const ITEMS_PER_PAGE = 10;
+type SortOrder = "asc" | "desc";
 
 const LEAVE_TYPES = [
     "Casual Leave",
@@ -94,6 +94,10 @@ const LeaveRequestPage: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [search, setSearch] = useState("");
 
+    // NEW — sort order + dynamic page size (replacing the fixed ITEMS_PER_PAGE)
+    const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+    const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+
     // Resume modal state
     const [resumeItem, setResumeItem] = useState<LeaveRequestDto | null>(null);
     const [resuming, setResuming] = useState(false);
@@ -132,16 +136,24 @@ const LeaveRequestPage: React.FC = () => {
         }
     };
 
-    const filteredList = leaveList.filter((l) => {
-        if (!isAdmin && l.employeeID !== loggedInUser.employeeID) return false;
-        const combined = `${l.employeeName ?? ""} ${l.leaveType} ${l.status ?? ""}`.toLowerCase();
-        return combined.includes(search.toLowerCase());
-    });
+    const filteredList = leaveList
+        .filter((l) => {
+            if (!isAdmin && l.employeeID !== loggedInUser.employeeID) return false;
+            const combined = `${l.employeeName ?? ""} ${l.leaveType} ${l.status ?? ""}`.toLowerCase();
+            return combined.includes(search.toLowerCase());
+        })
+        .sort((a, b) => {
+            const nameA = (a.employeeName ?? "").toLowerCase();
+            const nameB = (b.employeeName ?? "").toLowerCase();
+            return sortOrder === "asc"
+                ? nameA.localeCompare(nameB)
+                : nameB.localeCompare(nameA);
+        });
 
-    const totalPages = Math.ceil(filteredList.length / ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(filteredList.length / itemsPerPage);
     const paginated = filteredList.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage
     );
 
     const openAddModal = () => {
@@ -243,7 +255,6 @@ const LeaveRequestPage: React.FC = () => {
             return;
         }
 
-        // Date restrictions apply only to non-admin users.
         if (!isAdmin) {
             if (isEmergency && formData.fromDate !== getTodayStr()) {
                 setFormError("Emergency Leave must be today's date.");
@@ -272,9 +283,6 @@ const LeaveRequestPage: React.FC = () => {
 
         setSaving(true);
         try {
-            // Ongoing leave types (Cancel / Vacation / Emergency) are stored
-            // with toDate = INFINITY_DATE so the table shows "Ongoing"
-            // until an admin resumes it.
             const payload = {
                 ...formData,
                 toDate: isNoToDate ? INFINITY_DATE : formData.toDate,
@@ -475,19 +483,21 @@ const LeaveRequestPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="d-flex gap-2 mb-3">
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Search by name, type, status..."
-                        value={search}
-                        onChange={(e) => {
-                            setSearch(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                        style={{ maxWidth: "300px" }}
-                    />
-                </div>
+                {/* Toolbar: search + sort + page-size, shown above the table */}
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    searchTerm={search}
+                    onSearchChange={setSearch}
+                    searchPlaceholder="Search by name, type, status..."
+                    sortOrder={sortOrder}
+                    onSortChange={setSortOrder}
+                    pageSize={itemsPerPage}
+                    onPageSizeChange={setItemsPerPage}
+                    pageSizeOptions={[10, 20, 30, 50, 100]}
+                    hideNav
+                />
 
                 {loading ? (
                     <Loader />
@@ -609,16 +619,15 @@ const LeaveRequestPage: React.FC = () => {
                             </table>
                         </div>
 
-                        {totalPages > 1 && (
-                            <Pagination
-                                currentPage={currentPage}
-                                totalPages={totalPages}
-                                onPageChange={(page) => {
-                                    setCurrentPage(page);
-                                    window.scrollTo({ top: 0, behavior: "smooth" });
-                                }}
-                            />
-                        )}
+                        {/* Page-number navigation only, at the bottom */}
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={(page) => {
+                                setCurrentPage(page);
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
+                        />
                     </>
                 )}
             </div>
