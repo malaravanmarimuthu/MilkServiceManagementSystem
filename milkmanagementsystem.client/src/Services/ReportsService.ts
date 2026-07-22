@@ -1,56 +1,36 @@
 import axiosInstance from "../Interceptors/axiosInstance";
 
-export interface MilkReportRow {
+export interface PieChartRow {
     employeeID: number;
     employeeName: string;
+    locationID: number;
+    locationName: string;
     entryDate: string;
     entryType: string;
     quantity: number;
+    totalAmount: number;
 }
 
-export interface ProcurementReportRow {
+export interface BarChartRow {
+    sourceType: "Procurement" | "Sales";
     employeeID: number;
-    employeeName: string;
+    locationID: number;
+    locationName: string;
     entryDate: string;
-    milkType: string;
     quantity: number;
-    rate: number;
-    totalAmount: number;
-}
-
-export interface MilkReportMonthlyRow {
-    employeeID: number;
-    employeeName: string;
-    monthYear: string;
-    quantity: number;
-}
-
-export interface ProcurementReportMonthlyRow {
-    employeeID: number;
-    employeeName: string;
-    monthYear: string;
-    quantity: number;
-    totalAmount: number;
+    amount: number;
 }
 
 export const ReportsService = {
-    getMilkConsumptionReport: async (monthYear: string): Promise<MilkReportRow[]> => {
-        const res = await axiosInstance.get(`/api/reports/milk-consumption?monthYear=${monthYear}`);
+    getPieChartReport: async (mode: "month" | "6months", monthYear?: string): Promise<PieChartRow[]> => {
+        const qs = mode === "month" ? `mode=month&monthYear=${monthYear}` : `mode=6months`;
+        const res = await axiosInstance.get(`/api/reports/pie-chart?${qs}`);
         return res.data;
     },
 
-    getProcurementReport: async (monthYear: string): Promise<ProcurementReportRow[]> => {
-        const res = await axiosInstance.get(`/api/reports/procurement?monthYear=${monthYear}`);
-        return res.data;
-    },
-
-    getMilkConsumptionReport6Months: async (): Promise<MilkReportMonthlyRow[]> => {
-        const res = await axiosInstance.get(`/api/reports/milk-consumption/6months`);
-        return res.data;
-    },
-
-    getProcurementReport6Months: async (): Promise<ProcurementReportMonthlyRow[]> => {
-        const res = await axiosInstance.get(`/api/reports/procurement/6months`);
+    getBarChartReport: async (mode: "month" | "6months", monthYear?: string): Promise<BarChartRow[]> => {
+        const qs = mode === "month" ? `mode=month&monthYear=${monthYear}` : `mode=6months`;
+        const res = await axiosInstance.get(`/api/reports/bar-chart?${qs}`);
         return res.data;
     },
 };

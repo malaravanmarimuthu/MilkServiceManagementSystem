@@ -26,9 +26,9 @@ import MyBills from "./Pages/MyBills";
 import ProcurementRate from "./Pages/ProcurementRate";
 import ProcurementEntry from "./Pages/ProcurementEntry";
 import ProcurementMonthlySalesHistory from "./Pages/ProcurementMonthlySalesHistory";
-import MilkSalesReport from "./Pages/MilkSalesReport";
-import ProcurementReport from "./Pages/ProcurementReport";
 import Expense from "./Pages/Expense";
+import PieChartReport from "./Pages/PieChartReport";
+import BarChartReport from "./Pages/BarChartReport";
 
 
 
@@ -83,9 +83,8 @@ function AppContent() {
                         <Route path="/procurement-monthly-sales-history" element={<ProtectedRoute><ProcurementMonthlySalesHistory /></ProtectedRoute> } />
                         <Route path="/expense" element={<ProtectedRoute><Expense /></ProtectedRoute>} />
                         <Route path="/procurement-monthly-sales-history" element={<ProtectedRoute><ProcurementMonthlySalesHistory /></ProtectedRoute>} />
-                        <Route path="/milk-sales-report" element={<ProtectedRoute><MilkSalesReport /></ProtectedRoute>} />
-                        <Route path="/procurement-report" element={<ProtectedRoute><ProcurementReport /></ProtectedRoute>} />
-
+                        <Route path="/pie-chart-report" element={<ProtectedRoute><PieChartReport /></ProtectedRoute>} />
+                        <Route path="/bar-chart-report" element={<ProtectedRoute><BarChartReport /></ProtectedRoute>} />
                     </Routes>
                 </div>
 
