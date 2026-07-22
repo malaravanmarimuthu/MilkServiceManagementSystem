@@ -159,7 +159,7 @@ function EmployeeSubscription() {
         return name || id;
     };
 
-    // NEW — only Customers can be assigned a subscription (Farmers excluded)
+    // NEW â€” only Customers can be assigned a subscription (Farmers excluded)
     const availableEmployees = employees.filter((emp) => {
         const id = emp.id ?? emp.ID;
         const alreadyAssigned = employeeSubscriptions.some(
@@ -502,7 +502,7 @@ function EmployeeSubscription() {
                                     </div>
                                 )}
 
-                                {/* User Dropdown — Customers only */}
+                                {/* User Dropdown â€” Customers only */}
                                 <div className="mb-3">
                                     <label className="form-label">
                                         User <span className="text-danger">*</span>
