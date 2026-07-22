@@ -8,25 +8,53 @@ namespace API.Controllers
     [Route("api/[controller]")]
     public class ExpenseController : ControllerBase
     {
-        private readonly IExpenseService _svc;
-        public ExpenseController(IExpenseService svc) => _svc = svc;
+        private readonly IExpenseService _expenseService;
+
+        public ExpenseController(IExpenseService expenseService)
+        {
+            _expenseService = expenseService;
+        }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll() => Ok(await _svc.GetAllAsync());
-
+        public async Task<IActionResult> GetAll()
+        {
+            try
+            {
+                var result = await _expenseService.GetAllAsync();
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
         [HttpPost]
-        public async Task<IActionResult> Create(CreateExpenseRequest req)
+        public async Task<IActionResult> Create([FromBody] CreateExpenseRequest request)
         {
-            try { return Ok(await _svc.CreateAsync(req)); }
-            catch (Exception ex) { return BadRequest(ex.Message); }
+            try
+            {
+                var result = await _expenseService.CreateAsync(request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, CreateExpenseRequest req)
+        public async Task<IActionResult> Update(int id, [FromBody] CreateExpenseRequest request)
         {
-            try { return Ok(await _svc.UpdateAsync(id, req)); }
-            catch (Exception ex) { return BadRequest(ex.Message); }
+            try
+            {
+                var result = await _expenseService.UpdateAsync(id, request);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         [HttpDelete("{id}")]
@@ -34,21 +62,31 @@ namespace API.Controllers
         {
             try
             {
-                var deleted = await _svc.DeleteAsync(id);
-                return deleted ? Ok() : NotFound();
+                var result = await _expenseService.DeleteAsync(id);
+
+                if (!result)
+                    return NotFound("Expense not found.");
+
+                return Ok("Expense deleted successfully.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Delete failed for ExpenseID {id}: {ex}");
-                return BadRequest(ex.InnerException?.Message ?? ex.Message);
+                return BadRequest(ex.Message);
             }
         }
 
         [HttpGet("total")]
-        public async Task<IActionResult> GetTotal([FromQuery] string? monthYear)
+        public async Task<IActionResult> GetTotal(int month, int year)
         {
-            try { return Ok(await _svc.GetTotalAsync(monthYear)); }
-            catch (Exception ex) { return BadRequest(ex.Message); }
+            try
+            {
+                var total = await _expenseService.GetTotalAsync(month, year);
+                return Ok(total);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

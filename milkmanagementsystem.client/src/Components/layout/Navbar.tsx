@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import ConfirmModal from "../Common/ConfirmModal";
 import logo from "../../assets/images/logo.jpg";
 
@@ -17,9 +17,41 @@ const getRoleFromToken = (): string | null => {
 
 function Navbar() {
     const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const token = localStorage.getItem("token");
     const isLoggedIn = !!token;
     const isAdmin = getRoleFromToken() === "Admin";
+
+    const navRef = useRef<HTMLDivElement>(null);
+
+    // Closes mobile collapse menu + any open dropdown
+    const closeMenu = () => {
+        const navbar = navRef.current;
+        if (navbar?.classList.contains("show")) {
+            navbar.classList.remove("show");
+        }
+        setOpenDropdown(null);
+    };
+
+    const handleDropdownEnter = (key: string) => {
+        // only apply hover-open on desktop widths
+        if (window.innerWidth >= 992) {
+            setOpenDropdown(key);
+        }
+    };
+
+    const handleDropdownLeave = () => {
+        if (window.innerWidth >= 992) {
+            setOpenDropdown(null);
+        }
+    };
+
+    const handleToggleClick = (key: string) => {
+        // for mobile (click based) toggle
+        if (window.innerWidth < 992) {
+            setOpenDropdown(prev => (prev === key ? null : key));
+        }
+    };
 
     return (
         <>
@@ -200,12 +232,21 @@ function Navbar() {
                     0% { background-position: -200% center; }
                     100% { background-position: 200% center; }
                 }
+
+                /* Controlled dropdown display (replaces pure CSS hover) */
+                .nav-dropdown-fresh {
+                    display: none;
+                }
+                .nav-dropdown-fresh.show {
+                    display: block;
+                }
             `}</style>
+
 
             <nav className="navbar navbar-expand-lg navbar-fresh sticky-top">
                 <div className="container navbar-inner">
 
-                    <NavLink to="/" className="nav-brand-fresh">
+                    <NavLink to="/" className="nav-brand-fresh" onClick={closeMenu}>
                         <img
                             src={logo}
                             alt="logo"
@@ -227,31 +268,31 @@ function Navbar() {
                         <span className="navbar-toggler-icon"></span>
                     </button>
 
-                    <div className="collapse navbar-collapse" id="navbarNav">
+                    <div className="collapse navbar-collapse" id="navbarNav" ref={navRef}>
                         <ul className="navbar-nav ms-auto align-items-lg-center gap-1">
 
                             {!isLoggedIn ? (
                                 <>
                                     <li className="nav-item">
-                                        <NavLink to="/" className="nav-link nav-link-fresh">Home</NavLink>
+                                        <NavLink to="/" className="nav-link nav-link-fresh" onClick={closeMenu}>Home</NavLink>
                                     </li>
                                     <li className="nav-item">
-                                        <NavLink to="/about" className="nav-link nav-link-fresh">About</NavLink>
+                                        <NavLink to="/about" className="nav-link nav-link-fresh" onClick={closeMenu}>About</NavLink>
                                     </li>
                                     <li className="nav-item">
-                                        <NavLink to="/service" className="nav-link nav-link-fresh">Service</NavLink>
+                                        <NavLink to="/service" className="nav-link nav-link-fresh" onClick={closeMenu}>Service</NavLink>
                                     </li>
                                     <li className="nav-item">
-                                        <NavLink to="/pricing" className="nav-link nav-link-fresh">Pricing</NavLink>
+                                        <NavLink to="/pricing" className="nav-link nav-link-fresh" onClick={closeMenu}>Pricing</NavLink>
                                     </li>
                                     <li className="nav-item">
-                                        <NavLink to="/contact" className="nav-link nav-link-fresh">Contact</NavLink>
+                                        <NavLink to="/contact" className="nav-link nav-link-fresh" onClick={closeMenu}>Contact</NavLink>
                                     </li>
                                     <li className="nav-item">
                                         <div className="nav-divider d-none d-lg-block"></div>
                                     </li>
                                     <li className="nav-item ms-lg-1 mt-2 mt-lg-0">
-                                        <NavLink to="/login" className="btn nav-login-btn">
+                                        <NavLink to="/login" className="btn nav-login-btn" onClick={closeMenu}>
                                             Login
                                         </NavLink>
                                     </li>
@@ -261,213 +302,237 @@ function Navbar() {
                                     {isAdmin ? (
                                         <>
                                             <li className="nav-item">
-                                                <NavLink to="/dashboard" className="nav-link nav-link-fresh">
+                                                <NavLink to="/dashboard" className="nav-link nav-link-fresh" onClick={closeMenu}>
                                                     Dashboard
                                                 </NavLink>
                                             </li>
 
-                                            <li className="nav-item dropdown">
+                                            <li
+                                                className="nav-item dropdown"
+                                                onMouseEnter={() => handleDropdownEnter("master")}
+                                                onMouseLeave={handleDropdownLeave}
+                                            >
                                                 <a
                                                     className="nav-link dropdown-toggle nav-master-toggle"
                                                     href="#"
                                                     role="button"
-                                                    data-bs-toggle="dropdown"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        handleToggleClick("master");
+                                                    }}
                                                 >
                                                     Master
                                                 </a>
 
-                                                <ul className="dropdown-menu nav-dropdown-fresh">
+                                                <ul className={`dropdown-menu nav-dropdown-fresh ${openDropdown === "master" ? "show" : ""}`}>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/location">Location</NavLink>
+                                                        <NavLink className="dropdown-item" to="/location" onClick={closeMenu}>Location</NavLink>
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/role">Role</NavLink>
+                                                        <NavLink className="dropdown-item" to="/role" onClick={closeMenu}>Role</NavLink>
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/employee">Employee</NavLink>
+                                                        <NavLink className="dropdown-item" to="/employee" onClick={closeMenu}>Employee</NavLink>
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/subscription">Subscription</NavLink>
+                                                        <NavLink className="dropdown-item" to="/subscription" onClick={closeMenu}>Subscription</NavLink>
                                                     </li>
-
                                                 </ul>
                                             </li>
-                                            <li className="nav-item dropdown">
+
+                                            <li
+                                                className="nav-item dropdown"
+                                                onMouseEnter={() => handleDropdownEnter("consumption")}
+                                                onMouseLeave={handleDropdownLeave}
+                                            >
                                                 <a
                                                     className="nav-link dropdown-toggle nav-master-toggle"
                                                     href="#"
                                                     role="button"
-                                                    data-bs-toggle="dropdown"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        handleToggleClick("consumption");
+                                                    }}
                                                 >
                                                     Consumption
                                                 </a>
 
-                                                <ul className="dropdown-menu nav-dropdown-fresh">
-
+                                                <ul className={`dropdown-menu nav-dropdown-fresh ${openDropdown === "consumption" ? "show" : ""}`}>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/employeesubscription">User Subscription</NavLink>
+                                                        <NavLink className="dropdown-item" to="/employeesubscription" onClick={closeMenu}>User Subscription</NavLink>
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/leave-request">Leave Request</NavLink>
+                                                        <NavLink className="dropdown-item" to="/leave-request" onClick={closeMenu}>Leave Request</NavLink>
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/milk-Consumption">
+                                                        <NavLink className="dropdown-item" to="/milk-Consumption" onClick={closeMenu}>
                                                             Milk Consumption
                                                         </NavLink>
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/view-past-consumption">
+                                                        <NavLink className="dropdown-item" to="/view-past-consumption" onClick={closeMenu}>
                                                             View Past Consumption
                                                         </NavLink>
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/payment-history">
+                                                        <NavLink className="dropdown-item" to="/payment-history" onClick={closeMenu}>
                                                             Payment History
                                                         </NavLink>
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/My-consumption">
+                                                        <NavLink className="dropdown-item" to="/My-consumption" onClick={closeMenu}>
                                                             User Consumption
                                                         </NavLink>
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/Monthly-Sales-History">
+                                                        <NavLink className="dropdown-item" to="/Monthly-Sales-History" onClick={closeMenu}>
                                                             Monthly Sales History
                                                         </NavLink>
-
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/invoice">
+                                                        <NavLink className="dropdown-item" to="/invoice" onClick={closeMenu}>
                                                             Invoice
                                                         </NavLink>
                                                     </li>
-                                                    
-
                                                 </ul>
                                             </li>
-                                            <li className="nav-item dropdown">
+
+                                            <li
+                                                className="nav-item dropdown"
+                                                onMouseEnter={() => handleDropdownEnter("procurement")}
+                                                onMouseLeave={handleDropdownLeave}
+                                            >
                                                 <a
                                                     className="nav-link dropdown-toggle nav-master-toggle"
                                                     href="#"
                                                     role="button"
-                                                    data-bs-toggle="dropdown"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        handleToggleClick("procurement");
+                                                    }}
                                                 >
                                                     Procurement
                                                 </a>
 
-                                                <ul className="dropdown-menu nav-dropdown-fresh">
-
+                                                <ul className={`dropdown-menu nav-dropdown-fresh ${openDropdown === "procurement" ? "show" : ""}`}>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/procurement-rate">
+                                                        <NavLink className="dropdown-item" to="/procurement-rate" onClick={closeMenu}>
                                                             Procurement Price
                                                         </NavLink>
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/procurement-entry">
+                                                        <NavLink className="dropdown-item" to="/procurement-entry" onClick={closeMenu}>
                                                             Procurement Entry
                                                         </NavLink>
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/procurement-monthly-sales-history">
+                                                        <NavLink className="dropdown-item" to="/procurement-monthly-sales-history" onClick={closeMenu}>
                                                             Procurement Montly History
                                                         </NavLink>
                                                     </li>
-                                                    
                                                 </ul>
-                                                </li>
+                                            </li>
 
-                                                <li className="nav-item dropdown">
-                                                    <a
-                                                        className="nav-link dropdown-toggle nav-master-toggle"
-                                                        href="#"
-                                                        role="button"
-                                                        data-bs-toggle="dropdown"
-                                                    >
-                                                        Reports
-                                                    </a>
+                                            <li
+                                                className="nav-item dropdown"
+                                                onMouseEnter={() => handleDropdownEnter("reports")}
+                                                onMouseLeave={handleDropdownLeave}
+                                            >
+                                                <a
+                                                    className="nav-link dropdown-toggle nav-master-toggle"
+                                                    href="#"
+                                                    role="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        handleToggleClick("reports");
+                                                    }}
+                                                >
+                                                    Reports
+                                                </a>
 
-                                                    <ul className="dropdown-menu nav-dropdown-fresh">
+                                                <ul className={`dropdown-menu nav-dropdown-fresh ${openDropdown === "reports" ? "show" : ""}`}>
+                                                    <li>
+                                                        <NavLink
+                                                            className="dropdown-item"
+                                                            to="/pie-chart-report"
+                                                            onClick={closeMenu}
+                                                        >
+                                                            Pie Chart
+                                                        </NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink
+                                                            className="dropdown-item"
+                                                            to="/bar-chart-report"
+                                                            onClick={closeMenu}
+                                                        >
+                                                            Bar Chart
+                                                        </NavLink>
+                                                    </li>
+                                                </ul>
+                                            </li>
 
-                                                        <li>
-                                                            <NavLink
-                                                                className="dropdown-item"
-                                                                to="/pie-chart-report"
-                                                            >
-                                                                Pie Chart
-                                                            </NavLink>
-                                                        </li>
+                                            <li
+                                                className="nav-item dropdown"
+                                                onMouseEnter={() => handleDropdownEnter("expense")}
+                                                onMouseLeave={handleDropdownLeave}
+                                            >
+                                                <a
+                                                    className="nav-link dropdown-toggle nav-master-toggle"
+                                                    href="#"
+                                                    role="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        handleToggleClick("expense");
+                                                    }}
+                                                >
+                                                    Expense
+                                                </a>
 
-                                                        <li>
-                                                            <NavLink
-                                                                className="dropdown-item"
-                                                                to="/bar-chart-report"
-                                                            >
-                                                                Bar Chart
-                                                            </NavLink>
-                                                        </li>
-
-                                                    </ul>
-                                                </li>
-                                                <li className="nav-item dropdown">
-                                                    <a
-                                                        className="nav-link dropdown-toggle nav-master-toggle"
-                                                        href="#"
-                                                        role="button"
-                                                        data-bs-toggle="dropdown"
-                                                    >
-                                                        Expense
-                                                    </a>
-
-                                                    <ul className="dropdown-menu nav-dropdown-fresh">
-
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/expense">
-                                                                Expense 
-                                                            </NavLink>
-                                                        </li>
-                                                       
-                                                    </ul>
-                                                </li>
-
+                                                <ul className={`dropdown-menu nav-dropdown-fresh ${openDropdown === "expense" ? "show" : ""}`}>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/expense" onClick={closeMenu}>
+                                                            Expense
+                                                        </NavLink>
+                                                    </li>
+                                                </ul>
+                                            </li>
 
                                             <li className="nav-item">
-                                                <NavLink to="/my-profile" className="nav-link nav-link-fresh">
+                                                <NavLink to="/my-profile" className="nav-link nav-link-fresh" onClick={closeMenu}>
                                                     My Profile
                                                 </NavLink>
                                             </li>
                                         </>
                                     ) : (
-
                                         <>
                                             <li className="nav-item">
-                                                <NavLink to="/my-profile" className="nav-link nav-link-fresh">
+                                                <NavLink to="/my-profile" className="nav-link nav-link-fresh" onClick={closeMenu}>
                                                     My Profile
                                                 </NavLink>
                                             </li>
                                             <li className="nav-item">
-                                                <NavLink to="/leave-request" className="nav-link nav-link-fresh">
+                                                <NavLink to="/leave-request" className="nav-link nav-link-fresh" onClick={closeMenu}>
                                                     Leave Request
                                                 </NavLink>
                                             </li>
                                             <li className="nav-item">
-                                                <NavLink to="/My-Consumption" className="nav-link nav-link-fresh">
+                                                <NavLink to="/My-Consumption" className="nav-link nav-link-fresh" onClick={closeMenu}>
                                                     MyConsumption
                                                 </NavLink>
                                             </li>
                                             <li className="nav-item">
-                                                <NavLink to="/payment-history" className="nav-link nav-link-fresh">
+                                                <NavLink to="/payment-history" className="nav-link nav-link-fresh" onClick={closeMenu}>
                                                     Payment History
                                                 </NavLink>
                                             </li>
                                             <li className="nav-item">
-                                                <NavLink to="/my-bills" className="nav-link nav-link-fresh">
+                                                <NavLink to="/my-bills" className="nav-link nav-link-fresh" onClick={closeMenu}>
                                                     My Bills
                                                 </NavLink>
                                             </li>
-
                                         </>
                                     )}
-
 
                                     <li className="nav-item ms-lg-2 mt-2 mt-lg-0">
                                         <button
