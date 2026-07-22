@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Data.Entities
 {
-    public class MilkReportRow
+    public class PieChartRow
     {
         public int EmployeeID { get; set; }
         public string EmployeeName { get; set; } = string.Empty;
@@ -18,33 +18,14 @@ namespace Data.Entities
         public double TotalAmount { get; set; }
     }
 
-    public class ProcurementReportRow
+    public class BarChartRow
     {
+        public string SourceType { get; set; } = string.Empty;
         public int EmployeeID { get; set; }
-        public string EmployeeName { get; set; } = string.Empty;
         public int LocationID { get; set; }
         public string LocationName { get; set; } = string.Empty;
         public string EntryDate { get; set; } = string.Empty;
-        public string MilkType { get; set; } = string.Empty;
         public double Quantity { get; set; }
-        public double Rate { get; set; }
-        public double TotalAmount { get; set; }
-    }
-
-    public class MilkReportMonthlyRow
-    {
-        public int EmployeeID { get; set; }
-        public string EmployeeName { get; set; } = string.Empty;
-        public string MonthYear { get; set; } = string.Empty;
-        public double Quantity { get; set; }
-    }
-
-    public class ProcurementReportMonthlyRow
-    {
-        public int EmployeeID { get; set; }
-        public string EmployeeName { get; set; } = string.Empty;
-        public string MonthYear { get; set; } = string.Empty;
-        public double Quantity { get; set; }
-        public double TotalAmount { get; set; }
+        public double Amount { get; set; }
     }
 }
