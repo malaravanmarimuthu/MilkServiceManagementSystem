@@ -27,21 +27,33 @@ const getTypeBadgeStyle = (type: string): CSSProperties => {
     }
 };
 
-const formatDate = (dateStr: string): string => {
+const formatDateDisplay = (dateStr: string): string => {
     if (!dateStr) return "";
-    try {
-        const datePart = dateStr.split(" ")[0]; 
-        const parts = datePart.split("/");
-        if (parts.length === 3) {
-            const m = parts[0].padStart(2, "0"); 
-            const d = parts[1].padStart(2, "0");
-            const y = parts[2];                  
-            return `${d}-${m}-${y}`;             
-        }
-        return dateStr;
-    } catch {
-        return dateStr;
+    return dateStr;
+};
+
+const toDateInputFormat = (dateStr: string): string => {
+    if (!dateStr) return new Date().toISOString().slice(0, 10);
+    // dd-MM-yyyy
+    const parts = dateStr.split("-");
+    if (parts.length === 3 && parts[0].length === 2) {
+        const [dd, mm, yyyy] = parts;
+        return `${yyyy}-${mm}-${dd}`;
     }
+    // already yyyy-MM-dd
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.slice(0, 10);
+    return new Date().toISOString().slice(0, 10);
+};
+
+// Convert yyyy-MM-dd (from input) → dd-MM-yyyy (for SP)
+const toSpFormat = (dateStr: string): string => {
+    if (!dateStr) return "";
+    const parts = dateStr.split("-");
+    if (parts.length === 3 && parts[0].length === 4) {
+        const [yyyy, mm, dd] = parts;
+        return `${dd}-${mm}-${yyyy}`;
+    }
+    return dateStr;
 };
 
 const monthNames = [
@@ -126,13 +138,19 @@ const Expense: React.FC = () => {
         if (!form.amount || form.amount <= 0) return setError("Please enter a valid amount.");
         if (!form.expenseDate) return setError("Please select date.");
 
+        // Convert yyyy-MM-dd → dd-MM-yyyy for SP
+        const submitForm: CreateExpenseRequest = {
+            ...form,
+            expenseDate: toSpFormat(form.expenseDate),
+        };
+
         setSaveLoading(true);
         try {
             if (editingId) {
-                await ExpenseService.update(editingId, form);
+                await ExpenseService.update(editingId, submitForm);
                 setSuccess("Expense updated successfully!");
             } else {
-                await ExpenseService.create(form);
+                await ExpenseService.create(submitForm);
                 setSuccess("Expense added successfully!");
             }
             setShowForm(false);
@@ -150,22 +168,11 @@ const Expense: React.FC = () => {
             expenseType: exp.expenseType,
             description: exp.description,
             amount: exp.amount,
-            expenseDate: toDateInputFormat(exp.expenseDate),
+            expenseDate: toDateInputFormat(exp.expenseDate), // dd-MM-yyyy → yyyy-MM-dd
             notes: exp.notes ?? "",
         });
         setEditingId(exp.expenseID);
         setShowForm(true);
-    };
-
-    const toDateInputFormat = (dateStr: string): string => {
-        if (!dateStr) return today;
-        if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.slice(0, 10);
-        const parts = dateStr.split("-");
-        if (parts.length === 3 && parts[0].length === 2) {
-            const [dd, mm, yyyy] = parts;
-            return `${yyyy}-${mm}-${dd}`;
-        }
-        return today;
     };
 
     const openDatePicker = () => {
@@ -208,15 +215,26 @@ const Expense: React.FC = () => {
         setShowPicker(false);
     };
 
+    // SP returns dd-MM-yyyy — parse month/year from it
     const filteredExpenses = expenses.filter((exp) => {
         const raw = exp.expenseDate ?? "";
         let expMonth = 0, expYear = 0;
-        const datePart = raw.split(" ")[0];
-        const parts = datePart.split("/");
-        if (parts.length === 3) {
-            expMonth = Number(parts[0]);
+
+        // dd-MM-yyyy format
+        const parts = raw.split("-");
+        if (parts.length === 3 && parts[0].length === 2) {
+            expMonth = Number(parts[1]);
             expYear = Number(parts[2]);
         }
+        // M/D/YYYY format fallback
+        else if (raw.includes("/")) {
+            const p = raw.split(" ")[0].split("/");
+            if (p.length === 3) {
+                expMonth = Number(p[0]);
+                expYear = Number(p[2]);
+            }
+        }
+
         const matchesMonth = expMonth === selectedMonth && expYear === selectedYear;
         const matchesType = !filterType || exp.expenseType === filterType;
         const matchesSearch = !searchText.trim() ||
@@ -257,11 +275,7 @@ const Expense: React.FC = () => {
                 {/* Month Picker */}
                 <div style={{ position: "relative" }} ref={pickerRef}>
                     <button
-                        style={{
-                            background: GREEN, color: "#fff", border: "none", borderRadius: 8,
-                            padding: "8px 16px", fontWeight: 600, fontSize: "0.95rem",
-                            display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", minWidth: "180px", justifyContent: "space-between"
-                        }}
+                        style={{ background: GREEN, color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontWeight: 600, fontSize: "0.95rem", display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", minWidth: "180px", justifyContent: "space-between" }}
                         onClick={() => setShowPicker(p => !p)}
                     >
                         <span>📅</span>
@@ -270,18 +284,12 @@ const Expense: React.FC = () => {
                     </button>
 
                     {showPicker && (
-                        <div style={{
-                            position: "absolute", right: 0, top: "110%", background: "#fff",
-                            border: "1px solid #dee2e6", borderRadius: 12, zIndex: 1050,
-                            width: 280, padding: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.12)"
-                        }}>
+                        <div style={{ position: "absolute", right: 0, top: "110%", background: "#fff", border: "1px solid #dee2e6", borderRadius: 12, zIndex: 1050, width: 280, padding: 16, boxShadow: "0 4px 20px rgba(0,0,0,0.12)" }}>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
                                 <button className="btn btn-sm btn-outline-secondary px-2 py-1"
-                                    style={{ borderRadius: 6 }}
                                     onClick={() => setPickerYear(y => y - 1)}>‹</button>
-                                <span style={{ fontWeight: 700, color: GREEN, fontSize: "1rem" }}>{pickerYear}</span>
+                                <span style={{ fontWeight: 700, color: GREEN }}>{pickerYear}</span>
                                 <button className="btn btn-sm btn-outline-secondary px-2 py-1"
-                                    style={{ borderRadius: 6 }}
                                     onClick={() => setPickerYear(y => y + 1)}
                                     disabled={pickerYear >= currentYear}>›</button>
                             </div>
@@ -293,14 +301,7 @@ const Expense: React.FC = () => {
                                     return (
                                         <button key={m} onClick={() => handleMonthSelect(monthNum)}
                                             disabled={isDisabled}
-                                            style={{
-                                                border: isSelected ? `2px solid ${GREEN}` : "1px solid #dee2e6",
-                                                borderRadius: 8, padding: "8px 4px", fontSize: "0.85rem",
-                                                fontWeight: isSelected ? 700 : 400,
-                                                background: isSelected ? GREEN : isDisabled ? "#f8f9fa" : "#fff",
-                                                color: isSelected ? "#fff" : isDisabled ? "#ced4da" : "#212529",
-                                                cursor: isDisabled ? "not-allowed" : "pointer",
-                                            }}
+                                            style={{ border: isSelected ? `2px solid ${GREEN}` : "1px solid #dee2e6", borderRadius: 8, padding: "8px 4px", fontSize: "0.85rem", fontWeight: isSelected ? 700 : 400, background: isSelected ? GREEN : isDisabled ? "#f8f9fa" : "#fff", color: isSelected ? "#fff" : isDisabled ? "#ced4da" : "#212529", cursor: isDisabled ? "not-allowed" : "pointer" }}
                                         >{m}</button>
                                     );
                                 })}
@@ -357,12 +358,9 @@ const Expense: React.FC = () => {
                         </div>
                         <div className="col-md-2">
                             <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase" }}>DATE *</label>
-                            <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                                <input ref={dateInputRef} type="date" className="form-control form-control-sm"
-                                    value={form.expenseDate} max={today}
-                                    style={{ paddingRight: "8px" }}
-                                    onChange={e => setForm({ ...form, expenseDate: e.target.value })} />                              
-                            </div>
+                            <input ref={dateInputRef} type="date" className="form-control form-control-sm"
+                                value={form.expenseDate} max={today}
+                                onChange={e => setForm({ ...form, expenseDate: e.target.value })} />
                         </div>
                         <div className="col-md-3">
                             <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "#6b7280", textTransform: "uppercase" }}>NOTES (Optional)</label>
@@ -474,7 +472,7 @@ const Expense: React.FC = () => {
                                             Rs. {exp.amount.toFixed(2)}
                                         </td>
                                         <td style={{ padding: "12px 16px", fontSize: "0.88rem", color: "#6b7280" }}>
-                                            {formatDate(exp.expenseDate)}
+                                            {formatDateDisplay(exp.expenseDate)}
                                         </td>
                                         <td style={{ padding: "12px 16px" }}>
                                             <div style={{ display: "flex", gap: "8px" }}>
