@@ -1,41 +1,47 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import axios from "axios";
-import config from "../config";
+import axiosInstance from "../Interceptors/axiosInstance";
 
 export interface ExpenseDto {
     expenseID: number;
-    expenseType: string;     
-    description: string;      
+    expenseType: string;
+    description: string;
     amount: number;
-    expenseDate: string;
+    expenseDate: string;   // dd-MM-yyyy from SP
     notes?: string;
-    createdDate?: string;
 }
 
 export interface CreateExpenseRequest {
     expenseType: string;
     description: string;
     amount: number;
-    expenseDate: string;
+    expenseDate: string;  
     notes?: string;
 }
 
-const BASE = `${config.AUTH_URL}/api/Expense`;
-
 export const ExpenseService = {
 
-    getAll: () => axios.get<ExpenseDto[]>(BASE).then(r => r.data),
+    getAll: async (): Promise<ExpenseDto[]> => {
+        const res = await axiosInstance.get("/api/Expense");
+        return res.data;
+    },
 
-    getById: (id: number) => axios.get<ExpenseDto>(`${BASE}/${id}`).then(r => r.data),
+    create: async (request: CreateExpenseRequest): Promise<ExpenseDto> => {
+        const res = await axiosInstance.post("/api/Expense", request);
+        return res.data;
+    },
 
-    create: (req: CreateExpenseRequest) => axios.post<ExpenseDto>(BASE, req).then(r => r.data),
+    update: async (id: number, request: CreateExpenseRequest): Promise<ExpenseDto> => {
+        const res = await axiosInstance.put(`/api/Expense/${id}`, request);
+        return res.data;
+    },
 
-    update: (id: number, req: CreateExpenseRequest) =>
-        axios.put<ExpenseDto>(`${BASE}/${id}`, req).then(r => r.data),
+    delete: async (id: number): Promise<void> => {
+        await axiosInstance.delete(`/api/Expense/${id}`);
+    },
 
-    delete: (id: number) => axios.delete(`${BASE}/${id}`),
-
-    getTotal: (monthYear?: string) =>
-        axios.get<number>(`${BASE}/total`, { params: monthYear ? { monthYear } : {} }).then(r => r.data),
-
+    getTotal: async (month: number, year: number): Promise<number> => {
+        const res = await axiosInstance.get("/api/Expense/total", {
+            params: { month, year }
+        });
+        return res.data;
+    }
 };

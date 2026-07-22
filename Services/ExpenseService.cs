@@ -1,116 +1,196 @@
-﻿using Data.Context;
-using Mapster;
-using Microsoft.EntityFrameworkCore;
+﻿using Dapper;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Models.Dto;
-using Services.Contracts;
 
-public class ExpenseService : IExpenseService
+namespace Services
 {
-    private readonly AuthDbContext _db;
-
-    private static readonly string[] ValidTypes = { "Bike", "Salary", "Material", "Others" };
-
-    public ExpenseService(AuthDbContext db)
+    public class ExpenseService : IExpenseService
     {
-        _db = db;
-    }
+        private readonly string _connectionString;
+        private readonly ILogger<ExpenseService> _logger;
 
-    public async Task<List<ExpenseDto>> GetAllAsync()
-    {
-        var expenses = await _db.Expenses
-            .OrderByDescending(e => e.ExpenseDate)
-            .ThenByDescending(e => e.ExpenseID)
-            .ToListAsync();
-
-        return expenses.Adapt<List<ExpenseDto>>();
-    }
-
-    public async Task<ExpenseDto> CreateAsync(CreateExpenseRequest req)
-    {
-        Validate(req);
-
-        var expense = req.Adapt<Data.Entities.Expense>();
-        expense.ExpenseType = req.ExpenseType.Trim();
-        expense.Description = req.Description.Trim();
-        expense.ExpenseDate = ParseDate(req.ExpenseDate);
-        expense.Notes = string.IsNullOrWhiteSpace(req.Notes) ? null : req.Notes.Trim();
-        expense.CreatedDate = DateTime.Today;
-
-        _db.Expenses.Add(expense);
-        await _db.SaveChangesAsync();
-
-        return expense.Adapt<ExpenseDto>();
-    }
-
-    public async Task<ExpenseDto> UpdateAsync(int id, CreateExpenseRequest req)
-    {
-        var expense = await _db.Expenses.FindAsync(id)
-            ?? throw new Exception("Expense not found.");
-
-        Validate(req);
-
-        expense.ExpenseType = req.ExpenseType.Trim();
-        expense.Description = req.Description.Trim();
-        expense.Amount = req.Amount;
-        expense.ExpenseDate = ParseDate(req.ExpenseDate);
-        expense.Notes = string.IsNullOrWhiteSpace(req.Notes) ? null : req.Notes.Trim();
-
-        await _db.SaveChangesAsync();
-
-        return expense.Adapt<ExpenseDto>();
-    }
-
-    public async Task<bool> DeleteAsync(int id)
-    {
-        var expense = await _db.Expenses.FindAsync(id);
-        if (expense == null) return false;
-
-        _db.Expenses.Remove(expense);
-        await _db.SaveChangesAsync();
-        return true;
-    }
-
-    public async Task<decimal> GetTotalAsync(string? monthYear)
-    {
-        var query = _db.Expenses.AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(monthYear))
+        public ExpenseService(IConfiguration config, ILogger<ExpenseService> logger)
         {
-            if (!DateTime.TryParseExact(
-                    monthYear + "-01", "yyyy-MM-dd", null,
-                    System.Globalization.DateTimeStyles.None,
-                    out DateTime parsedDate))
-            {
-                throw new Exception($"Invalid MonthYear format: '{monthYear}'. Use YYYY-MM (e.g. 2026-06)");
-            }
-
-            var fromDate = new DateTime(parsedDate.Year, parsedDate.Month, 1);
-            var toDate = fromDate.AddMonths(1).AddDays(-1);
-
-            query = query.Where(e => e.ExpenseDate >= fromDate && e.ExpenseDate <= toDate);
+            _connectionString = config.GetConnectionString("DefaultConnection") ?? "";
+            _logger = logger;
         }
 
-        return await query.SumAsync(e => (decimal?)e.Amount) ?? 0;
+        private MySql.Data.MySqlClient.MySqlConnection CreateConnection() => new MySql.Data.MySqlClient.MySqlConnection(_connectionString);
+
+        public async Task<List<ExpenseDto>> GetAllAsync()
+        {
+            try
+            {
+                _logger.LogInformation("Started -> GetAllAsync Expenses");
+                using var conn = CreateConnection();
+                var result = await conn.QueryAsync<ExpenseDto>(
+                    "sp_Expense",
+                    new
+                    {
+                        p_Action = "GET",
+                        p_ExpenseID = 0,
+                        p_ExpenseType = "",
+                        p_Description = "",
+                        p_Amount = 0m,
+                        p_ExpenseDate = "",
+                        p_Notes = "",
+                        p_Month = 0,
+                        p_Year = 0
+                    },
+                    commandType: System.Data.CommandType.StoredProcedure
+                );
+                return result.ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> GetAllAsync: {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _logger.LogInformation("Completed -> GetAllAsync Expenses");
+            }
+        }
+
+        public async Task<ExpenseDto> CreateAsync(CreateExpenseRequest request)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> CreateAsync: {request.ExpenseType}");
+                using var conn = CreateConnection();
+                var result = await conn.QueryAsync<ExpenseDto>(
+                    "sp_Expense",
+                    new
+                    {
+                        p_Action = "ADD",
+                        p_ExpenseID = 0,
+                        p_ExpenseType = request.ExpenseType,
+                        p_Description = request.Description,
+                        p_Amount = request.Amount,
+                        p_ExpenseDate = request.ExpenseDate,
+                        p_Notes = request.Notes ?? "",
+                        p_Month = 0,
+                        p_Year = 0
+                    },
+                    commandType: System.Data.CommandType.StoredProcedure
+                );
+                return result.FirstOrDefault() ?? throw new Exception("Create failed.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> CreateAsync: {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _logger.LogInformation("Completed -> CreateAsync");
+            }
+        }
+
+        public async Task<ExpenseDto> UpdateAsync(int expenseId, CreateExpenseRequest request)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> UpdateAsync Id: {expenseId}");
+                using var conn = CreateConnection();
+                var result = await conn.QueryAsync<ExpenseDto>(
+                    "sp_Expense",
+                    new
+                    {
+                        p_Action = "UPDATE",
+                        p_ExpenseID = expenseId,
+                        p_ExpenseType = request.ExpenseType,
+                        p_Description = request.Description,
+                        p_Amount = request.Amount,
+                        p_ExpenseDate = request.ExpenseDate,
+                        p_Notes = request.Notes ?? "",
+                        p_Month = 0,
+                        p_Year = 0
+                    },
+                    commandType: System.Data.CommandType.StoredProcedure
+                );
+                return result.FirstOrDefault() ?? throw new Exception("Update failed.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> UpdateAsync: {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _logger.LogInformation($"Completed -> UpdateAsync Id: {expenseId}");
+            }
+        }
+
+        public async Task<bool> DeleteAsync(int expenseId)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> DeleteAsync Id: {expenseId}");
+                using var conn = CreateConnection();
+                await conn.ExecuteAsync(
+                    "sp_Expense",
+                    new
+                    {
+                        p_Action = "DELETE",
+                        p_ExpenseID = expenseId,
+                        p_ExpenseType = "",
+                        p_Description = "",
+                        p_Amount = 0m,
+                        p_ExpenseDate = "",
+                        p_Notes = "",
+                        p_Month = 0,
+                        p_Year = 0
+                    },
+                    commandType: System.Data.CommandType.StoredProcedure
+                );
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> DeleteAsync: {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _logger.LogInformation($"Completed -> DeleteAsync Id: {expenseId}");
+            }
+        }
+
+        public async Task<decimal> GetTotalAsync(int month, int year)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> GetTotalAsync Month:{month} Year:{year}");
+                using var conn = CreateConnection();
+                var result = await conn.QueryFirstOrDefaultAsync<decimal>(
+                    "sp_Expense",
+                    new
+                    {
+                        p_Action = "TOTAL",
+                        p_ExpenseID = 0,
+                        p_ExpenseType = "",
+                        p_Description = "",
+                        p_Amount = 0m,
+                        p_ExpenseDate = "",
+                        p_Notes = "",
+                        p_Month = month,
+                        p_Year = year
+                    },
+                    commandType: System.Data.CommandType.StoredProcedure
+                );
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> GetTotalAsync: {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _logger.LogInformation("Completed -> GetTotalAsync");
+            }
+        }
     }
-
-    private static void Validate(CreateExpenseRequest req)
-    {
-        if (string.IsNullOrWhiteSpace(req.ExpenseType))
-            throw new Exception("Expense type is required.");
-
-        if (!ValidTypes.Contains(req.ExpenseType))
-            throw new Exception("Invalid expense type. Allowed: Bike, Salary, Material, Others.");
-
-        if (string.IsNullOrWhiteSpace(req.Description))
-            throw new Exception("Description is required.");
-
-        if (req.Amount <= 0)
-            throw new Exception("Amount must be greater than zero.");
-
-        if (!DateTime.TryParse(req.ExpenseDate, out _))
-            throw new Exception("Invalid expense date.");
-    }
-
-    private static DateTime ParseDate(string dateStr) =>
-        DateTime.ParseExact(dateStr, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 }
