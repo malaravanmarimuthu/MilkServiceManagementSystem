@@ -34,18 +34,17 @@ const formatDateDisplay = (dateStr: string): string => {
 
 const toDateInputFormat = (dateStr: string): string => {
     if (!dateStr) return new Date().toISOString().slice(0, 10);
-    // dd-MM-yyyy
+    
     const parts = dateStr.split("-");
     if (parts.length === 3 && parts[0].length === 2) {
         const [dd, mm, yyyy] = parts;
         return `${yyyy}-${mm}-${dd}`;
     }
-    // already yyyy-MM-dd
+    
     if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return dateStr.slice(0, 10);
     return new Date().toISOString().slice(0, 10);
 };
 
-// Convert yyyy-MM-dd (from input) → dd-MM-yyyy (for SP)
 const toSpFormat = (dateStr: string): string => {
     if (!dateStr) return "";
     const parts = dateStr.split("-");
@@ -168,22 +167,13 @@ const Expense: React.FC = () => {
             expenseType: exp.expenseType,
             description: exp.description,
             amount: exp.amount,
-            expenseDate: toDateInputFormat(exp.expenseDate), // dd-MM-yyyy → yyyy-MM-dd
+            expenseDate: toDateInputFormat(exp.expenseDate), 
             notes: exp.notes ?? "",
         });
         setEditingId(exp.expenseID);
         setShowForm(true);
     };
 
-    const openDatePicker = () => {
-        if (dateInputRef.current) {
-            try {
-                (dateInputRef.current as any).showPicker();
-            } catch {
-                (dateInputRef.current as HTMLInputElement).focus();
-            }
-        }
-    };
 
     const requestDelete = (id: number) => setDeleteTargetId(id);
 
@@ -215,18 +205,18 @@ const Expense: React.FC = () => {
         setShowPicker(false);
     };
 
-    // SP returns dd-MM-yyyy — parse month/year from it
+    
     const filteredExpenses = expenses.filter((exp) => {
         const raw = exp.expenseDate ?? "";
         let expMonth = 0, expYear = 0;
 
-        // dd-MM-yyyy format
+        
         const parts = raw.split("-");
         if (parts.length === 3 && parts[0].length === 2) {
             expMonth = Number(parts[1]);
             expYear = Number(parts[2]);
         }
-        // M/D/YYYY format fallback
+        
         else if (raw.includes("/")) {
             const p = raw.split(" ")[0].split("/");
             if (p.length === 3) {

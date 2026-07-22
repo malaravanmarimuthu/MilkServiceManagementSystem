@@ -15,7 +15,6 @@ namespace API.Controllers
             _expenseService = expenseService;
         }
 
-        // Get All Expenses
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -30,7 +29,6 @@ namespace API.Controllers
             }
         }
 
-        // Add Expense
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateExpenseRequest request)
         {
@@ -45,7 +43,6 @@ namespace API.Controllers
             }
         }
 
-        // Update Expense
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateExpenseRequest request)
         {
@@ -60,7 +57,6 @@ namespace API.Controllers
             }
         }
 
-        // Delete Expense
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -79,7 +75,6 @@ namespace API.Controllers
             }
         }
 
-        // Get Total Expense
         [HttpGet("total")]
         public async Task<IActionResult> GetTotal(int month, int year)
         {

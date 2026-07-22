@@ -5,7 +5,7 @@ export interface ExpenseDto {
     expenseType: string;
     description: string;
     amount: number;
-    expenseDate: string;   // dd-MM-yyyy from SP
+    expenseDate: string;  
     notes?: string;
 }
 
