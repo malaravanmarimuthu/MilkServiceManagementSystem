@@ -6,7 +6,7 @@ import * as XLSX from "xlsx";
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList,
 } from "recharts";
-import { ReportsService } from "../Services/ReportsService";
+import { ReportsService, type BarChartRow } from "../Services/ReportsService";
 import { ExpenseService, type ExpenseDto } from "../Services/ExpenseService";
 import Loader from "../Components/Common/Loader";
 import ErrorModal from "../Components/Common/ErrorModal";
@@ -47,6 +47,9 @@ const num = (v: any): number => {
     return Number.isFinite(n) ? n : 0;
 };
 
+// Handles ISO ("YYYY-MM-DD..."), and US ("M/D/YYYY, h:mm:ss AM/PM") — Expense dates
+// come from .NET DateTime serialization in US format; Procurement/Sales dates
+// come from MySQL DATE type in ISO format.
 const monthKeyOf = (v: any): string => {
     if (!v) return "";
     const s = String(v).trim();
@@ -103,7 +106,6 @@ const BarTooltip = ({ active, payload, label }: any) => {
     );
 };
 
-// Small ₹ value shown above each bar segment.
 const renderBarValueLabel = (props: any) => {
     const { x, y, width, value } = props;
     if (!value) return null;
@@ -119,8 +121,8 @@ const BarChartReport: React.FC = () => {
     const [customStart, setCustomStart] = useState(() => lastNMonthKeys(6)[0]);
     const [customEnd, setCustomEnd] = useState(currentMonthKey());
 
-    const [procRows, setProcRows] = useState<any[]>([]);
-    const [salesRows, setSalesRows] = useState<any[]>([]);
+    const [procRows, setProcRows] = useState<BarChartRow[]>([]);
+    const [salesRows, setSalesRows] = useState<BarChartRow[]>([]);
     const [expenseRows, setExpenseRows] = useState<ExpenseDto[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -138,31 +140,21 @@ const BarChartReport: React.FC = () => {
         setLoading(true);
         try {
             const monthKeys = activeMonthKeys();
-            let proc: any[] = [];
-            let sales: any[] = [];
+            let combined: BarChartRow[] = [];
 
             if (rangeMode === "6months") {
-                const [p, s] = await Promise.all([
-                    ReportsService.getProcurementReport("6months"),
-                    ReportsService.getMilkSalesReport("6months"),
-                ]);
-                proc = toArray(p);
-                sales = toArray(s);
+                const data = await ReportsService.getBarChartReport("6months");
+                combined = toArray(data);
             } else {
-                const procCalls = monthKeys.map(k => ReportsService.getProcurementReport("month", k));
-                const salesCalls = monthKeys.map(k => ReportsService.getMilkSalesReport("month", k));
-                const [procResults, salesResults] = await Promise.all([
-                    Promise.all(procCalls),
-                    Promise.all(salesCalls),
-                ]);
-                proc = procResults.flatMap(toArray);
-                sales = salesResults.flatMap(toArray);
+                const calls = monthKeys.map(k => ReportsService.getBarChartReport("month", k));
+                const resultsPerMonth = await Promise.all(calls);
+                combined = resultsPerMonth.flatMap(toArray);
             }
 
             const expenses = await ExpenseService.getAll();
 
-            setProcRows(proc);
-            setSalesRows(sales.filter((r: any) => r.entryType !== "Leave" && num(r.quantity) > 0));
+            setProcRows(combined.filter((r: any) => r.sourceType === "Procurement"));
+            setSalesRows(combined.filter((r: any) => r.sourceType === "Sales"));
             setExpenseRows(toArray(expenses));
         } catch (err: any) {
             setProcRows([]);
@@ -186,7 +178,7 @@ const BarChartReport: React.FC = () => {
         if (!monthKeySet.has(key)) return;
         const e = monthMap.get(key)!;
         e.procLitres += num(r.quantity);
-        e.procAmount += num(r.totalAmount);
+        e.procAmount += num(r.amount);
     });
 
     salesRows.forEach((r: any) => {
@@ -194,7 +186,7 @@ const BarChartReport: React.FC = () => {
         if (!monthKeySet.has(key)) return;
         const e = monthMap.get(key)!;
         e.soldLitres += num(r.quantity);
-        e.soldAmount += num(r.totalAmount);
+        e.soldAmount += num(r.amount);
     });
 
     expenseRows.forEach((r: any) => {
@@ -214,7 +206,7 @@ const BarChartReport: React.FC = () => {
             const loc = r.locationName || "Other";
             const e = map.get(loc) ?? { litres: 0, amount: 0 };
             e.litres += num(r.quantity);
-            e.amount += num(r.totalAmount);
+            e.amount += num(r.amount);
             map.set(loc, e);
         });
         return Array.from(map.entries()).sort((a, b) => b[1].litres - a[1].litres);
@@ -281,7 +273,6 @@ const BarChartReport: React.FC = () => {
                 </div>
             </div>
 
-            {/* Range selector */}
             <div className="d-flex flex-wrap align-items-center gap-3 mb-4 px-3 py-2 rounded-4" style={{ background: "#f4faf6", border: "1px solid #bfe0cc" }}>
                 <div className="btn-group" role="group">
                     <button type="button" className={`btn btn-sm fw-semibold ${rangeMode === "6months" ? "btn-success" : "btn-outline-success"}`} onClick={() => setRangeMode("6months")}>Last 6 Months</button>

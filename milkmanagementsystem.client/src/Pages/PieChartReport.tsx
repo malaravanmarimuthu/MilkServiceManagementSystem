@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { ReportsService, type MilkReportRow } from "../Services/ReportsService";
+import { ReportsService, type PieChartRow } from "../Services/ReportsService";
 import Loader from "../Components/Common/Loader";
 import ErrorModal from "../Components/Common/ErrorModal";
 
@@ -96,7 +96,7 @@ const PieChartReport: React.FC = () => {
     const [monthYear, setMonthYear] = useState(getCurrentMonthYear());
     const [customStart, setCustomStart] = useState(() => lastNMonthKeys(6)[0]);
     const [customEnd, setCustomEnd] = useState(getCurrentMonthYear());
-    const [rows, setRows] = useState<MilkReportRow[]>([]);
+    const [rows, setRows] = useState<PieChartRow[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -108,14 +108,14 @@ const PieChartReport: React.FC = () => {
             let data: any;
 
             if (viewMode === "month") {
-                data = await ReportsService.getMilkSalesReport("month", monthYear);
+                data = await ReportsService.getPieChartReport("month", monthYear);
                 data = toArray(data);
             } else if (viewMode === "6months") {
-                data = await ReportsService.getMilkSalesReport("6months");
+                data = await ReportsService.getPieChartReport("6months");
                 data = toArray(data);
             } else {
                 const keys = monthKeysBetween(customStart, customEnd);
-                const results = await Promise.all(keys.map(k => ReportsService.getMilkSalesReport("month", k)));
+                const results = await Promise.all(keys.map(k => ReportsService.getPieChartReport("month", k)));
                 data = results.flatMap(toArray);
             }
 
@@ -130,7 +130,6 @@ const PieChartReport: React.FC = () => {
         }
     };
 
-    // Group litres SOLD by Location
     const grouped = new Map<string, { litres: number; amount: number }>();
     rows.forEach(r => {
         const key = r.locationName || "Other";

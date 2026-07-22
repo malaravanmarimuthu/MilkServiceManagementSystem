@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using MySqlConnector;
 using System.Data;
+using Models.Dto;
 
 namespace Services
 {
@@ -16,14 +17,14 @@ namespace Services
             _logger = logger;
         }
 
-        public async Task<List<MilkReportRow>> GetMilkSalesReportAsync(string mode, string monthYear)
+        public async Task<List<PieChartRow>> GetPieChartReportAsync(string mode, string monthYear)
         {
-            var results = new List<MilkReportRow>();
+            var results = new List<PieChartRow>();
 
             try
             {
                 using var conn = new MySqlConnection(_connectionString);
-                using var cmd = new MySqlCommand("sp_GetMilkSalesReport", conn)
+                using var cmd = new MySqlCommand("sp_GetPieChartReport", conn)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -34,7 +35,7 @@ namespace Services
                 using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
-                    results.Add(new MilkReportRow
+                    results.Add(new PieChartRow
                     {
                         EmployeeID = reader.IsDBNull(reader.GetOrdinal("EmployeeID")) ? 0 : reader.GetInt32("EmployeeID"),
                         EmployeeName = reader.IsDBNull(reader.GetOrdinal("EmployeeName")) ? "" : reader.GetString("EmployeeName"),
@@ -49,21 +50,21 @@ namespace Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to load milk sales report (mode={Mode}, monthYear={MonthYear})", mode, monthYear);
+                _logger.LogError(ex, "Failed to load pie chart report (mode={Mode}, monthYear={MonthYear})", mode, monthYear);
                 throw;
             }
 
             return results;
         }
 
-        public async Task<List<ProcurementReportRow>> GetProcurementReportAsync(string mode, string monthYear)
+        public async Task<List<BarChartRow>> GetBarChartReportAsync(string mode, string monthYear)
         {
-            var results = new List<ProcurementReportRow>();
+            var results = new List<BarChartRow>();
 
             try
             {
                 using var conn = new MySqlConnection(_connectionString);
-                using var cmd = new MySqlCommand("sp_GetProcurementReport", conn)
+                using var cmd = new MySqlCommand("sp_GetBarChartReport", conn)
                 {
                     CommandType = CommandType.StoredProcedure
                 };
@@ -74,23 +75,21 @@ namespace Services
                 using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
-                    results.Add(new ProcurementReportRow
+                    results.Add(new BarChartRow
                     {
+                        SourceType = reader.IsDBNull(reader.GetOrdinal("SourceType")) ? "" : reader.GetString("SourceType"),
                         EmployeeID = reader.IsDBNull(reader.GetOrdinal("EmployeeID")) ? 0 : reader.GetInt32("EmployeeID"),
-                        EmployeeName = reader.IsDBNull(reader.GetOrdinal("EmployeeName")) ? "" : reader.GetString("EmployeeName"),
                         LocationID = reader.IsDBNull(reader.GetOrdinal("LocationID")) ? 0 : reader.GetInt32("LocationID"),
                         LocationName = reader.IsDBNull(reader.GetOrdinal("LocationName")) ? "Other" : reader.GetString("LocationName"),
                         EntryDate = reader.IsDBNull(reader.GetOrdinal("EntryDate")) ? "" : reader.GetDateTime("EntryDate").ToString("yyyy-MM-dd"),
-                        MilkType = reader.IsDBNull(reader.GetOrdinal("MilkType")) ? "" : reader.GetString("MilkType"),
                         Quantity = reader.IsDBNull(reader.GetOrdinal("Quantity")) ? 0 : reader.GetDouble("Quantity"),
-                        Rate = reader.IsDBNull(reader.GetOrdinal("Rate")) ? 0 : reader.GetDouble("Rate"),
-                        TotalAmount = reader.IsDBNull(reader.GetOrdinal("TotalAmount")) ? 0 : reader.GetDouble("TotalAmount")
+                        Amount = reader.IsDBNull(reader.GetOrdinal("Amount")) ? 0 : reader.GetDouble("Amount")
                     });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to load procurement report (mode={Mode}, monthYear={MonthYear})", mode, monthYear);
+                _logger.LogError(ex, "Failed to load bar chart report (mode={Mode}, monthYear={MonthYear})", mode, monthYear);
                 throw;
             }
 
