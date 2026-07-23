@@ -8,6 +8,8 @@
         public string EmployeeName { get; set; } = "";
         public string GeneratedDate { get; set; } = "";
         public string MonthYear { get; set; } = "";
+        public string FromDate { get; set; } = "";
+        public string ToDate { get; set; } = "";
         public decimal TotalQuantity { get; set; }
         public decimal RatePerLitre { get; set; }
         public decimal TotalAmount { get; set; }
@@ -24,7 +26,12 @@
     public class CreateInvoiceRequest
     {
         public long EmployeeID { get; set; }
-        public string MonthYear { get; set; } = "";
+
+        public string? MonthYear { get; set; }
+
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+
         public decimal PreviousArrears { get; set; }
         public string? Notes { get; set; }
     }

@@ -23,6 +23,8 @@ interface JwtPayload {
     rolename: string;
 }
 
+type FilterMode = "month" | "range";
+
 const getLogoBase64 = async (): Promise<string | null> => {
     try {
         const res = await fetch("/logo.jpg");
@@ -36,6 +38,19 @@ const getLogoBase64 = async (): Promise<string | null> => {
     } catch {
         return null;
     }
+};
+
+const toDateOnly = (d: Date) => {
+    const nd = new Date(d);
+    nd.setHours(0, 0, 0, 0);
+    return nd;
+};
+
+const toInputDateStr = (d: Date) => {
+    const y = d.getFullYear();
+    const m = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    return `${y}-${m}-${day}`;
 };
 
 const MyConsumption: React.FC = () => {
@@ -69,9 +84,16 @@ const MyConsumption: React.FC = () => {
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
+    const todayStr = toInputDateStr(now);
 
     const [selectedMonth, setSelectedMonth] = useState(currentMonth);
     const [selectedYear, setSelectedYear] = useState(currentYear);
+
+    // ---- Date range filter mode ----
+    const [filterMode, setFilterMode] = useState<FilterMode>("month");
+    const [fromDate, setFromDate] = useState<string>(toInputDateStr(new Date(currentYear, currentMonth - 1, 1)));
+    const [toDate, setToDate] = useState<string>(todayStr);
+    const [rangeError, setRangeError] = useState("");
 
     const effectiveEmpId = isAdmin
         ? (adminEmpId !== "" ? Number(adminEmpId) : 0)
@@ -100,6 +122,19 @@ const MyConsumption: React.FC = () => {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
+    // Validate range whenever dates change
+    useEffect(() => {
+        if (filterMode !== "range") { setRangeError(""); return; }
+        if (!fromDate || !toDate) { setRangeError(""); return; }
+        if (new Date(fromDate) > new Date(toDate)) {
+            setRangeError("From date must be before or equal to To date.");
+        } else if (new Date(toDate) > new Date(todayStr)) {
+            setRangeError("To date cannot be in the future.");
+        } else {
+            setRangeError("");
+        }
+    }, [fromDate, toDate, filterMode]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -164,11 +199,30 @@ const MyConsumption: React.FC = () => {
     ];
     const monthShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+    // ---- Effective date range (works for both "month" and "range" modes) ----
+    const getEffectiveRange = (): { start: Date; end: Date } => {
+        if (filterMode === "range" && fromDate && toDate && !rangeError) {
+            const start = toDateOnly(new Date(fromDate));
+            let end = toDateOnly(new Date(toDate));
+            const today = toDateOnly(now);
+            if (end > today) end = today;
+            return { start, end };
+        }
+        const isCurrentMonth = selectedMonth === currentMonth && selectedYear === currentYear;
+        const start = toDateOnly(new Date(selectedYear, selectedMonth - 1, 1));
+        const end = isCurrentMonth
+            ? toDateOnly(now)
+            : toDateOnly(new Date(selectedYear, selectedMonth, 0));
+        return { start, end };
+    };
+
+    const { start: rangeStart, end: rangeEnd } = getEffectiveRange();
+
     const myEntries = effectiveEmpId === 0 ? [] : entries.filter((e: any) => {
         const eEmpId = Number(e.employeeID ?? e.EmployeeID ?? e.employeeId ?? e.EmployeeId);
         if (eEmpId !== effectiveEmpId) return false;
-        const d = new Date(e.entryDate);
-        return d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
+        const d = toDateOnly(new Date(e.entryDate));
+        return d >= rangeStart && d <= rangeEnd;
     });
 
     const actualEntries = myEntries.filter(e => e.entryType === "Actual");
@@ -187,8 +241,8 @@ const MyConsumption: React.FC = () => {
     const monthlyPayments = effectiveEmpId === 0 ? [] : payments.filter((p: any) => {
         const pEmpId = Number(p.employeeID ?? p.EmployeeID ?? p.employeeId ?? p.EmployeeId);
         if (pEmpId !== effectiveEmpId) return false;
-        const d = new Date(p.paidDate ?? p.PaidDate ?? "");
-        return d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
+        const d = toDateOnly(new Date(p.paidDate ?? p.PaidDate ?? ""));
+        return d >= rangeStart && d <= rangeEnd;
     });
 
     const totalPaid = monthlyPayments.reduce((sum: number, p: any) =>
@@ -196,38 +250,35 @@ const MyConsumption: React.FC = () => {
     );
 
     const buildPrintEntries = (): MilkEntryDto[] => {
-        const actualOrLeave = myEntries;
-
         const entryByDate = new Map<string, MilkEntryDto>();
-        actualOrLeave.forEach(e => {
+        myEntries.forEach(e => {
             const d = new Date(e.entryDate);
             const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
             entryByDate.set(key, e);
         });
 
-        const isCurrentMonth = selectedMonth === currentMonth && selectedYear === currentYear;
-        const lastDay = isCurrentMonth
-            ? now.getDate()
-            : new Date(selectedYear, selectedMonth, 0).getDate();
-
         const result: MilkEntryDto[] = [];
+        const cur = new Date(rangeStart);
+        let idx = 0;
 
-        for (let day = 1; day <= lastDay; day++) {
-            const key = `${selectedYear}-${selectedMonth}-${day}`;
+        while (cur <= rangeEnd) {
+            const key = `${cur.getFullYear()}-${cur.getMonth() + 1}-${cur.getDate()}`;
             const existing = entryByDate.get(key);
 
             if (existing) {
                 result.push(existing);
             } else {
+                idx++;
                 result.push({
-                    milkEntryID: -day,
+                    milkEntryID: -idx,
                     employeeID: effectiveEmpId,
-                    entryDate: new Date(selectedYear, selectedMonth - 1, day).toISOString(),
+                    entryDate: new Date(cur).toISOString(),
                     entryType: "Leave",
                     quantity: 0,
                     locationID: 0,
                 } as MilkEntryDto);
             }
+            cur.setDate(cur.getDate() + 1);
         }
 
         return result;
@@ -240,9 +291,16 @@ const MyConsumption: React.FC = () => {
     const getRowAmount = (entry: MilkEntryDto) =>
         entry.entryType === "Leave" ? 0 : entry.quantity * subPrice;
 
+    const formatDDMMYYYY = (d: Date) =>
+        `${d.getDate().toString().padStart(2, "0")}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getFullYear()}`;
+
+    const periodLabel = filterMode === "range" && fromDate && toDate && !rangeError
+        ? `${formatDDMMYYYY(rangeStart)} to ${formatDDMMYYYY(rangeEnd)}`
+        : `${monthNames[selectedMonth - 1]} ${selectedYear}`;
+
     const handleExportPDF = async () => {
         const doc = new jsPDF();
-        const monthLabel = `${monthNames[selectedMonth - 1]} ${selectedYear}`;
+        const monthLabel = periodLabel;
         const empLabel = effectiveEmpName || loggedEmployeeName;
         const subName = getSubName(subId);
 
@@ -253,8 +311,7 @@ const MyConsumption: React.FC = () => {
         if (logoBase64) {
             try {
                 doc.addImage(logoBase64, "JPEG", 14, 5, 18, 18);
-            } catch (err)
-            {
+            } catch (err) {
                 console.error(err);
             }
         }
@@ -276,7 +333,7 @@ const MyConsumption: React.FC = () => {
         doc.text(empLabel, 50, 38);
 
         doc.setFont("helvetica", "bold");
-        doc.text(`Month    : `, 14, 46);
+        doc.text(filterMode === "range" ? `Period   : ` : `Month    : `, 14, 46);
         doc.setFont("helvetica", "normal");
         doc.text(monthLabel, 50, 46);
 
@@ -287,7 +344,7 @@ const MyConsumption: React.FC = () => {
 
         const summaryY = 62;
         const boxes = [
-            { label: "Monthly Payment", value: `Rs.${totalPaid.toFixed(2)}` },
+            { label: "Total Payment", value: `Rs.${totalPaid.toFixed(2)}` },
             { label: "Leave Days", value: String(leaveEntries.length) },
             { label: "Total Price", value: `Rs.${totalPrice.toFixed(2)}` },
         ];
@@ -309,7 +366,7 @@ const MyConsumption: React.FC = () => {
 
         const tableRows = printEntries.map(entry => {
             const d = new Date(entry.entryDate);
-            const dateStr = `${d.getDate().toString().padStart(2, "0")}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getFullYear()}`;
+            const dateStr = formatDDMMYYYY(d);
             const amount = getRowAmount(entry);
             return [
                 dateStr,
@@ -357,7 +414,7 @@ const MyConsumption: React.FC = () => {
             105, pageHeight - 8, { align: "center" }
         );
 
-        doc.save(`${empLabel}_${monthLabel}_Consumption.pdf`);
+        doc.save(`${empLabel}_${monthLabel.replace(/\s+/g, "_")}_Consumption.pdf`);
     };
 
     return (
@@ -375,14 +432,14 @@ const MyConsumption: React.FC = () => {
                         <div className="text-muted" style={{ fontSize: "0.85rem" }}>
                             {isAdmin
                                 ? (effectiveEmpId !== 0
-                                    ? `${effectiveEmpName} — Monthly milk purchase history`
+                                    ? `${effectiveEmpName} — Milk purchase history`
                                     : "Select an User to view consumption")
-                                : `${loggedEmployeeName} — Monthly milk purchase history`}
+                                : `${loggedEmployeeName} — Milk purchase history`}
                         </div>
                     </div>
 
                     <div className="d-flex gap-2 align-items-center flex-wrap">
-                        {effectiveEmpId !== 0 && myEntries.length > 0 && (
+                        {effectiveEmpId !== 0 && myEntries.length > 0 && !rangeError && (
                             <button
                                 className="btn fw-semibold px-3 py-2"
                                 style={{
@@ -398,87 +455,157 @@ const MyConsumption: React.FC = () => {
                             </button>
                         )}
 
-                        <div className="position-relative" ref={pickerRef}>
+                        {/* Mode toggle: Month vs Custom Range */}
+                        <div
+                            className="d-flex"
+                            style={{
+                                background: "#e9ecef",
+                                borderRadius: "8px",
+                                padding: "3px",
+                            }}
+                        >
                             <button
-                                className="btn d-flex align-items-center gap-2 fw-semibold px-3 py-2"
+                                className="btn btn-sm fw-semibold"
                                 style={{
-                                    background: "#1B4332",
-                                    color: "#fff",
+                                    borderRadius: "6px",
                                     border: "none",
-                                    borderRadius: "8px",
-                                    fontSize: "0.95rem",
-                                    minWidth: "180px",
-                                    justifyContent: "space-between"
+                                    background: filterMode === "month" ? "#1B4332" : "transparent",
+                                    color: filterMode === "month" ? "#fff" : "#495057",
+                                    padding: "6px 12px",
                                 }}
-                                onClick={() => setShowPicker(p => !p)}
+                                onClick={() => setFilterMode("month")}
                             >
-                                <span>📅</span>
-                                <span>{monthNames[selectedMonth - 1]} {selectedYear}</span>
-                                <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>▼</span>
+                                Month
                             </button>
-
-                            {showPicker && (
-                                <div
-                                    className="position-absolute end-0 mt-2 shadow-lg"
-                                    style={{
-                                        background: "#fff",
-                                        border: "1px solid #dee2e6",
-                                        borderRadius: "12px",
-                                        zIndex: 1050,
-                                        width: "280px",
-                                        padding: "16px",
-                                    }}
-                                >
-                                    <div className="d-flex align-items-center justify-content-between mb-3">
-                                        <button className="btn btn-sm btn-outline-secondary px-2 py-1"
-                                            style={{ borderRadius: "6px" }}
-                                            onClick={() => setPickerYear(y => y - 1)}>‹</button>
-                                        <span className="fw-bold" style={{ color: "#1B4332", fontSize: "1rem" }}>
-                                            {pickerYear}
-                                        </span>
-                                        <button className="btn btn-sm btn-outline-secondary px-2 py-1"
-                                            style={{ borderRadius: "6px" }}
-                                            onClick={() => setPickerYear(y => y + 1)}
-                                            disabled={pickerYear >= currentYear}>›</button>
-                                    </div>
-                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
-                                        {monthShort.map((m, i) => {
-                                            const monthNum = i + 1;
-                                            const isSelected = monthNum === selectedMonth && pickerYear === selectedYear;
-                                            const isDisabled = isFutureMonth(monthNum, pickerYear);
-                                            return (
-                                                <button
-                                                    key={m}
-                                                    onClick={() => handleMonthSelect(monthNum)}
-                                                    disabled={isDisabled}
-                                                    style={{
-                                                        border: isSelected ? "2px solid #1B4332" : "1px solid #dee2e6",
-                                                        borderRadius: "8px",
-                                                        padding: "8px 4px",
-                                                        fontSize: "0.85rem",
-                                                        fontWeight: isSelected ? 700 : 400,
-                                                        background: isSelected ? "#1B4332" : isDisabled ? "#f8f9fa" : "#fff",
-                                                        color: isSelected ? "#fff" : isDisabled ? "#ced4da" : "#212529",
-                                                        cursor: isDisabled ? "not-allowed" : "pointer",
-                                                        transition: "all 0.15s ease",
-                                                    }}
-                                                    onMouseEnter={e => {
-                                                        if (!isDisabled && !isSelected)
-                                                            (e.currentTarget as HTMLButtonElement).style.background = "#e8f5e9";
-                                                    }}
-                                                    onMouseLeave={e => {
-                                                        if (!isDisabled && !isSelected)
-                                                            (e.currentTarget as HTMLButtonElement).style.background = "#fff";
-                                                    }}
-                                                >{m}</button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
+                            <button
+                                className="btn btn-sm fw-semibold"
+                                style={{
+                                    borderRadius: "6px",
+                                    border: "none",
+                                    background: filterMode === "range" ? "#1B4332" : "transparent",
+                                    color: filterMode === "range" ? "#fff" : "#495057",
+                                    padding: "6px 12px",
+                                }}
+                                onClick={() => setFilterMode("range")}
+                            >
+                                Custom Range
+                            </button>
                         </div>
+
+                        {filterMode === "month" ? (
+                            <div className="position-relative" ref={pickerRef}>
+                                <button
+                                    className="btn d-flex align-items-center gap-2 fw-semibold px-3 py-2"
+                                    style={{
+                                        background: "#1B4332",
+                                        color: "#fff",
+                                        border: "none",
+                                        borderRadius: "8px",
+                                        fontSize: "0.95rem",
+                                        minWidth: "180px",
+                                        justifyContent: "space-between"
+                                    }}
+                                    onClick={() => setShowPicker(p => !p)}
+                                >
+                                    <span>📅</span>
+                                    <span>{monthNames[selectedMonth - 1]} {selectedYear}</span>
+                                    <span style={{ fontSize: "0.75rem", opacity: 0.8 }}>▼</span>
+                                </button>
+
+                                {showPicker && (
+                                    <div
+                                        className="position-absolute end-0 mt-2 shadow-lg"
+                                        style={{
+                                            background: "#fff",
+                                            border: "1px solid #dee2e6",
+                                            borderRadius: "12px",
+                                            zIndex: 1050,
+                                            width: "280px",
+                                            padding: "16px",
+                                        }}
+                                    >
+                                        <div className="d-flex align-items-center justify-content-between mb-3">
+                                            <button className="btn btn-sm btn-outline-secondary px-2 py-1"
+                                                style={{ borderRadius: "6px" }}
+                                                onClick={() => setPickerYear(y => y - 1)}>‹</button>
+                                            <span className="fw-bold" style={{ color: "#1B4332", fontSize: "1rem" }}>
+                                                {pickerYear}
+                                            </span>
+                                            <button className="btn btn-sm btn-outline-secondary px-2 py-1"
+                                                style={{ borderRadius: "6px" }}
+                                                onClick={() => setPickerYear(y => y + 1)}
+                                                disabled={pickerYear >= currentYear}>›</button>
+                                        </div>
+                                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
+                                            {monthShort.map((m, i) => {
+                                                const monthNum = i + 1;
+                                                const isSelected = monthNum === selectedMonth && pickerYear === selectedYear;
+                                                const isDisabled = isFutureMonth(monthNum, pickerYear);
+                                                return (
+                                                    <button
+                                                        key={m}
+                                                        onClick={() => handleMonthSelect(monthNum)}
+                                                        disabled={isDisabled}
+                                                        style={{
+                                                            border: isSelected ? "2px solid #1B4332" : "1px solid #dee2e6",
+                                                            borderRadius: "8px",
+                                                            padding: "8px 4px",
+                                                            fontSize: "0.85rem",
+                                                            fontWeight: isSelected ? 700 : 400,
+                                                            background: isSelected ? "#1B4332" : isDisabled ? "#f8f9fa" : "#fff",
+                                                            color: isSelected ? "#fff" : isDisabled ? "#ced4da" : "#212529",
+                                                            cursor: isDisabled ? "not-allowed" : "pointer",
+                                                            transition: "all 0.15s ease",
+                                                        }}
+                                                        onMouseEnter={e => {
+                                                            if (!isDisabled && !isSelected)
+                                                                (e.currentTarget as HTMLButtonElement).style.background = "#e8f5e9";
+                                                        }}
+                                                        onMouseLeave={e => {
+                                                            if (!isDisabled && !isSelected)
+                                                                (e.currentTarget as HTMLButtonElement).style.background = "#fff";
+                                                        }}
+                                                    >{m}</button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="d-flex align-items-center gap-2 flex-wrap">
+                                <div className="d-flex align-items-center gap-1">
+                                    <label className="small text-muted mb-0">From</label>
+                                    <input
+                                        type="date"
+                                        className="form-control form-control-sm"
+                                        style={{ borderRadius: "8px" }}
+                                        value={fromDate}
+                                        max={todayStr}
+                                        onChange={(e) => setFromDate(e.target.value)}
+                                    />
+                                </div>
+                                <div className="d-flex align-items-center gap-1">
+                                    <label className="small text-muted mb-0">To</label>
+                                    <input
+                                        type="date"
+                                        className="form-control form-control-sm"
+                                        style={{ borderRadius: "8px" }}
+                                        value={toDate}
+                                        max={todayStr}
+                                        onChange={(e) => setToDate(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
+
+                {filterMode === "range" && rangeError && (
+                    <div className="alert alert-danger py-2 px-3 mb-3" style={{ fontSize: "0.85rem" }}>
+                        {rangeError}
+                    </div>
+                )}
 
                 {isAdmin && (
                     <div className="mb-4">
@@ -513,6 +640,11 @@ const MyConsumption: React.FC = () => {
                         <div style={{ fontSize: "3rem" }}>👆</div>
                         <div className="mt-2 fw-semibold">Please select an user to view consumption</div>
                     </div>
+                ) : rangeError ? (
+                    <div className="text-center text-muted py-5">
+                        <div style={{ fontSize: "3rem" }}>⚠️</div>
+                        <div className="mt-2 fw-semibold">Please fix the selected date range</div>
+                    </div>
                 ) : (
                     <>
                         {/* Summary Cards */}
@@ -521,7 +653,7 @@ const MyConsumption: React.FC = () => {
                                 <div className="card text-center border-0 shadow-sm">
                                     <div className="card-body py-3">
                                         <div className="fs-3 fw-bold text-success">₹{totalPaid.toFixed(2)}</div>
-                                        <div className="text-muted small">Monthly Payment</div>
+                                        <div className="text-muted small">Total Payment</div>
                                     </div>
                                 </div>
                             </div>
@@ -546,7 +678,7 @@ const MyConsumption: React.FC = () => {
                                     style={{ background: "#1B4332" }}>
                                     <div className="card-body py-3">
                                         <div className="fs-3 fw-bold text-white">₹{totalPrice.toFixed(2)}</div>
-                                        <div className="text-white small">Total Price This Month</div>
+                                        <div className="text-white small">Total Price ({periodLabel})</div>
                                     </div>
                                 </div>
                             </div>
@@ -590,13 +722,13 @@ const MyConsumption: React.FC = () => {
                                         {printEntries.length === 0 ? (
                                             <tr>
                                                 <td colSpan={4} className="text-center text-muted py-4">
-                                                    No entries found for {monthNames[selectedMonth - 1]} {selectedYear}.
+                                                    No entries found for {periodLabel}.
                                                 </td>
                                             </tr>
                                         ) : (
                                             printEntries.map((entry) => {
                                                 const d = new Date(entry.entryDate);
-                                                const dateStr = `${d.getDate().toString().padStart(2, "0")}-${(d.getMonth() + 1).toString().padStart(2, "0")}-${d.getFullYear()}`;
+                                                const dateStr = formatDDMMYYYY(d);
                                                 const typeBadge =
                                                     entry.entryType === "Actual" ? "bg-success" :
                                                         entry.entryType === "Leave" ? "bg-warning text-dark" :

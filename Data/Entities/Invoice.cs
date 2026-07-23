@@ -27,6 +27,12 @@ namespace Data.Entities
         [MaxLength(20)]
         public string MonthYear { get; set; } = "";
 
+        [Required]
+        public DateTime FromDate { get; set; }
+
+        [Required]
+        public DateTime ToDate { get; set; }
+
         [Column(TypeName = "decimal(10,2)")]
         public decimal TotalQuantity { get; set; }
 
@@ -52,5 +58,4 @@ namespace Data.Entities
         [MaxLength(500)]
         public string? Notes { get; set; }
     }
-
 }
