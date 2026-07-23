@@ -56,6 +56,11 @@ const Invoice: React.FC = () => {
     const currentMonthYear = new Date().toISOString().slice(0, 7);
     const todayStr = new Date().toISOString().slice(0, 10);
 
+    // 🆕 Generate mode toggle — "month" (existing behaviour) or "range" (custom From/To dates)
+    const [genMode, setGenMode] = useState<"month" | "range">("month");
+    const [rangeFrom, setRangeFrom] = useState("");
+    const [rangeTo, setRangeTo] = useState("");
+
     const [form, setForm] = useState<CreateInvoiceRequest>({
         employeeID: 0,
         monthYear: currentMonthYear,
@@ -124,25 +129,34 @@ const Invoice: React.FC = () => {
         return `${year}-${String(idx + 1).padStart(2, "0")}`;
     };
 
+    // 🆕 Parses the "dd-MM-yyyy" strings that the backend sends for FromDate/ToDate
+    const parseDdMmYyyy = (value: string): Date | null => {
+        if (!value) return null;
+        const parts = value.split("-");
+        if (parts.length !== 3) return null;
+        const [dd, mm, yyyy] = parts.map(Number);
+        if (!dd || !mm || !yyyy) return null;
+        return new Date(yyyy, mm - 1, dd);
+    };
+
+    // 🆕 REPLACEMENT for the old getLeaveDaysForMonth.
+    // Works off the invoice's own FromDate/ToDate instead of parsing the
+    // MonthYear label — so it works correctly for both month-mode invoices
+    // AND custom date-range invoices. This is what fixes "0 leave days"
+    // showing up for range invoices.
+    //
     // A day counts as a "leave" day if the customer did NOT receive an
     // actual delivery that day (Actual/Other entry with qty > 0),
     // regardless of whether a leave request exists.
-    const getLeaveDaysForMonth = (empId: number, monthYear: string): number => {
-        const monthKey = toMonthKey(monthYear);
-        if (!monthKey) return 0;
-        const [yearStr, monthStr] = monthKey.split("-");
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        if (!year || !month) return 0;
+    const getLeaveDaysInRange = (empId: number, fromDateStr: string, toDateStr: string): number => {
+        const fromDate = parseDdMmYyyy(fromDateStr);
+        const toDate = parseDdMmYyyy(toDateStr);
+        if (!fromDate || !toDate || toDate < fromDate) return 0;
 
-        const daysInMonth = new Date(year, month, 0).getDate();
         const today = new Date();
-        const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 1;
-        const isFutureMonth = year > today.getFullYear() ||
-            (year === today.getFullYear() && month > today.getMonth() + 1);
-        if (isFutureMonth) return 0;
-
-        const lastDay = isCurrentMonth ? today.getDate() : daysInMonth;
+        today.setHours(0, 0, 0, 0);
+        const effectiveToDate = toDate > today ? today : toDate;
+        if (effectiveToDate < fromDate) return 0;
 
         const deliveredDates = new Set<string>();
         milkEntries.forEach((e: any) => {
@@ -150,18 +164,21 @@ const Invoice: React.FC = () => {
             if (entryEmpId !== empId) return;
 
             const d = new Date(e.entryDate ?? e.EntryDate);
-            if (d.getFullYear() !== year || d.getMonth() + 1 !== month) return;
+            d.setHours(0, 0, 0, 0);
+            if (d < fromDate || d > effectiveToDate) return;
 
             const entryType = e.entryType ?? e.EntryType;
             const qty = e.quantity ?? e.Quantity ?? 0;
             if (entryType !== "Leave" && qty > 0) {
-                deliveredDates.add(d.getDate().toString());
+                deliveredDates.add(d.toDateString());
             }
         });
 
         let leaveCount = 0;
-        for (let day = 1; day <= lastDay; day++) {
-            if (!deliveredDates.has(day.toString())) leaveCount++;
+        const cursor = new Date(fromDate);
+        while (cursor <= effectiveToDate) {
+            if (!deliveredDates.has(cursor.toDateString())) leaveCount++;
+            cursor.setDate(cursor.getDate() + 1);
         }
         return leaveCount;
     };
@@ -180,17 +197,38 @@ const Invoice: React.FC = () => {
 
     const handleGenerate = async () => {
         if (!form.employeeID) return setError("Please select a customer.");
-        if (!form.monthYear) return setError("Please select month & year.");
+
+        let payload: CreateInvoiceRequest;
+
+        if (genMode === "month") {
+            if (!form.monthYear) return setError("Please select month & year.");
+            payload = {
+                employeeID: form.employeeID,
+                monthYear: form.monthYear,
+                previousArrears: form.previousArrears,
+                notes: form.notes,
+            };
+        } else {
+            if (!rangeFrom || !rangeTo) return setError("Please select both From Date and To Date.");
+            if (rangeTo < rangeFrom) return setError("'To Date' cannot be before 'From Date'.");
+            payload = {
+                employeeID: form.employeeID,
+                fromDate: rangeFrom,
+                toDate: rangeTo,
+                previousArrears: form.previousArrears,
+                notes: form.notes,
+            };
+        }
 
         setGenLoading(true);
         try {
-            const inv = await InvoiceService.create(form);
+            const inv = await InvoiceService.create(payload);
             setSuccess(`Invoice ${inv.invoiceNumber} generated successfully!`);
             setSelectedInvoice(inv);
             setShowForm(false);
             fetchAll();
         } catch {
-            setError("Failed to generate invoice. Check if data exists for selected month.");
+            setError("Failed to generate invoice. Check if data exists for selected period.");
         } finally {
             setGenLoading(false);
         }
@@ -463,7 +501,7 @@ const Invoice: React.FC = () => {
                     {downloadTarget && (
                         <InvoiceDetailView
                             invoice={downloadTarget}
-                            noOfLeaves={getLeaveDaysForMonth(downloadTarget.employeeID, downloadTarget.monthYear)}
+                            noOfLeaves={getLeaveDaysInRange(downloadTarget.employeeID, downloadTarget.fromDate, downloadTarget.toDate)}
                         />
                     )}
                 </div>
@@ -584,6 +622,26 @@ const Invoice: React.FC = () => {
                     <h6 className="fw-bold mb-3" style={{ color: "#1B4332" }}>
                         <i className="bi bi-file-earmark-plus me-2" />New Invoice
                     </h6>
+
+                    <div className="btn-group btn-group-sm mb-3" role="group">
+                        <button
+                            type="button"
+                            className={`btn ${genMode === "month" ? "text-white" : "btn-outline-secondary"}`}
+                            style={genMode === "month" ? { background: "#1B4332", borderColor: "#1B4332" } : {}}
+                            onClick={() => setGenMode("month")}
+                        >
+                            <i className="bi bi-calendar-month me-1" />By Month
+                        </button>
+                        <button
+                            type="button"
+                            className={`btn ${genMode === "range" ? "text-white" : "btn-outline-secondary"}`}
+                            style={genMode === "range" ? { background: "#1B4332", borderColor: "#1B4332" } : {}}
+                            onClick={() => setGenMode("range")}
+                        >
+                            <i className="bi bi-calendar-range me-1" />By Date Range
+                        </button>
+                    </div>
+
                     <div className="row g-3 align-items-end">
 
                         <div className="col-md-4">
@@ -608,18 +666,48 @@ const Invoice: React.FC = () => {
                             </select>
                         </div>
 
-                        <div className="col-md-3">
-                            <label className="form-label fw-semibold small text-muted">
-                                MONTH & YEAR *
-                            </label>
-                            <input
-                                type="month"
-                                className="form-control form-control-sm"
-                                value={form.monthYear}
-                                max={currentMonthYear}
-                                onChange={e => setForm({ ...form, monthYear: e.target.value })}
-                            />
-                        </div>
+                        {genMode === "month" ? (
+                            <div className="col-md-3">
+                                <label className="form-label fw-semibold small text-muted">
+                                    MONTH & YEAR *
+                                </label>
+                                <input
+                                    type="month"
+                                    className="form-control form-control-sm"
+                                    value={form.monthYear}
+                                    max={currentMonthYear}
+                                    onChange={e => setForm({ ...form, monthYear: e.target.value })}
+                                />
+                            </div>
+                        ) : (
+                            <>
+                                <div className="col-md-3">
+                                    <label className="form-label fw-semibold small text-muted">
+                                        FROM DATE *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        className="form-control form-control-sm"
+                                        value={rangeFrom}
+                                        max={todayStr}
+                                        onChange={e => setRangeFrom(e.target.value)}
+                                    />
+                                </div>
+                                <div className="col-md-3">
+                                    <label className="form-label fw-semibold small text-muted">
+                                        TO DATE *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        className="form-control form-control-sm"
+                                        value={rangeTo}
+                                        min={rangeFrom || undefined}
+                                        max={todayStr}
+                                        onChange={e => setRangeTo(e.target.value)}
+                                    />
+                                </div>
+                            </>
+                        )}
 
                         <div className="col-md-3">
                             <label className="form-label fw-semibold small text-muted">
@@ -742,7 +830,7 @@ const Invoice: React.FC = () => {
                                     </th>
                                     {[
                                         "Invoice No", "Customer Name", "Month / Year",
-                                        "Total Amount", "Paid Amount", "Pending / Advance", // 🆕 3 separate columns
+                                        "Total Amount", "Paid Amount", "Pending / Advance",
                                         "Status", "Action"
                                     ].map(h => (
                                         <th key={h} style={{
@@ -821,11 +909,9 @@ const Invoice: React.FC = () => {
                                             }} onClick={() => setSelectedInvoice(inv)}>
                                                 {inv.monthYear}
                                             </td>
-                                            {/* 🆕 Paid Amount */}
                                             <td style={{ padding: "12px 16px", fontSize: "0.88rem", fontWeight: 600, color: "#15803d" }} onClick={() => setSelectedInvoice(inv)}>
                                                 Rs. {inv.amountPaid.toFixed(2)}
                                             </td>
-                                            {/* 🆕 Pending / Advance */}
                                             <td style={{
                                                 padding: "12px 16px", fontSize: "0.88rem", fontWeight: 700,
                                                 color: isAdvance ? "#6d28d9" : inv.balanceDue > 0 ? "#dc2626" : "#15803d"
@@ -852,9 +938,6 @@ const Invoice: React.FC = () => {
                                                     >
                                                         <i className="bi bi-eye me-1" />View
                                                     </button>
-                                                    {/* 🔄 Always visible now — "Update Payment" — pay pannalum,
-                                                        pannalainaalum, ellathukkume kaatum. Same button lets
-                                                        admin correct a wrongly-entered amount anytime. */}
                                                     <button
                                                         className="btn btn-sm btn-outline-warning"
                                                         style={{
@@ -974,7 +1057,7 @@ const Invoice: React.FC = () => {
                                 >
                                     <InvoiceDetailView
                                         invoice={selectedInvoice}
-                                        noOfLeaves={getLeaveDaysForMonth(selectedInvoice.employeeID, selectedInvoice.monthYear)}
+                                        noOfLeaves={getLeaveDaysInRange(selectedInvoice.employeeID, selectedInvoice.fromDate, selectedInvoice.toDate)}
                                     />
                                 </div>
                             </div>

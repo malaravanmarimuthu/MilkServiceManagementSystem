@@ -475,7 +475,7 @@ function Navbar() {
                                                             to="/pie-chart-report"
                                                             onClick={closeMenu}
                                                         >
-                                                            Pie Chart
+                                                                Location wise Consumption
                                                         </NavLink>
                                                     </li>
                                                     <li>
@@ -484,36 +484,21 @@ function Navbar() {
                                                             to="/bar-chart-report"
                                                             onClick={closeMenu}
                                                         >
-                                                            Bar Chart
+                                                            Sales Report
                                                         </NavLink>
                                                     </li>
                                                 </ul>
                                             </li>
 
-                                            <li
-                                                className="nav-item dropdown"
-                                                onMouseEnter={() => handleDropdownEnter("expense")}
-                                            >
-                                                <a
-                                                    className="nav-link dropdown-toggle nav-master-toggle"
-                                                    href="#"
-                                                    role="button"
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        handleToggleClick("expense");
-                                                    }}
-                                                >
-                                                    Expense
-                                                </a>
-
-                                                <ul className={`dropdown-menu nav-dropdown-fresh ${openDropdown === "expense" ? "show" : ""}`}>
-                                                    <li>
-                                                        <NavLink className="dropdown-item" to="/expense" onClick={closeMenu}>
-                                                            Expense
-                                                        </NavLink>
-                                                    </li>
-                                                </ul>
-                                            </li>
+                                                <li className="nav-item">
+                                                    <NavLink
+                                                        to="/expense"
+                                                        className="nav-link nav-link-fresh"
+                                                        onClick={closeMenu}
+                                                    >
+                                                        Expenses
+                                                    </NavLink>
+                                                </li>
 
                                             <li className="nav-item">
                                                 <NavLink to="/my-profile" className="nav-link nav-link-fresh" onClick={closeMenu}>

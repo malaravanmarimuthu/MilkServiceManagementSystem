@@ -1,7 +1,12 @@
 const config = {
 
-    AUTH_URL:"https://4kfresh-prdn.azurewebsites.net"
-   // AUTH_URL: "https://localhost:44343"
+    //Production Enviroment
+
+            AUTH_URL:"https://4kfresh-prdn.azurewebsites.net"
+
+    //Local Environment
+
+               //AUTH_URL: "https://localhost:44343"
     
 };
 

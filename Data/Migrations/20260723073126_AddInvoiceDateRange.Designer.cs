@@ -4,6 +4,7 @@ using Data.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Data.Migrations
 {
     [DbContext(typeof(AuthDbContext))]
-    partial class AuthDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723073126_AddInvoiceDateRange")]
+    partial class AddInvoiceDateRange
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,23 +55,14 @@ namespace Data.Migrations
                     b.Property<string>("LastName")
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<decimal?>("Latitude")
-                        .HasColumnType("decimal(65,30)");
-
                     b.Property<long>("LocationID")
                         .HasColumnType("bigint");
-
-                    b.Property<decimal?>("Longitude")
-                        .HasColumnType("decimal(65,30)");
 
                     b.Property<string>("Mobile")
                         .HasColumnType("nvarchar(25)");
 
                     b.Property<string>("Password")
                         .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Photourl")
-                        .HasColumnType("varchar(500");
 
                     b.Property<string>("RegionCode")
                         .HasColumnType("longtext");

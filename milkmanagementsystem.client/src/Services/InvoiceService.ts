@@ -9,6 +9,8 @@ export interface InvoiceDto {
     employeeName: string;
     generatedDate: string;
     monthYear: string;
+    fromDate: string;
+    toDate: string;
     totalQuantity: number;
     ratePerLitre: number;
     totalAmount: number;
@@ -23,7 +25,9 @@ export interface InvoiceDto {
 
 export interface CreateInvoiceRequest {
     employeeID: number;
-    monthYear: string;
+    monthYear?: string; 
+    fromDate?: string;  
+    toDate?: string;      
     previousArrears: number;
     notes?: string;
 }
