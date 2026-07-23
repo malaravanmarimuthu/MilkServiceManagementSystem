@@ -1,6 +1,4 @@
 ﻿using Data.Context;
-using Data.Entities;
-using Mapster;
 using Microsoft.EntityFrameworkCore;
 using Models.Dto;
 using Services.Contracts;

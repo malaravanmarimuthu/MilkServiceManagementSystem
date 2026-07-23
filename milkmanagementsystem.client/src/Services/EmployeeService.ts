@@ -46,6 +46,26 @@ export const resetEmployeePassword = (id: number) =>
 export const deleteEmployee = (id: number) =>
     axiosInstance.delete(`${API}/${id}`);
 
+export const updateEmployeeLocation = (
+    id: number,
+    latitude: number,
+    longitude: number
+) => axiosInstance.put(`${API}/${id}/location`, { latitude, longitude });
+
+export const deleteEmployeeLocation = (id: number) =>
+    axiosInstance.delete(`${API}/${id}/location`);
+
+export const uploadEmployeePhoto = (id: number, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return axiosInstance.post(`${API}/${id}/photo`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+    });
+};
+
+export const deleteEmployeePhoto = (id: number) =>
+    axiosInstance.delete(`${API}/${id}/photo`);
+
 export interface Employee {
     id: number;
     firstName: string;
@@ -55,6 +75,9 @@ export interface Employee {
     password: string;
     locationID: number;
     roleID: number;
+    latitude?: number;
+    longitude?: number;
+    photourl?: string;
 
     location?: {
         locationID: number;

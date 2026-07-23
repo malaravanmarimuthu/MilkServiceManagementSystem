@@ -74,6 +74,8 @@ catch (Exception ex)
     Console.WriteLine($"[STARTUP ERROR - QueueClient] {ex}");
     throw;
 }
+builder.Services.Configure<AzureBlobSettings>(
+    builder.Configuration.GetSection("AzureBlob"));
 
 var app = builder.Build();
 
