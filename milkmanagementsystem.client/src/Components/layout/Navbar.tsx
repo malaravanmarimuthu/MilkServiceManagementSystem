@@ -24,7 +24,6 @@ function Navbar() {
 
     const navRef = useRef<HTMLDivElement>(null);
 
-    // Closes mobile collapse menu + any open dropdown
     const closeMenu = () => {
         const navbar = navRef.current;
         if (navbar?.classList.contains("show")) {
@@ -33,23 +32,19 @@ function Navbar() {
         setOpenDropdown(null);
     };
 
-    // Desktop: hover any dropdown item -> switch to that submenu instantly
     const handleDropdownEnter = (key: string) => {
         if (window.innerWidth >= 992) {
             setOpenDropdown(key);
         }
     };
 
-    // Desktop: only close when leaving the whole nav-links area
-    // (prevents flicker when moving from one dropdown to another,
-    // and the CSS bridge below stops it firing too early on the gap)
+  
     const handleNavAreaLeave = () => {
         if (window.innerWidth >= 992) {
             setOpenDropdown(null);
         }
     };
 
-    // Mobile: click to toggle a dropdown open/closed
     const handleToggleClick = (key: string) => {
         if (window.innerWidth < 992) {
             setOpenDropdown(prev => (prev === key ? null : key));
@@ -413,7 +408,12 @@ function Navbar() {
                                                         <NavLink className="dropdown-item" to="/invoice" onClick={closeMenu}>
                                                             Invoice
                                                         </NavLink>
-                                                    </li>
+                                                        </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/Employee-Location-Photo" onClick={closeMenu}>
+                                                                User Location Details
+                                                            </NavLink>
+                                                        </li>
                                                 </ul>
                                             </li>
 

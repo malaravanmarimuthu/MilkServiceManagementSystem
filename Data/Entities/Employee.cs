@@ -26,6 +26,11 @@ namespace Data.Entities
 
         [Column(TypeName = "nvarchar(50)")]
         public string? Password { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        [Column(TypeName ="varchar(500")]
+        public string? Photourl { get; set; }
+
         public long LocationID { get; set; }
 
         [ForeignKey("LocationID")]

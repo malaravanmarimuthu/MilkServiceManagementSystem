@@ -44,7 +44,6 @@ namespace API.Controllers
             }
         }
 
-        // READ ALL
         [HttpGet]
         public async Task<IActionResult> GetALL()
         {
@@ -67,7 +66,6 @@ namespace API.Controllers
             }
         }
 
-        // READ BY ID
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(long id)
         {
@@ -90,7 +88,6 @@ namespace API.Controllers
             }
         }
 
-        // UPDATE
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(long id, EmployeeDto dto)
         {
@@ -113,7 +110,6 @@ namespace API.Controllers
             }
         }
 
-        // DELETE
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(long id)
         {
@@ -136,7 +132,6 @@ namespace API.Controllers
             }
         }
 
-        // RESET PASSWORD (to mobile number)
         [HttpPost("{id}/reset-password")]
         public async Task<IActionResult> ResetPassword(long id)
         {
@@ -163,6 +158,111 @@ namespace API.Controllers
             finally
             {
                 _logger.LogInformation($"Completed -> {_Name}.ResetPassword Request Id : {id}");
+            }
+        }
+
+        [HttpPut("{id}/location")]
+        public async Task<IActionResult> UpdateLocation(long id, [FromBody] UpdateEmployeeLocationDto dto)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> {_Name}.UpdateLocation Request Id : {id}");
+
+                var result = await _employeeService.UpdateLocationAsync(id, dto.Latitude, dto.Longitude);
+
+                if (!result)
+                    return NotFound("Employee not found");
+
+                return Ok(new { success = true, message = "Location saved successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> {_Name}.UpdateLocation : {ex.Message}");
+                return BadRequest(ex.Message);
+            }
+            finally
+            {
+                _logger.LogInformation($"Completed -> {_Name}.UpdateLocation Request Id : {id}");
+            }
+        }
+
+        [HttpDelete("{id}/location")]
+        public async Task<IActionResult> DeleteLocation(long id)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> {_Name}.DeleteLocation Request Id : {id}");
+
+                var result = await _employeeService.DeleteLocationAsync(id);
+
+                if (!result)
+                    return NotFound("Employee not found");
+
+                return Ok(new { success = true, message = "Location removed successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> {_Name}.DeleteLocation : {ex.Message}");
+                return BadRequest(ex.Message);
+            }
+            finally
+            {
+                _logger.LogInformation($"Completed -> {_Name}.DeleteLocation Request Id : {id}");
+            }
+        }
+
+        [HttpPost("{id}/photo")]
+        public async Task<IActionResult> UploadPhoto(long id, IFormFile file)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> {_Name}.UploadPhoto Request Id : {id}");
+
+                if (file == null || file.Length == 0)
+                    return BadRequest("No file uploaded.");
+
+                using var stream = file.OpenReadStream();
+                var url = await _employeeService.UploadPhotoAsync(id, stream, file.FileName, file.ContentType);
+
+                if (url == null)
+                    return NotFound("Employee not found");
+
+                return Ok(new { photoUrl = url });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> {_Name}.UploadPhoto : {ex.Message}");
+                return BadRequest(ex.Message);
+            }
+            finally
+            {
+                _logger.LogInformation($"Completed -> {_Name}.UploadPhoto Request Id : {id}");
+            }
+        }
+
+   
+        [HttpDelete("{id}/photo")]
+        public async Task<IActionResult> DeletePhoto(long id)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> {_Name}.DeletePhoto Request Id : {id}");
+
+                var result = await _employeeService.DeletePhotoAsync(id);
+
+                if (!result)
+                    return NotFound("Employee not found");
+
+                return Ok(new { success = true, message = "Photo removed successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> {_Name}.DeletePhoto : {ex.Message}");
+                return BadRequest(ex.Message);
+            }
+            finally
+            {
+                _logger.LogInformation($"Completed -> {_Name}.DeletePhoto Request Id : {id}");
             }
         }
     }

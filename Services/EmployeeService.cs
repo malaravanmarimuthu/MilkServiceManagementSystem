@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Models.Dto;
 using Azure.Storage.Queues;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
+using Services.Contracts;
 
 namespace Services
 {
@@ -11,13 +11,15 @@ namespace Services
         IRepositary<Employee> appUserRespository,
         IRepositary<Role> roleRepository,
         ILogger<EmployeeService> logger,
-        QueueClient queueClient) : IEmployeeService
+        QueueClient queueClient,
+        IAzureBlobService blobService) : IEmployeeService
     {
         private readonly string _Name = nameof(EmployeeService);
         private readonly ILogger<EmployeeService> _logger = logger;
         private readonly IRepositary<Employee> _appUserRespository = appUserRespository;
         private readonly IRepositary<Role> _roleRepository = roleRepository;
         private readonly QueueClient _queueClient = queueClient;
+        private readonly IAzureBlobService _blobService = blobService;
 
         public async ValueTask<bool> CreateAppUserAsync(RegisterDto req)
         {
@@ -64,7 +66,6 @@ namespace Services
 
                 await _appUserRespository.CreateAsync(appUserEntity);
 
-                //send data to azure queue
                 await _queueClient.CreateIfNotExistsAsync();
 
                 var message = JsonSerializer.Serialize(new EmployeeDto
@@ -88,10 +89,8 @@ namespace Services
             }
             catch (Exception ex)
             {
-                //_logger.LogError($"Error -> request {ex.Message}");
                 Console.WriteLine(ex.ToString());
                 throw;
-                
             }
             finally
             {
@@ -180,7 +179,10 @@ namespace Services
                     LocationID = x.LocationID,
                     LocationName = x.Location != null ? x.Location.LocationName : "",
                     RoleID = x.RoleID,
-                    RoleName = x.Role != null ? x.Role.RoleName : ""
+                    RoleName = x.Role != null ? x.Role.RoleName : "",
+                    Latitude = x.Latitude,
+                    Longitude = x.Longitude,
+                    Photourl = x.Photourl
                 }).ToList();
 
                 return result;
@@ -279,6 +281,140 @@ namespace Services
                     return false;
 
                 await _appUserRespository.DeleteAsync(emp);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> request {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _logger.LogInformation($"Completed -> request Id : {id}");
+            }
+        }
+
+        //EmployeeLocationPhoto
+        public async ValueTask<bool> UpdateLocationAsync(long id, decimal latitude, decimal longitude)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> request Id : {id} Lat:{latitude} Lng:{longitude}");
+
+                var emp = await _appUserRespository
+                    .FindByCondition(x => x.ID == id)
+                    .FirstOrDefaultAsync();
+
+                if (emp == null)
+                    return false;
+
+                emp.Latitude = latitude;
+                emp.Longitude = longitude;
+
+                await _appUserRespository.UpdateAsync(emp);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> request {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _logger.LogInformation($"Completed -> request Id : {id}");
+            }
+        }
+
+        public async ValueTask<string?> UploadPhotoAsync(long id, Stream fileStream, string fileName, string contentType)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> request Id : {id}");
+
+                var emp = await _appUserRespository
+                    .FindByCondition(x => x.ID == id)
+                    .FirstOrDefaultAsync();
+
+                if (emp == null)
+                    return null;
+
+                if (!string.IsNullOrEmpty(emp.Photourl))
+                {
+                    await _blobService.DeleteFileAsync(emp.Photourl);
+                }
+
+                var blobFileName = $"employee-{id}-{Guid.NewGuid()}{Path.GetExtension(fileName)}";
+                var url = await _blobService.UploadFileAsync(fileStream, blobFileName, contentType);
+
+                emp.Photourl = url;
+                await _appUserRespository.UpdateAsync(emp);
+
+                return url;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> request {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _logger.LogInformation($"Completed -> request Id : {id}");
+            }
+        }
+
+        public async ValueTask<bool> DeleteLocationAsync(long id)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> request Id : {id}");
+
+                var emp = await _appUserRespository
+                    .FindByCondition(x => x.ID == id)
+                    .FirstOrDefaultAsync();
+
+                if (emp == null)
+                    return false;
+
+                emp.Latitude = null;
+                emp.Longitude = null;
+
+                await _appUserRespository.UpdateAsync(emp);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error -> request {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                _logger.LogInformation($"Completed -> request Id : {id}");
+            }
+        }
+
+        public async ValueTask<bool> DeletePhotoAsync(long id)
+        {
+            try
+            {
+                _logger.LogInformation($"Started -> request Id : {id}");
+
+                var emp = await _appUserRespository
+                    .FindByCondition(x => x.ID == id)
+                    .FirstOrDefaultAsync();
+
+                if (emp == null)
+                    return false;
+
+                if (!string.IsNullOrEmpty(emp.Photourl))
+                {
+                    await _blobService.DeleteFileAsync(emp.Photourl);
+                }
+
+                emp.Photourl = null;
+                await _appUserRespository.UpdateAsync(emp);
 
                 return true;
             }

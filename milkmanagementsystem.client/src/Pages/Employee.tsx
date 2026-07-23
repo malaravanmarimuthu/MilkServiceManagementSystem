@@ -272,6 +272,12 @@ const Employee: React.FC = () => {
                             Cancel
                         </button>
                         <button
+                            className="btn btn-outline-success"
+                            onClick={() => navigate("/employee-location-photo")}
+                        >
+                            📍 Manage Location &amp; Photo
+                        </button>
+                        <button
                             className="btn btn-primary"
                             onClick={openAddModal}
                         >
@@ -280,7 +286,6 @@ const Employee: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Top row: Search + Sort + Show (left/center) ... Role filter (far right) */}
                 <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                     <div style={{ flex: 1, minWidth: "300px" }}>
                         <Pagination
@@ -368,7 +373,7 @@ const Employee: React.FC = () => {
                                                         </button>
 
                                                         <button
-                                                            className="btn btn-sm btn-info "
+                                                            className="btn btn-sm btn-info"
                                                             onClick={() => confirmResetPassword(emp)}
                                                         >
                                                             Reset Password
@@ -382,7 +387,6 @@ const Employee: React.FC = () => {
                             </table>
                         </div>
 
-                        {/* Page-number navigation only, at the bottom */}
                         <Pagination
                             currentPage={currentPage}
                             totalPages={totalPages}

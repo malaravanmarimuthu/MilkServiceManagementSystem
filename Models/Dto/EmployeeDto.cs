@@ -19,6 +19,15 @@ namespace Models.Dto
         public string? RoleName { get; set; }
 
         public EmployeeStatus Status { get; set; } = EmployeeStatus.Available;
+
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+        public string? Photourl { get; set; }
+    }
+
+    public class UpdateEmployeeLocationDto
+    {
+        public decimal Latitude { get; set; }
+        public decimal Longitude { get; set; }
     }
 }
-

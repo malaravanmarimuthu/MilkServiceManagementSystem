@@ -29,6 +29,7 @@ import ProcurementMonthlySalesHistory from "./Pages/ProcurementMonthlySalesHisto
 import Expense from "./Pages/Expense";
 import PieChartReport from "./Pages/PieChartReport";
 import BarChartReport from "./Pages/BarChartReport";
+import EmployeeLocationPhoto from "./Pages/EmployeeLocationPhoto";
 
 
 
@@ -85,6 +86,9 @@ function AppContent() {
                         <Route path="/procurement-monthly-sales-history" element={<ProtectedRoute><ProcurementMonthlySalesHistory /></ProtectedRoute>} />
                         <Route path="/pie-chart-report" element={<ProtectedRoute><PieChartReport /></ProtectedRoute>} />
                         <Route path="/bar-chart-report" element={<ProtectedRoute><BarChartReport /></ProtectedRoute>} />
+                        <Route path="/Employee-Location-Photo" element={<ProtectedRoute><EmployeeLocationPhoto /></ProtectedRoute>} />
+
+
                     </Routes>
                 </div>
 

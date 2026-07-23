@@ -48,6 +48,7 @@ namespace Services
             services.AddScoped<IExpenseService, ExpenseService>();   
             services.AddScoped<IReportService, ReportService>();
             services.AddScoped<ILookupMasterService, LookupMasterService>();
+            services.AddScoped<IAzureBlobService, AzureBlobService>();
 
         }
 
