@@ -1,3 +1,5 @@
+/* eslint-disable react-hooks/immutability */
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -7,26 +9,22 @@ import {
     deleteEmployeeLocation,
     deleteEmployeePhoto,
 } from "../Services/EmployeeService";
-import ErrorModal from "../Components/Common/ErrorModal";
-import SuccessModal from "../Components/Common/SuccessModal";
 import ConfirmModal from "../Components/Common/ConfirmModal";
 import Loader from "../Components/Common/Loader";
 import { useNavigate } from "react-router-dom";
 
-type ModalMode = "add" | "edit" | null;
+type Toast = { type: "success" | "error"; message: string } | null;
+type DeleteChoice = "location" | "photo";
 
 const EmployeeLocationPhoto: React.FC = () => {
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [successMessage, setSuccessMessage] = useState("");
     const [searchTerm, setSearchTerm] = useState("");
+    const [toast, setToast] = useState<Toast>(null);
+    const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Modal state
-    const [modalMode, setModalMode] = useState<ModalMode>(null);
-    const [modalEmpId, setModalEmpId] = useState<number | "">("");
+    const [expandedId, setExpandedId] = useState<number | null>(null);
 
-    // Staged (unsaved) changes inside the modal
     const [pendingLat, setPendingLat] = useState<number | null>(null);
     const [pendingLng, setPendingLng] = useState<number | null>(null);
     const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
@@ -34,14 +32,17 @@ const EmployeeLocationPhoto: React.FC = () => {
 
     const [fetchingLocation, setFetchingLocation] = useState(false);
     const [saving, setSaving] = useState(false);
-    const [dirLoading, setDirLoading] = useState(false);
     const [listDirLoadingId, setListDirLoadingId] = useState<number | null>(null);
+
+    const [deleteMenuId, setDeleteMenuId] = useState<number | null>(null);
 
     const [showDeleteLocationConfirm, setShowDeleteLocationConfirm] = useState(false);
     const [deleteLocationTargetId, setDeleteLocationTargetId] = useState<number | null>(null);
+    const [deletingLocation, setDeletingLocation] = useState(false);
 
     const [showDeletePhotoConfirm, setShowDeletePhotoConfirm] = useState(false);
     const [deletePhotoTargetId, setDeletePhotoTargetId] = useState<number | null>(null);
+    const [deletingPhoto, setDeletingPhoto] = useState(false);
 
     const [viewPhotoUrl, setViewPhotoUrl] = useState<string | null>(null);
     const [viewPhotoName, setViewPhotoName] = useState<string>("");
@@ -51,6 +52,16 @@ const EmployeeLocationPhoto: React.FC = () => {
 
     useEffect(() => { fetchEmployees(); }, []);
 
+    useEffect(() => {
+        return () => { if (toastTimerRef.current) clearTimeout(toastTimerRef.current); };
+    }, []);
+
+    const showToast = (type: "success" | "error", message: string) => {
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        setToast({ type, message });
+        toastTimerRef.current = setTimeout(() => setToast(null), 3000);
+    };
+
     const fetchEmployees = async () => {
         setLoading(true);
         try {
@@ -59,7 +70,7 @@ const EmployeeLocationPhoto: React.FC = () => {
             const arr = Array.isArray(data) ? data : data?.$values ?? data?.data ?? [];
             setEmployees(arr);
         } catch {
-            setError("Failed to load users");
+            showToast("error", "Failed to load users");
         } finally {
             setLoading(false);
         }
@@ -74,19 +85,14 @@ const EmployeeLocationPhoto: React.FC = () => {
     const hasLoc = (e: any) =>
         !!(e.latitude ?? e.Latitude) && !!(e.longitude ?? e.Longitude);
 
-    const modalEmployee = employees.find((e: any) => getEmpId(e) === modalEmpId);
-    const modalHasPhoto = !!(modalEmployee && getEmpPhoto(modalEmployee));
-    const modalHasLocation = !!(modalEmployee && hasLoc(modalEmployee));
-
-    // Users available in the "Add" dropdown — only those without a location yet
-    const usersWithoutLocation = employees.filter((e) => !hasLoc(e));
-
-    // Full list shown in the table — every user, filtered by the search box
     const filteredUsers = employees.filter((e) =>
         getEmpName(e).toLowerCase().includes(searchTerm.trim().toLowerCase())
     );
 
-    // ---- Modal open/close ----
+    const expandedEmployee = employees.find((e: any) => getEmpId(e) === expandedId);
+    const expandedHasPhoto = !!(expandedEmployee && getEmpPhoto(expandedEmployee));
+    const expandedHasLocation = !!(expandedEmployee && hasLoc(expandedEmployee));
+
     const resetPending = () => {
         setPendingLat(null);
         setPendingLng(null);
@@ -95,28 +101,25 @@ const EmployeeLocationPhoto: React.FC = () => {
         setPendingPhotoPreview(null);
     };
 
-    const openAddModal = () => {
-        resetPending();
-        setModalMode("add");
-        setModalEmpId("");
+    const toggleRow = (emp: any) => {
+        const id = getEmpId(emp);
+        setDeleteMenuId(null);
+        if (expandedId === id) {
+            resetPending();
+            setExpandedId(null);
+        } else {
+            resetPending();
+            setExpandedId(id);
+        }
     };
 
-    const openEditModal = (emp: any) => {
+    const closeRow = () => {
         resetPending();
-        setModalMode("edit");
-        setModalEmpId(getEmpId(emp));
+        setExpandedId(null);
     };
 
-    const closeModal = () => {
-        resetPending();
-        setModalMode(null);
-        setModalEmpId("");
-    };
-
-    // ---- Stage a new location (not saved yet) ----
     const handleStageLocation = () => {
-        if (!modalEmpId) return setError("Select a user first.");
-        if (!navigator.geolocation) return setError("Geolocation not supported.");
+        if (!navigator.geolocation) return showToast("error", "Geolocation not supported.");
 
         setFetchingLocation(true);
         navigator.geolocation.getCurrentPosition(
@@ -126,15 +129,13 @@ const EmployeeLocationPhoto: React.FC = () => {
                 setFetchingLocation(false);
             },
             () => {
-                setError("Unable to fetch location. Please allow location access.");
+                showToast("error", "Unable to fetch location. Please allow location access.");
                 setFetchingLocation(false);
             }
         );
     };
 
-    // ---- Stage a new photo (not saved yet) ----
     const handleChoosePhoto = () => {
-        if (!modalEmpId) return setError("Select a user first.");
         fileInputRef.current?.click();
     };
 
@@ -147,25 +148,23 @@ const EmployeeLocationPhoto: React.FC = () => {
         if (fileInputRef.current) fileInputRef.current.value = "";
     };
 
-    // ---- Save (commits staged location + photo together) ----
-    const isSaveDisabled =
-        !modalEmpId || saving || (pendingLat === null && !pendingPhotoFile);
+    const isSaveDisabled = saving || (pendingLat === null && !pendingPhotoFile);
 
     const handleSave = async () => {
-        if (!modalEmpId) return setError("Select a user first.");
+        if (!expandedId) return;
         setSaving(true);
         try {
             if (pendingLat !== null && pendingLng !== null) {
-                await updateEmployeeLocation(modalEmpId as number, pendingLat, pendingLng);
+                await updateEmployeeLocation(expandedId, pendingLat, pendingLng);
             }
             if (pendingPhotoFile) {
-                await uploadEmployeePhoto(modalEmpId as number, pendingPhotoFile);
+                await uploadEmployeePhoto(expandedId, pendingPhotoFile);
             }
-            setSuccessMessage("Saved successfully!");
+            showToast("success", "Saved successfully!");
             await fetchEmployees();
-            closeModal();
+            closeRow();
         } catch {
-            setError("Failed to save changes");
+            showToast("error", "Failed to save changes");
         } finally {
             setSaving(false);
         }
@@ -197,34 +196,38 @@ const EmployeeLocationPhoto: React.FC = () => {
         );
     };
 
-    const handleModalDirection = () => {
-        if (!modalHasLocation) return;
-        openDirections(getEmpLat(modalEmployee), getEmpLng(modalEmployee), setDirLoading);
-    };
-
     const handleListDirection = (emp: any) => {
         const id = getEmpId(emp);
         setListDirLoadingId(id);
         openDirections(getEmpLat(emp), getEmpLng(emp), () => setListDirLoadingId(null));
     };
 
-    // ---- Location delete (immediate — separate from Save) ----
-    const confirmDeleteLocationFor = (id: number | "") => {
-        if (!id) return;
-        setDeleteLocationTargetId(id as number);
-        setShowDeleteLocationConfirm(true);
+    // ---- Delete chooser menu ----
+    const toggleDeleteMenu = (id: number) => {
+        setDeleteMenuId((prev) => (prev === id ? null : id));
     };
 
-    const [deletingLocation, setDeletingLocation] = useState(false);
+    const chooseDelete = (emp: any, choice: DeleteChoice) => {
+        const id = getEmpId(emp);
+        setDeleteMenuId(null);
+        if (choice === "location") {
+            setDeleteLocationTargetId(id);
+            setShowDeleteLocationConfirm(true);
+        } else {
+            setDeletePhotoTargetId(id);
+            setShowDeletePhotoConfirm(true);
+        }
+    };
+
     const handleDeleteLocation = async () => {
         if (!deleteLocationTargetId) return;
         setDeletingLocation(true);
         try {
             await deleteEmployeeLocation(deleteLocationTargetId);
-            setSuccessMessage("Location removed!");
+            showToast("success", "Location removed!");
             fetchEmployees();
         } catch {
-            setError("Failed to remove location");
+            showToast("error", "Failed to remove location");
         } finally {
             setDeletingLocation(false);
             setShowDeleteLocationConfirm(false);
@@ -232,22 +235,15 @@ const EmployeeLocationPhoto: React.FC = () => {
         }
     };
 
-    // ---- Photo delete (immediate — separate from Save, small "✕" on thumbnail) ----
-    const confirmDeletePhotoFor = (id: number) => {
-        setDeletePhotoTargetId(id);
-        setShowDeletePhotoConfirm(true);
-    };
-
-    const [deletingPhoto, setDeletingPhoto] = useState(false);
     const handleDeletePhoto = async () => {
         if (!deletePhotoTargetId) return;
         setDeletingPhoto(true);
         try {
             await deleteEmployeePhoto(deletePhotoTargetId);
-            setSuccessMessage("Photo removed!");
+            showToast("success", "Photo removed!");
             fetchEmployees();
         } catch {
-            setError("Failed to remove photo");
+            showToast("error", "Failed to remove photo");
         } finally {
             setDeletingPhoto(false);
             setShowDeletePhotoConfirm(false);
@@ -272,111 +268,115 @@ const EmployeeLocationPhoto: React.FC = () => {
                     box-shadow: 0 8px 30px rgba(0,0,0,0.08);
                     padding: 28px;
                 }
-                .elp-select {
-                    border-radius: 10px;
-                    padding: 10px 14px;
-                    border: 1px solid #dcdcdc;
-                    width: 100%;
-                    font-size: 0.95rem;
-                }
+
+                /* --- Buttons: consistent professional palette --- */
                 .elp-btn {
-                    border-radius: 100px;
+                    border-radius: 8px;
                     padding: 8px 16px;
                     font-weight: 600;
-                    font-size: 0.85rem;
-                    border: none;
+                    font-size: 0.82rem;
+                    border: 1px solid transparent;
                     display: inline-flex;
                     align-items: center;
+                    justify-content: center;
                     gap: 6px;
                     cursor: pointer;
-                    transition: background 0.15s;
+                    transition: background 0.15s, border-color 0.15s;
                     white-space: nowrap;
+                    min-width: 128px;
                 }
-                .elp-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-                .elp-btn-location { background: #1B4332; color: #fff; }
-                .elp-btn-location:hover { background: #14532d; }
-                .elp-btn-direction { background: #1d4ed8; color: #fff; }
-                .elp-btn-direction:hover { background: #1e40af; }
-                .elp-btn-photo { background: #4895ef; color: #fff; }
-                .elp-btn-photo:hover { background: #3579d1; }
-                .elp-btn-view { background: #f1f0ff; color: #5b3ce0; }
-                .elp-btn-view:hover { background: #e3dfff; }
-                .elp-btn-update { background: #fff3cd; color: #8a6414; }
-                .elp-btn-update:hover { background: #ffe9a8; }
-                .elp-btn-add-loc { background: #e8f5e9; color: #1B4332; }
-                .elp-btn-add-loc:hover { background: #d3ecd6; }
-                .elp-btn-del-loc { background: #fdeaea; color: #c0392b; }
-                .elp-btn-del-loc:hover { background: #f8d0d0; }
-                .elp-btn-cancel { background: #f1f3f5; color: #495057; }
-                .elp-btn-cancel:hover { background: #e9ecef; }
-                .elp-btn-add {
+                .elp-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+                .elp-btn-direction {
+                    background: #fff;
+                    color: #1d4ed8;
+                    border-color: #b8cbf2;
+                }
+                .elp-btn-direction:hover:not(:disabled) { background: #eef3ff; }
+
+                .elp-btn-location {
                     background: #1B4332;
                     color: #fff;
-                    border-radius: 100px;
-                    padding: 10px 22px;
-                    font-weight: 700;
-                    font-size: 0.92rem;
-                    border: none;
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    cursor: pointer;
                 }
-                .elp-btn-add:hover { background: #14532d; }
+                .elp-btn-location:hover:not(:disabled) { background: #14532d; }
+
+                .elp-btn-photo {
+                    background: #2f6fed;
+                    color: #fff;
+                }
+                .elp-btn-photo:hover:not(:disabled) { background: #245bcc; }
+
+                .elp-btn-del {
+                    background: #fff;
+                    color: #c0392b;
+                    border-color: #f0b8b8;
+                    min-width: 96px;
+                }
+                .elp-btn-del:hover:not(:disabled) { background: #fdeaea; }
+
+                .elp-btn-cancel { background: #f1f3f5; color: #495057; min-width: auto; }
+                .elp-btn-cancel:hover { background: #e9ecef; }
+
                 .elp-btn-save {
                     background: #1B4332;
                     color: #fff;
-                    border-radius: 100px;
-                    padding: 10px 26px;
+                    border-radius: 8px;
+                    padding: 9px 22px;
                     font-weight: 700;
-                    font-size: 0.92rem;
+                    font-size: 0.88rem;
                     border: none;
                     cursor: pointer;
                 }
                 .elp-btn-save:hover:not(:disabled) { background: #14532d; }
                 .elp-btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
                 .elp-coords {
                     font-size: 0.83rem;
                     color: #6c757d;
                 }
-
-                /* --- Table section --- */
-                .elp-table-toolbar {
-                    display: flex;
+                .elp-view-link {
+                    background: none;
+                    border: none;
+                    color: #2f6fed;
+                    font-weight: 600;
+                    font-size: 0.85rem;
+                    padding: 0;
+                    cursor: pointer;
+                    display: inline-flex;
                     align-items: center;
-                    justify-content: space-between;
-                    gap: 12px;
-                    flex-wrap: wrap;
-                    margin-bottom: 18px;
+                    gap: 5px;
                 }
-                .elp-table-title {
-                    font-size: 1.1rem;
-                    font-weight: 700;
-                    color: #1B4332;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    margin: 0;
+                .elp-view-link:hover { text-decoration: underline; }
+
+                /* --- Toolbar: search bar takes the full space --- */
+                .elp-table-toolbar {
+                    margin-bottom: 20px;
                 }
                 .elp-search-wrap {
                     position: relative;
-                    min-width: 260px;
+                    width: 100%;
                 }
                 .elp-search-input {
                     border-radius: 10px;
-                    padding: 9px 14px 9px 36px;
+                    padding: 12px 16px 12px 42px;
                     border: 1px solid #dcdcdc;
                     width: 100%;
-                    font-size: 0.9rem;
+                    font-size: 0.95rem;
+                }
+                .elp-search-input:focus {
+                    outline: none;
+                    border-color: #1B4332;
+                    box-shadow: 0 0 0 3px rgba(27,67,50,0.1);
                 }
                 .elp-search-icon {
                     position: absolute;
-                    left: 12px;
+                    left: 14px;
                     top: 50%;
                     transform: translateY(-50%);
                     color: #adb5bd;
-                    font-size: 0.9rem;
+                    font-size: 1rem;
                 }
+
                 .elp-table thead th {
                     background: #1B4332;
                     color: #fff;
@@ -390,8 +390,8 @@ const EmployeeLocationPhoto: React.FC = () => {
                     vertical-align: middle;
                     font-size: 0.9rem;
                 }
-                .elp-table tbody tr:nth-child(even) { background: #fafbfa; }
-                .elp-table tbody tr:hover { background: #f1f8f2; }
+                .elp-table tbody tr.elp-main-row:hover { background: #f1f8f2; }
+                .elp-table tbody tr.elp-main-row.expanded { background: #eaf4ec; }
                 .elp-user-name {
                     font-weight: 600;
                     color: #212529;
@@ -402,9 +402,10 @@ const EmployeeLocationPhoto: React.FC = () => {
                 }
                 .elp-actions-cell {
                     display: flex;
-                    gap: 6px;
+                    gap: 8px;
                     flex-wrap: wrap;
                     justify-content: flex-end;
+                    position: relative;
                 }
                 .elp-empty-state {
                     text-align: center;
@@ -413,59 +414,53 @@ const EmployeeLocationPhoto: React.FC = () => {
                     font-size: 0.95rem;
                 }
 
-                /* --- Update/Add modal --- */
-                .elp-modal-backdrop {
+                /* --- Delete chooser menu --- */
+                .elp-delete-menu-backdrop {
                     position: fixed;
                     inset: 0;
-                    background: rgba(0,0,0,0.55);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    z-index: 2100;
-                    padding: 20px;
+                    z-index: 1400;
                 }
-                .elp-modal-content {
+                .elp-delete-menu {
+                    position: absolute;
+                    top: 100%;
+                    right: 0;
+                    margin-top: 6px;
                     background: #fff;
-                    border-radius: 16px;
+                    border: 1px solid #eef0f2;
+                    border-radius: 10px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+                    z-index: 1500;
+                    min-width: 170px;
+                    overflow: hidden;
+                }
+                .elp-delete-menu-item {
+                    display: block;
                     width: 100%;
-                    max-width: 460px;
-                    max-height: 88vh;
-                    overflow-y: auto;
-                    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                }
-                .elp-modal-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    padding: 20px 22px;
-                    border-bottom: 1px solid #eef0f2;
-                }
-                .elp-modal-title {
-                    font-size: 1.05rem;
-                    font-weight: 700;
-                    color: #1B4332;
-                    margin: 0;
-                }
-                .elp-modal-close {
-                    background: none;
+                    text-align: left;
+                    padding: 10px 14px;
+                    background: #fff;
                     border: none;
-                    font-size: 1.2rem;
-                    color: #868e96;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    color: #c0392b;
                     cursor: pointer;
-                    line-height: 1;
                 }
-                .elp-modal-body {
-                    padding: 22px;
+                .elp-delete-menu-item:hover:not(:disabled) { background: #fdeaea; }
+                .elp-delete-menu-item:disabled { color: #ced4da; cursor: not-allowed; }
+
+                /* --- Inline expand panel --- */
+                .elp-expand-row td {
+                    background: #f7faf7;
+                    padding: 20px 24px !important;
+                    border-top: none;
                 }
-                .elp-modal-footer {
-                    display: flex;
-                    justify-content: flex-end;
-                    gap: 10px;
-                    padding: 16px 22px;
-                    border-top: 1px solid #eef0f2;
+                .elp-expand-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 24px;
                 }
-                .elp-modal-section-label {
-                    font-size: 0.8rem;
+                .elp-expand-section-label {
+                    font-size: 0.78rem;
                     font-weight: 700;
                     color: #868e96;
                     text-transform: uppercase;
@@ -477,8 +472,8 @@ const EmployeeLocationPhoto: React.FC = () => {
                     border: 1px solid #ffe082;
                     color: #8a6414;
                     border-radius: 8px;
-                    padding: 8px 12px;
-                    font-size: 0.82rem;
+                    padding: 7px 12px;
+                    font-size: 0.8rem;
                     margin-top: 8px;
                     display: flex;
                     align-items: center;
@@ -491,15 +486,23 @@ const EmployeeLocationPhoto: React.FC = () => {
                     color: #8a6414;
                     font-weight: 700;
                     cursor: pointer;
-                    font-size: 0.8rem;
+                    font-size: 0.78rem;
                 }
-                .elp-modal-photo-preview {
-                    width: 72px;
-                    height: 72px;
+                .elp-expand-photo-preview {
+                    width: 64px;
+                    height: 64px;
                     border-radius: 50%;
                     object-fit: cover;
                     border: 2px solid #1B4332;
                     cursor: pointer;
+                }
+                .elp-expand-footer {
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 10px;
+                    margin-top: 18px;
+                    border-top: 1px solid #e2e8e3;
+                    padding-top: 14px;
                 }
 
                 /* --- Photo view modal --- */
@@ -547,43 +550,83 @@ const EmployeeLocationPhoto: React.FC = () => {
                     box-shadow: 0 2px 10px rgba(0,0,0,0.3);
                 }
 
+                /* --- Toast --- */
+                .elp-toast-wrap {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 3000;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+                .elp-toast {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    padding: 12px 18px;
+                    border-radius: 10px;
+                    font-size: 0.88rem;
+                    font-weight: 600;
+                    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+                    animation: elp-toast-in 0.2s ease-out;
+                    min-width: 240px;
+                }
+                .elp-toast-success { background: #e8f5e9; color: #1B4332; border: 1px solid #a5d6a7; }
+                .elp-toast-error { background: #fdeaea; color: #c0392b; border: 1px solid #f5b5b5; }
+                .elp-toast-close {
+                    margin-left: auto;
+                    background: none;
+                    border: none;
+                    cursor: pointer;
+                    font-weight: 700;
+                    opacity: 0.7;
+                    color: inherit;
+                }
+                @keyframes elp-toast-in {
+                    from { opacity: 0; transform: translateX(16px); }
+                    to { opacity: 1; transform: translateX(0); }
+                }
+
+                @media (max-width: 768px) {
+                    .elp-expand-grid { grid-template-columns: 1fr; }
+                }
                 @media (max-width: 576px) {
                     .elp-card { padding: 18px; border-radius: 12px; }
-                    .elp-btn-add { width: 100%; justify-content: center; padding: 12px; }
-                    .elp-search-wrap { width: 100%; }
-                    .elp-modal-content { max-width: 100%; }
+                    .elp-btn { min-width: 0; }
                     .elp-photo-modal-close { top: -14px; right: 0; }
+                    .elp-toast-wrap { left: 12px; right: 12px; top: 12px; }
+                    .elp-toast { min-width: 0; }
                 }
             `}</style>
 
-            <ErrorModal message={error} onClose={() => setError("")} />
-            <SuccessModal message={successMessage} onClose={() => setSuccessMessage("")} />
+            {toast && (
+                <div className="elp-toast-wrap">
+                    <div className={`elp-toast ${toast.type === "success" ? "elp-toast-success" : "elp-toast-error"}`}>
+                        <span>{toast.type === "success" ? "✅" : "⚠️"}</span>
+                        <span>{toast.message}</span>
+                        <button className="elp-toast-close" onClick={() => setToast(null)}>✕</button>
+                    </div>
+                </div>
+            )}
 
             <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleFileChange} />
 
             <div className="container-fluid mt-3 px-4">
                 <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                     <h2 className="mb-0">User Location &amp; Photo</h2>
-                    <div className="d-flex gap-2">
-                        <button className="elp-btn-add" onClick={openAddModal}>
-                            ＋ Add
-                        </button>
-                        <button className="btn btn-danger" onClick={() => navigate("/employee")}>Back</button>
-                    </div>
+                    <button className="btn btn-danger" onClick={() => navigate("/employee")}>Back</button>
                 </div>
 
                 {loading ? <Loader /> : (
                     <div className="elp-card">
                         <div className="elp-table-toolbar">
-                            <h5 className="elp-table-title">
-                                👥 Users ({filteredUsers.length})
-                            </h5>
                             <div className="elp-search-wrap">
                                 <span className="elp-search-icon">🔍</span>
                                 <input
                                     type="text"
                                     className="elp-search-input"
-                                    placeholder="Search by user..."
+                                    placeholder={`Search ${employees.length} users...`}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
@@ -599,6 +642,7 @@ const EmployeeLocationPhoto: React.FC = () => {
                                         <tr>
                                             <th>User</th>
                                             <th>Location</th>
+                                            <th>Photo</th>
                                             <th className="text-end">Actions</th>
                                         </tr>
                                     </thead>
@@ -607,60 +651,180 @@ const EmployeeLocationPhoto: React.FC = () => {
                                             const id = getEmpId(emp);
                                             const photo = getEmpPhoto(emp);
                                             const empHasLoc = hasLoc(emp);
+                                            const empHasPhoto = !!photo;
+                                            const isExpanded = expandedId === id;
+                                            const isDeleteMenuOpen = deleteMenuId === id;
                                             return (
-                                                <tr key={id}>
-                                                    <td>
-                                                        <span className="elp-user-name">{getEmpName(emp)}</span>
-                                                    </td>
-                                                    <td>
-                                                        {empHasLoc ? (
-                                                            <span className="elp-coords">
-                                                                📍 {getEmpLat(emp).toFixed(5)}, {getEmpLng(emp).toFixed(5)}
-                                                            </span>
-                                                        ) : (
-                                                            <span className="elp-muted-text">Not set</span>
-                                                        )}
-                                                    </td>
-                                                    <td>
-                                                        <div className="elp-actions-cell">
-                                                            {/* Direction always comes first */}
-                                                            {empHasLoc && (
-                                                                <button
-                                                                    className="elp-btn elp-btn-direction"
-                                                                    onClick={() => handleListDirection(emp)}
-                                                                    disabled={listDirLoadingId === id}
-                                                                >
-                                                                    {listDirLoadingId === id ? "Opening..." : "🗺 Direction"}
-                                                                </button>
+                                                <React.Fragment key={id}>
+                                                    <tr className={`elp-main-row${isExpanded ? " expanded" : ""}`}>
+                                                        <td>
+                                                            <span className="elp-user-name">{getEmpName(emp)}</span>
+                                                        </td>
+                                                        <td>
+                                                            {empHasLoc ? (
+                                                                <span className="elp-coords">
+                                                                    📍 {getEmpLat(emp).toFixed(5)}, {getEmpLng(emp).toFixed(5)}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="elp-muted-text">Not set</span>
                                                             )}
-
-                                                            {photo && (
-                                                                <button
-                                                                    className="elp-btn elp-btn-view"
-                                                                    onClick={() => openViewPhoto(emp)}
-                                                                >
+                                                        </td>
+                                                        <td>
+                                                            {empHasPhoto ? (
+                                                                <button className="elp-view-link" onClick={() => openViewPhoto(emp)}>
                                                                     🖼 View Photo
                                                                 </button>
+                                                            ) : (
+                                                                <span className="elp-muted-text">Not set</span>
                                                             )}
+                                                        </td>
+                                                        <td>
+                                                            <div className="elp-actions-cell">
+                                                                {/* Direction shows first */}
+                                                                {empHasLoc && (
+                                                                    <button
+                                                                        className="elp-btn elp-btn-direction"
+                                                                        onClick={() => handleListDirection(emp)}
+                                                                        disabled={listDirLoadingId === id}
+                                                                    >
+                                                                        {listDirLoadingId === id ? "Opening..." : "🗺 Direction"}
+                                                                    </button>
+                                                                )}
 
-                                                            <button
-                                                                className={`elp-btn ${empHasLoc ? "elp-btn-update" : "elp-btn-add-loc"}`}
-                                                                onClick={() => openEditModal(emp)}
-                                                            >
-                                                                {empHasLoc ? "✎ Update" : "＋ Add Location"}
-                                                            </button>
-
-                                                            {empHasLoc && (
                                                                 <button
-                                                                    className="elp-btn elp-btn-del-loc"
-                                                                    onClick={() => confirmDeleteLocationFor(id)}
+                                                                    className="elp-btn elp-btn-location"
+                                                                    onClick={() => toggleRow(emp)}
+                                                                >
+                                                                    📍 {empHasLoc ? "Update Location" : "Set Location"}
+                                                                </button>
+
+                                                                <button
+                                                                    className="elp-btn elp-btn-photo"
+                                                                    onClick={() => toggleRow(emp)}
+                                                                >
+                                                                    📷 {empHasPhoto ? "Update Photo" : "Set Photo"}
+                                                                </button>
+
+                                                                <button
+                                                                    className="elp-btn elp-btn-del"
+                                                                    onClick={() => toggleDeleteMenu(id)}
+                                                                    disabled={!empHasLoc && !empHasPhoto}
                                                                 >
                                                                     🗑 Delete
                                                                 </button>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
+
+                                                                {isDeleteMenuOpen && (
+                                                                    <>
+                                                                        <div
+                                                                            className="elp-delete-menu-backdrop"
+                                                                            onClick={() => setDeleteMenuId(null)}
+                                                                        />
+                                                                        <div className="elp-delete-menu">
+                                                                            <button
+                                                                                className="elp-delete-menu-item"
+                                                                                disabled={!empHasLoc}
+                                                                                onClick={() => chooseDelete(emp, "location")}
+                                                                            >
+                                                                                📍 Delete Location
+                                                                            </button>
+                                                                            <button
+                                                                                className="elp-delete-menu-item"
+                                                                                disabled={!empHasPhoto}
+                                                                                onClick={() => chooseDelete(emp, "photo")}
+                                                                            >
+                                                                                📷 Delete Photo
+                                                                            </button>
+                                                                        </div>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+
+                                                    {isExpanded && (
+                                                        <tr className="elp-expand-row">
+                                                            <td colSpan={4}>
+                                                                <div className="elp-expand-grid">
+                                                                    {/* Location column */}
+                                                                    <div>
+                                                                        <div className="elp-expand-section-label">Location</div>
+                                                                        {expandedHasLocation ? (
+                                                                            <div className="elp-coords mb-2">
+                                                                                📍 {getEmpLat(expandedEmployee).toFixed(5)}, {getEmpLng(expandedEmployee).toFixed(5)}
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div className="elp-muted-text mb-2">No location set yet</div>
+                                                                        )}
+
+                                                                        <button
+                                                                            className="elp-btn elp-btn-location"
+                                                                            onClick={handleStageLocation}
+                                                                            disabled={fetchingLocation}
+                                                                        >
+                                                                            {fetchingLocation ? "Fetching..." : expandedHasLocation ? "📍 Update Location" : "📍 Get Current Location"}
+                                                                        </button>
+
+                                                                        {pendingLat !== null && pendingLng !== null && (
+                                                                            <div className="elp-pending-note">
+                                                                                <span>New location ready: {pendingLat.toFixed(5)}, {pendingLng.toFixed(5)}</span>
+                                                                                <button
+                                                                                    className="elp-pending-discard"
+                                                                                    onClick={() => { setPendingLat(null); setPendingLng(null); }}
+                                                                                >Discard</button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Photo column */}
+                                                                    <div>
+                                                                        <div className="elp-expand-section-label">Photo</div>
+                                                                        <div className="d-flex align-items-center gap-3 flex-wrap">
+                                                                            {pendingPhotoPreview ? (
+                                                                                <img src={pendingPhotoPreview} alt="preview" className="elp-expand-photo-preview" />
+                                                                            ) : expandedHasPhoto ? (
+                                                                                <img
+                                                                                    src={photo}
+                                                                                    alt="user"
+                                                                                    className="elp-expand-photo-preview"
+                                                                                    onClick={() => openViewPhoto(expandedEmployee)}
+                                                                                />
+                                                                            ) : (
+                                                                                <div className="elp-muted-text">No photo yet</div>
+                                                                            )}
+
+                                                                            <button className="elp-btn elp-btn-photo" onClick={handleChoosePhoto}>
+                                                                                📷 Choose New Photo
+                                                                            </button>
+                                                                        </div>
+
+                                                                        {pendingPhotoFile && (
+                                                                            <div className="elp-pending-note">
+                                                                                <span>New photo ready to save</span>
+                                                                                <button
+                                                                                    className="elp-pending-discard"
+                                                                                    onClick={() => {
+                                                                                        if (pendingPhotoPreview) URL.revokeObjectURL(pendingPhotoPreview);
+                                                                                        setPendingPhotoFile(null);
+                                                                                        setPendingPhotoPreview(null);
+                                                                                    }}
+                                                                                >Discard</button>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="elp-expand-footer">
+                                                                    <button className="elp-btn elp-btn-cancel" onClick={closeRow}>
+                                                                        Cancel
+                                                                    </button>
+                                                                    <button className="elp-btn-save" onClick={handleSave} disabled={isSaveDisabled}>
+                                                                        {saving ? "Saving..." : "💾 Save"}
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </React.Fragment>
                                             );
                                         })}
                                     </tbody>
@@ -670,163 +834,6 @@ const EmployeeLocationPhoto: React.FC = () => {
                     </div>
                 )}
             </div>
-
-            {/* ---- Add / Edit modal ---- */}
-            {modalMode !== null && (
-                <div className="elp-modal-backdrop" onClick={closeModal}>
-                    <div className="elp-modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="elp-modal-header">
-                            <h5 className="elp-modal-title">
-                                {modalMode === "add" ? "Add User Location" : "Update User"}
-                            </h5>
-                            <button className="elp-modal-close" onClick={closeModal}>✕</button>
-                        </div>
-
-                        <div className="elp-modal-body">
-                            {modalMode === "add" ? (
-                                <>
-                                    <div className="elp-modal-section-label">Select User</div>
-                                    <select
-                                        className="elp-select"
-                                        value={modalEmpId}
-                                        onChange={(e) => {
-                                            resetPending();
-                                            setModalEmpId(e.target.value ? Number(e.target.value) : "");
-                                        }}
-                                    >
-                                        <option value="">-- Select User --</option>
-                                        {usersWithoutLocation.map((emp: any) => {
-                                            const id = getEmpId(emp);
-                                            return (
-                                                <option key={id} value={id}>
-                                                    {getEmpName(emp)}
-                                                </option>
-                                            );
-                                        })}
-                                    </select>
-                                    {usersWithoutLocation.length === 0 && (
-                                        <div className="text-muted small mt-2">
-                                            Every user already has a location added.
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="fw-semibold mb-2" style={{ fontSize: "1.05rem" }}>
-                                    {modalEmployee ? getEmpName(modalEmployee) : ""}
-                                </div>
-                            )}
-
-                            {modalEmpId !== "" && (
-                                <>
-                                    {/* Location section */}
-                                    <div className="mt-4">
-                                        <div className="elp-modal-section-label">Location</div>
-                                        {modalHasLocation ? (
-                                            <div className="elp-coords mb-2">
-                                                📍 {getEmpLat(modalEmployee).toFixed(5)}, {getEmpLng(modalEmployee).toFixed(5)}
-                                            </div>
-                                        ) : (
-                                            <div className="elp-muted-text mb-2">No location set yet</div>
-                                        )}
-
-                                        <div className="d-flex gap-2 flex-wrap">
-                                            <button
-                                                className="elp-btn elp-btn-location"
-                                                onClick={handleStageLocation}
-                                                disabled={fetchingLocation}
-                                            >
-                                                {fetchingLocation ? "Fetching..." : modalHasLocation ? "📍 Update Location" : "📍 Get Current Location"}
-                                            </button>
-
-                                            {modalHasLocation && (
-                                                <button
-                                                    className="elp-btn elp-btn-direction"
-                                                    onClick={handleModalDirection}
-                                                    disabled={dirLoading}
-                                                >
-                                                    {dirLoading ? "Opening..." : "🗺 Direction"}
-                                                </button>
-                                            )}
-
-                                            {modalHasLocation && (
-                                                <button
-                                                    className="elp-btn elp-btn-del-loc"
-                                                    onClick={() => confirmDeleteLocationFor(modalEmpId)}
-                                                >
-                                                    🗑 Remove Location
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {pendingLat !== null && pendingLng !== null && (
-                                            <div className="elp-pending-note">
-                                                <span>New location ready: {pendingLat.toFixed(5)}, {pendingLng.toFixed(5)} (unsaved)</span>
-                                                <button
-                                                    className="elp-pending-discard"
-                                                    onClick={() => { setPendingLat(null); setPendingLng(null); }}
-                                                >Discard</button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Photo section */}
-                                    <div className="mt-4">
-                                        <div className="elp-modal-section-label">Photo</div>
-                                        <div className="d-flex align-items-center gap-3">
-                                            {pendingPhotoPreview ? (
-                                                <img src={pendingPhotoPreview} alt="preview" className="elp-modal-photo-preview" />
-                                            ) : modalHasPhoto ? (
-                                                <img
-                                                    src={getEmpPhoto(modalEmployee)}
-                                                    alt="user"
-                                                    className="elp-modal-photo-preview"
-                                                    onClick={() => openViewPhoto(modalEmployee)}
-                                                />
-                                            ) : (
-                                                <div className="elp-muted-text">No photo yet</div>
-                                            )}
-
-                                            <button className="elp-btn elp-btn-photo" onClick={handleChoosePhoto}>
-                                                📷 Choose New Photo
-                                            </button>
-
-                                            {modalHasPhoto && !pendingPhotoPreview && (
-                                                <button
-                                                    className="elp-btn elp-btn-del-loc"
-                                                    onClick={() => confirmDeletePhotoFor(modalEmpId as number)}
-                                                >
-                                                    🗑 Remove Photo
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {pendingPhotoFile && (
-                                            <div className="elp-pending-note">
-                                                <span>New photo ready to save (unsaved)</span>
-                                                <button
-                                                    className="elp-pending-discard"
-                                                    onClick={() => {
-                                                        if (pendingPhotoPreview) URL.revokeObjectURL(pendingPhotoPreview);
-                                                        setPendingPhotoFile(null);
-                                                        setPendingPhotoPreview(null);
-                                                    }}
-                                                >Discard</button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </>
-                            )}
-                        </div>
-
-                        <div className="elp-modal-footer">
-                            <button className="elp-btn elp-btn-cancel" onClick={closeModal}>Cancel</button>
-                            <button className="elp-btn-save" onClick={handleSave} disabled={isSaveDisabled}>
-                                {saving ? "Saving..." : "💾 Save"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Enlarged photo view */}
             {viewPhotoUrl && (

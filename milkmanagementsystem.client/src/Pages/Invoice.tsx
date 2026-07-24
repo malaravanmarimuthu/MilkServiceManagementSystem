@@ -46,7 +46,6 @@ const Invoice: React.FC = () => {
     const [downloadTarget, setDownloadTarget] = useState<InvoiceDto | null>(null);
     const hiddenDownloadRef = useRef<HTMLDivElement>(null);
 
-    // Update Payment modal state — always available, editable, correctable
     const [paymentTarget, setPaymentTarget] = useState<InvoiceDto | null>(null);
     const [paymentAmount, setPaymentAmount] = useState("");
     const [paymentDate, setPaymentDate] = useState("");
@@ -56,7 +55,6 @@ const Invoice: React.FC = () => {
     const currentMonthYear = new Date().toISOString().slice(0, 7);
     const todayStr = new Date().toISOString().slice(0, 10);
 
-    // 🆕 Generate mode toggle — "month" (existing behaviour) or "range" (custom From/To dates)
     const [genMode, setGenMode] = useState<"month" | "range">("month");
     const [rangeFrom, setRangeFrom] = useState("");
     const [rangeTo, setRangeTo] = useState("");
@@ -129,7 +127,6 @@ const Invoice: React.FC = () => {
         return `${year}-${String(idx + 1).padStart(2, "0")}`;
     };
 
-    // 🆕 Parses the "dd-MM-yyyy" strings that the backend sends for FromDate/ToDate
     const parseDdMmYyyy = (value: string): Date | null => {
         if (!value) return null;
         const parts = value.split("-");
@@ -139,15 +136,6 @@ const Invoice: React.FC = () => {
         return new Date(yyyy, mm - 1, dd);
     };
 
-    // 🆕 REPLACEMENT for the old getLeaveDaysForMonth.
-    // Works off the invoice's own FromDate/ToDate instead of parsing the
-    // MonthYear label — so it works correctly for both month-mode invoices
-    // AND custom date-range invoices. This is what fixes "0 leave days"
-    // showing up for range invoices.
-    //
-    // A day counts as a "leave" day if the customer did NOT receive an
-    // actual delivery that day (Actual/Other entry with qty > 0),
-    // regardless of whether a leave request exists.
     const getLeaveDaysInRange = (empId: number, fromDateStr: string, toDateStr: string): number => {
         const fromDate = parseDdMmYyyy(fromDateStr);
         const toDate = parseDdMmYyyy(toDateStr);
@@ -415,8 +403,6 @@ const Invoice: React.FC = () => {
         return () => clearTimeout(timer);
     }, [downloadTarget]);
 
-    // 🔄 Update Payment handlers — always available, defaults to CURRENT
-    // paid amount so admin can correct it (not "add more").
     const openPaymentModal = (inv: InvoiceDto) => {
         setPaymentTarget(inv);
         setPaymentAmount(inv.amountPaid.toFixed(2));

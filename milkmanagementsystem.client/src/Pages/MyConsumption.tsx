@@ -53,6 +53,8 @@ const toInputDateStr = (d: Date) => {
     return `${y}-${m}-${day}`;
 };
 
+const dateKeyOf = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+
 const MyConsumption: React.FC = () => {
     const [entries, setEntries] = useState<MilkEntryDto[]>([]);
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -230,7 +232,7 @@ const MyConsumption: React.FC = () => {
 
     const totalActualQty = actualEntries.reduce((sum, e) => sum + (e.quantity ?? 0), 0);
     const totalOtherQty = otherEntries.reduce((sum, e) => sum + (e.quantity ?? 0), 0);
-    const totalQty = totalActualQty + totalOtherQty;
+    const totalQty = Math.round((totalActualQty + totalOtherQty) * 100) / 100;
 
     const mySub = getMySubscription(effectiveEmpId);
     const subId = mySub?.subscriptionId ?? mySub?.SubscriptionId ?? mySub?.subscriptionID;
@@ -249,11 +251,29 @@ const MyConsumption: React.FC = () => {
         sum + Number(p.totalAmount ?? p.TotalAmount ?? 0), 0
     );
 
+    // ---- Paid amount per date, for the table's "Paid Amount" column ----
+    const paidByDate = new Map<string, number>();
+    monthlyPayments.forEach((p: any) => {
+        const d = new Date(p.paidDate ?? p.PaidDate ?? "");
+        const key = dateKeyOf(d);
+        const amt = Number(p.totalAmount ?? p.TotalAmount ?? 0);
+        paidByDate.set(key, (paidByDate.get(key) ?? 0) + amt);
+    });
+
+    const getRowPaid = (entry: MilkEntryDto) => {
+        const d = new Date(entry.entryDate);
+        return paidByDate.get(dateKeyOf(d)) ?? 0;
+    };
+
+    // ---- Pending amount = what's still owed for this period ----
+    const pendingAmount = Math.max(totalPrice - totalPaid, 0);
+    const isFullyPaid = pendingAmount <= 0;
+
     const buildPrintEntries = (): MilkEntryDto[] => {
         const entryByDate = new Map<string, MilkEntryDto>();
         myEntries.forEach(e => {
             const d = new Date(e.entryDate);
-            const key = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+            const key = dateKeyOf(d);
             entryByDate.set(key, e);
         });
 
@@ -262,7 +282,7 @@ const MyConsumption: React.FC = () => {
         let idx = 0;
 
         while (cur <= rangeEnd) {
-            const key = `${cur.getFullYear()}-${cur.getMonth() + 1}-${cur.getDate()}`;
+            const key = dateKeyOf(cur);
             const existing = entryByDate.get(key);
 
             if (existing) {
@@ -344,22 +364,25 @@ const MyConsumption: React.FC = () => {
 
         const summaryY = 62;
         const boxes = [
-            { label: "Total Payment", value: `Rs.${totalPaid.toFixed(2)}` },
-            { label: "Leave Days", value: String(leaveEntries.length) },
-            { label: "Total Price", value: `Rs.${totalPrice.toFixed(2)}` },
+            { label: "Amount Paid", value: `Rs.${totalPaid.toFixed(2)}` },
+            { label: "Total Amount", value: `Rs.${totalPrice.toFixed(2)}` },
+            { label: `Leave Days (${monthLabel})`, value: String(leaveEntries.length) },
+            { label: "Pending Amount", value: `Rs.${pendingAmount.toFixed(2)}` },
         ];
         boxes.forEach((box, i) => {
-            const x = 14 + i * 62;
-            doc.setFillColor(232, 245, 233);
-            doc.roundedRect(x, summaryY, 58, 18, 3, 3, "F");
-            doc.setFontSize(13);
+            const x = 14 + i * 46;
+            const isPending = box.label === "Pending Amount";
+            doc.setFillColor(isPending ? 253 : 232, isPending ? 234 : 245, isPending ? 234 : 233);
+            doc.roundedRect(x, summaryY, 44, 18, 3, 3, "F");
+            doc.setFontSize(11);
             doc.setFont("helvetica", "bold");
-            doc.setTextColor(27, 67, 50);
-            doc.text(box.value, x + 29, summaryY + 8, { align: "center" });
-            doc.setFontSize(8);
+            if (isPending) doc.setTextColor(139, 0, 0);
+            else doc.setTextColor(27, 67, 50);
+            doc.text(box.value, x + 22, summaryY + 8, { align: "center" });
+            doc.setFontSize(7.5);
             doc.setFont("helvetica", "normal");
             doc.setTextColor(80, 80, 80);
-            doc.text(box.label, x + 29, summaryY + 14, { align: "center" });
+            doc.text(box.label, x + 22, summaryY + 14, { align: "center" });
         });
 
         doc.setTextColor(0, 0, 0);
@@ -368,19 +391,21 @@ const MyConsumption: React.FC = () => {
             const d = new Date(entry.entryDate);
             const dateStr = formatDDMMYYYY(d);
             const amount = getRowAmount(entry);
+            const paid = getRowPaid(entry);
             return [
                 dateStr,
                 entry.entryType,
                 entry.entryType === "Leave" ? "0 L" : `${entry.quantity} L`,
                 `Rs.${amount.toFixed(2)}`,
+                paid > 0 ? `Rs.${paid.toFixed(2)}` : "-",
             ];
         });
 
-        tableRows.push(["Total ", "", `${totalQty} L`, `Rs.${totalPrice.toFixed(2)}`]);
+        tableRows.push(["Total ", "", `${totalQty} L`, `Rs.${totalPrice.toFixed(2)}`, `Rs.${totalPaid.toFixed(2)}`]);
 
         autoTable(doc, {
             startY: summaryY + 26,
-            head: [["Date", "Entry Type", "Quantity (L)", "Amount"]],
+            head: [["Date", "Entry Type", "Quantity (L)", "Amount", "Paid Amount"]],
             body: tableRows,
             headStyles: {
                 fillColor: [27, 67, 50],
@@ -391,10 +416,11 @@ const MyConsumption: React.FC = () => {
             bodyStyles: { fontSize: 9 },
             alternateRowStyles: { fillColor: [245, 250, 246] },
             columnStyles: {
-                0: { cellWidth: 38 },
-                1: { cellWidth: 55 },
-                2: { cellWidth: 35 },
-                3: { cellWidth: 32 },
+                0: { cellWidth: 32 },
+                1: { cellWidth: 42 },
+                2: { cellWidth: 28 },
+                3: { cellWidth: 28 },
+                4: { cellWidth: 30 },
             },
             didParseCell: (data) => {
                 const lastRow = tableRows.length - 1;
@@ -647,42 +673,63 @@ const MyConsumption: React.FC = () => {
                     </div>
                 ) : (
                     <>
-                        {/* Summary Cards */}
-                        <div className="row g-3 mb-4">
-                            <div className="col-6 col-md-3">
-                                <div className="card text-center border-0 shadow-sm">
-                                    <div className="card-body py-3">
-                                        <div className="fs-3 fw-bold text-success">₹{totalPaid.toFixed(2)}</div>
-                                        <div className="text-muted small">Total Payment</div>
+                                {/* Summary Cards */}
+                                <div className="row g-3 mb-4">
+                                    {/* Amount Paid */}
+                                    <div className="col-6 col-md-3">
+                                        <div className="card text-center border-0 shadow-sm h-100"
+                                            style={{ background: "#1B4332" }}>
+                                            <div className="card-body py-3">
+                                                <div className="fs-3 fw-bold text-white">₹{totalPaid.toFixed(2)}</div>
+                                                <div className="text-white small">Amount Paid</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Total Amount */}
+                                    <div className="col-6 col-md-3">
+                                        <div className="card text-center border-0 shadow-sm h-100"
+                                            style={{ background: "#1B4332" }}>
+                                            <div className="card-body py-3">
+                                                <div className="fs-3 fw-bold text-white">₹{totalPrice.toFixed(2)}</div>
+                                                <div className="text-white small">Total Amount ({periodLabel})</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Leave Days */}
+                                    <div className="col-6 col-md-3">
+                                        <div className="card text-center border-0 shadow-sm h-100">
+                                            <div className="card-body py-3">
+                                                <div className="fs-3 fw-bold text-warning">{leaveEntries.length}</div>
+                                                <div className="text-muted small">Leave Days ({periodLabel})</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Pending Amount */}
+                                    <div className="col-6 col-md-3">
+                                        <div
+                                            className="card text-center border-0 shadow-sm h-100"
+                                            style={{
+                                                background: "#fdeaea",
+                                                border: "1px solid #f5b5b5",
+                                            }}
+                                        >
+                                            <div className="card-body py-3">
+                                                <div
+                                                    className="fs-3 fw-bold"
+                                                    style={{ color: "#6b0000" }}
+                                                >
+                                                    ₹{pendingAmount.toFixed(2)}
+                                                </div>
+                                                <div className="small" style={{ color: "#6b0000" }}>
+                                                    {isFullyPaid ? "✅ Fully Paid" : "⚠️ Pending Amount"}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="col-6 col-md-3">
-                                <div className="card text-center border-0 shadow-sm">
-                                    <div className="card-body py-3">
-                                        <div className="fs-3 fw-bold text-warning">{leaveEntries.length}</div>
-                                        <div className="text-muted small">Leave Days</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="col-6 col-md-3">
-                                <div className="card text-center border-0 shadow-sm">
-                                    <div className="card-body py-3">
-                                        <div className="fs-3 fw-bold text-primary">{totalOtherQty}</div>
-                                        <div className="text-muted small">Other Qty (in ltrs)</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="col-6 col-md-3">
-                                <div className="card text-center border-0 shadow-sm"
-                                    style={{ background: "#1B4332" }}>
-                                    <div className="card-body py-3">
-                                        <div className="fs-3 fw-bold text-white">₹{totalPrice.toFixed(2)}</div>
-                                        <div className="text-white small">Total Price ({periodLabel})</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
                         {/* Subscription Info */}
                         {mySub && (
@@ -715,13 +762,14 @@ const MyConsumption: React.FC = () => {
                                             <th>Date</th>
                                             <th>Entry Type</th>
                                             <th>Quantity (L)</th>
-                                            <th>Amount</th>
+                                            <th>Total Amount</th>
+                                            <th>Paid Amount</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {printEntries.length === 0 ? (
                                             <tr>
-                                                <td colSpan={4} className="text-center text-muted py-4">
+                                                <td colSpan={5} className="text-center text-muted py-4">
                                                     No entries found for {periodLabel}.
                                                 </td>
                                             </tr>
@@ -734,6 +782,7 @@ const MyConsumption: React.FC = () => {
                                                         entry.entryType === "Leave" ? "bg-warning text-dark" :
                                                             "bg-primary";
                                                 const amount = getRowAmount(entry);
+                                                const paid = getRowPaid(entry);
                                                 return (
                                                     <tr key={entry.milkEntryID}>
                                                         <td>{dateStr}</td>
@@ -746,6 +795,9 @@ const MyConsumption: React.FC = () => {
                                                             {entry.entryType === "Leave" ? "0 L" : `${entry.quantity} L`}
                                                         </td>
                                                         <td className="fw-bold">₹{amount.toFixed(2)}</td>
+                                                        <td className="fw-bold text-success">
+                                                            {paid > 0 ? `₹${paid.toFixed(2)}` : "—"}
+                                                        </td>
                                                     </tr>
                                                 );
                                             })
@@ -757,6 +809,15 @@ const MyConsumption: React.FC = () => {
                                                 <td colSpan={2} className="fw-bold text-end">Total:</td>
                                                 <td className="fw-bold text-success">{totalQty} L</td>
                                                 <td className="fw-bold text-success">₹{totalPrice.toFixed(2)}</td>
+                                                <td className="fw-bold text-success">₹{totalPaid.toFixed(2)}</td>
+                                            </tr>
+                                            <tr style={{ background: isFullyPaid ? "#e8f5e9" : "#fdeaea" }}>
+                                                <td colSpan={3} className="fw-bold text-end">
+                                                    {isFullyPaid ? "Fully Paid:" : "Pending:"}
+                                                </td>
+                                                <td colSpan={2} className="fw-bold" style={{ color: isFullyPaid ? "#1B4332" : "#8b0000" }}>
+                                                    ₹{pendingAmount.toFixed(2)}
+                                                </td>
                                             </tr>
                                         </tfoot>
                                     )}

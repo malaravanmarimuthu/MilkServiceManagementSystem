@@ -38,7 +38,7 @@ function Navbar() {
         }
     };
 
-  
+
     const handleNavAreaLeave = () => {
         if (window.innerWidth >= 992) {
             setOpenDropdown(null);
@@ -353,6 +353,20 @@ function Navbar() {
                                                     <li>
                                                         <NavLink className="dropdown-item" to="/subscription" onClick={closeMenu}>Subscription</NavLink>
                                                     </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/employeesubscription" onClick={closeMenu}>User Subscription</NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/leave-request" onClick={closeMenu}>Leave Request</NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/Employee-Location-Photo" onClick={closeMenu}>
+                                                            User Location Details
+                                                        </NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink className="dropdown-item" to="/expense" onClick={closeMenu}>Expenses</NavLink>
+                                                    </li>
                                                 </ul>
                                             </li>
 
@@ -374,12 +388,6 @@ function Navbar() {
 
                                                 <ul className={`dropdown-menu nav-dropdown-fresh ${openDropdown === "consumption" ? "show" : ""}`}>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/employeesubscription" onClick={closeMenu}>User Subscription</NavLink>
-                                                    </li>
-                                                    <li>
-                                                        <NavLink className="dropdown-item" to="/leave-request" onClick={closeMenu}>Leave Request</NavLink>
-                                                    </li>
-                                                    <li>
                                                         <NavLink className="dropdown-item" to="/milk-Consumption" onClick={closeMenu}>
                                                             Milk Consumption
                                                         </NavLink>
@@ -390,30 +398,10 @@ function Navbar() {
                                                         </NavLink>
                                                     </li>
                                                     <li>
-                                                        <NavLink className="dropdown-item" to="/payment-history" onClick={closeMenu}>
-                                                            Payment History
-                                                        </NavLink>
-                                                    </li>
-                                                    <li>
                                                         <NavLink className="dropdown-item" to="/My-consumption" onClick={closeMenu}>
                                                             User Consumption
                                                         </NavLink>
                                                     </li>
-                                                    <li>
-                                                        <NavLink className="dropdown-item" to="/Monthly-Sales-History" onClick={closeMenu}>
-                                                            Monthly Sales History
-                                                        </NavLink>
-                                                    </li>
-                                                    <li>
-                                                        <NavLink className="dropdown-item" to="/invoice" onClick={closeMenu}>
-                                                            Invoice
-                                                        </NavLink>
-                                                        </li>
-                                                        <li>
-                                                            <NavLink className="dropdown-item" to="/Employee-Location-Photo" onClick={closeMenu}>
-                                                                User Location Details
-                                                            </NavLink>
-                                                        </li>
                                                 </ul>
                                             </li>
 
@@ -475,7 +463,7 @@ function Navbar() {
                                                             to="/pie-chart-report"
                                                             onClick={closeMenu}
                                                         >
-                                                                Location wise Consumption
+                                                            Location wise Consumption
                                                         </NavLink>
                                                     </li>
                                                     <li>
@@ -487,18 +475,36 @@ function Navbar() {
                                                             Sales Report
                                                         </NavLink>
                                                     </li>
+                                                    <li>
+                                                        <NavLink
+                                                            className="dropdown-item"
+                                                            to="/payment-history"
+                                                            onClick={closeMenu}
+                                                        >
+                                                            Payment History
+                                                        </NavLink>
+                                                    </li>
+                                                    <li>
+                                                        <NavLink
+                                                            className="dropdown-item"
+                                                            to="/Monthly-Sales-History"
+                                                            onClick={closeMenu}
+                                                        >
+                                                            Monthly Sales History
+                                                        </NavLink>
+                                                    </li>
                                                 </ul>
                                             </li>
 
-                                                <li className="nav-item">
-                                                    <NavLink
-                                                        to="/expense"
-                                                        className="nav-link nav-link-fresh"
-                                                        onClick={closeMenu}
-                                                    >
-                                                        Expenses
-                                                    </NavLink>
-                                                </li>
+                                            <li className="nav-item">
+                                                <NavLink
+                                                    to="/invoice"
+                                                    className="nav-link nav-link-fresh"
+                                                    onClick={closeMenu}
+                                                >
+                                                    Invoice
+                                                </NavLink>
+                                            </li>
 
                                             <li className="nav-item">
                                                 <NavLink to="/my-profile" className="nav-link nav-link-fresh" onClick={closeMenu}>
