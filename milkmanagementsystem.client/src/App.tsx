@@ -30,6 +30,7 @@ import Expense from "./Pages/Expense";
 import PieChartReport from "./Pages/PieChartReport";
 import BarChartReport from "./Pages/BarChartReport";
 import EmployeeLocationPhoto from "./Pages/EmployeeLocationPhoto";
+import DeliveryRoute from "./Pages/DeliveryRoute";
 
 
 
@@ -87,6 +88,7 @@ function AppContent() {
                         <Route path="/pie-chart-report" element={<ProtectedRoute><PieChartReport /></ProtectedRoute>} />
                         <Route path="/bar-chart-report" element={<ProtectedRoute><BarChartReport /></ProtectedRoute>} />
                         <Route path="/Employee-Location-Photo" element={<ProtectedRoute><EmployeeLocationPhoto /></ProtectedRoute>} />
+                        <Route path="/Delivery-Route" element={<ProtectedRoute><DeliveryRoute /></ProtectedRoute>} />
 
 
                     </Routes>
