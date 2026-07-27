@@ -363,7 +363,12 @@ function Navbar() {
                                                         <NavLink className="dropdown-item" to="/Employee-Location-Photo" onClick={closeMenu}>
                                                             User Location Details
                                                         </NavLink>
-                                                    </li>
+                                                        </li>
+                                                        <li>
+                                                            <NavLink className="dropdown-item" to="/Delivery-Route" onClick={closeMenu}>
+                                                                Delivery Route
+                                                            </NavLink>
+                                                        </li>
                                                     <li>
                                                         <NavLink className="dropdown-item" to="/expense" onClick={closeMenu}>Expenses</NavLink>
                                                     </li>
