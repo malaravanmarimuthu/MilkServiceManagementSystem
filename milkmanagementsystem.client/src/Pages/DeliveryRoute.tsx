@@ -141,10 +141,33 @@ const DeliveryRoute: React.FC = () => {
         });
     };
 
-    const handleStartNavigation = () => {
-        if (routeStops.length === 0) return;
-        const first = routeStops[0];
-        handleDirection(first.latitude as number, first.longitude as number);
+    const handleStartNavigation = async () => {
+        try {
+            if (routeStops.length === 0) return;
+
+            const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject);
+            });
+
+            const origin = `${pos.coords.latitude},${pos.coords.longitude}`;
+            const destination = `${routeStops[routeStops.length - 1].latitude},${routeStops[routeStops.length - 1].longitude}`;
+
+            const waypoints = routeStops
+                .slice(0, -1)
+                .map(x => `${x.latitude},${x.longitude}`)
+                .join("|");
+
+            const url =
+                `https://www.google.com/maps/dir/?api=1` +
+                `&origin=${origin}` +
+                `&destination=${destination}` +
+                `&waypoints=${encodeURIComponent(waypoints)}` +
+                `&travelmode=driving`;
+
+            window.open(url, "_blank");
+        } catch {
+            alert("Unable to get current location.");
+        }
     };
 
     const locatedCount = employees.filter(
