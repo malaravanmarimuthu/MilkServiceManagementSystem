@@ -137,7 +137,6 @@ const Expense: React.FC = () => {
         if (!form.amount || form.amount <= 0) return setError("Please enter a valid amount.");
         if (!form.expenseDate) return setError("Please select date.");
 
-        // Convert yyyy-MM-dd → dd-MM-yyyy for SP
         const submitForm: CreateExpenseRequest = {
             ...form,
             expenseDate: toSpFormat(form.expenseDate),

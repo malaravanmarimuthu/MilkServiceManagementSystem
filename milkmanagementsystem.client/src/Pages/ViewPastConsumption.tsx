@@ -339,7 +339,6 @@ const ViewPastConsumption: React.FC = () => {
                     <h4 className="fw-bold mb-0">Milk Entries</h4>
                 </div>
 
-                {/* Filters row: Location, Employee search (left) + Date, Refresh (right) */}
                 <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
                     <div className="d-flex align-items-center gap-3 flex-wrap">
                         <select

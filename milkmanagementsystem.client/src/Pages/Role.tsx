@@ -42,7 +42,7 @@ const Role: React.FC = () => {
             const rolesArray = Array.isArray(data)
                 ? data
                 : data?.$values ?? data?.data ?? [];
-            setRoles([...rolesArray].reverse()); // newest first
+            setRoles([...rolesArray].reverse());
             setCurrentPage(1);
         } catch (err) {
             console.error(err);
