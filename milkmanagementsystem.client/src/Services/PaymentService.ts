@@ -4,9 +4,10 @@ export interface PaymentDto {
     paymentID?: number;
     employeeID: number;
     employeeName?: string;
-    milkEntryID: number;
-    quantity: number;
-    ratePerLiter: number;
+    milkEntryID?: number | null;
+    invoiceID?: number | null;
+    quantity?: number | null;
+    ratePerLiter?: number | null;
     totalAmount: number;
     paidDate: string;
 }

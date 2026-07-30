@@ -9,5 +9,11 @@ public interface IInvoiceService
     Task<bool> DeleteAsync(long id);
     Task<decimal> GetLastBalanceAsync(long empId);
     Task<BulkInvoiceResultDto> CreateAllAsync(string monthYear);
-    Task<InvoiceDto> UpdatePaymentAsync(long invoiceId, UpdatePaymentRequest req);
+
+    Task<List<PaymentEntryDto>> GetPaymentsAsync(long invoiceId);
+    Task<InvoiceDto> AddPaymentAsync(long invoiceId, AddPaymentRequest req);
+    Task<InvoiceDto> UpdatePaymentEntryAsync(long paymentId, UpdatePaymentEntryRequest req);
+    Task<InvoiceDto> DeletePaymentEntryAsync(long paymentId);
+
+    Task<InvoiceDto> UpdateArrearsAsync(long invoiceId, decimal previousArrears);
 }

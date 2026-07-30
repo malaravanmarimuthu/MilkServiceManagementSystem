@@ -30,9 +30,9 @@ namespace MilkManagementSystem.Server.Controllers
                     EmployeeName = p.Employee != null
                         ? p.Employee.FirstName + " " + p.Employee.LastName
                         : "",
-                    MilkEntryID = p.MilkEntryID,
-                    Quantity = p.Quantity,
-                    RatePerLiter = p.RatePerLiter,
+                    MilkEntryID = p.MilkEntryID ?? 0,
+                    Quantity = p.Quantity ?? 0,
+                    RatePerLiter = p.RatePerLiter ?? 0,
                     TotalAmount = p.TotalAmount,
                     PaidDate = p.PaidDate,
                 })

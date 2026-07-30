@@ -25,9 +25,9 @@ export interface InvoiceDto {
 
 export interface CreateInvoiceRequest {
     employeeID: number;
-    monthYear?: string; 
-    fromDate?: string;  
-    toDate?: string;      
+    monthYear?: string;
+    fromDate?: string;
+    toDate?: string;
     previousArrears: number;
     notes?: string;
 }
@@ -39,10 +39,25 @@ export interface BulkInvoiceResult {
     errors: string[];
 }
 
-export interface UpdatePaymentRequest {
-    totalPaidAmount: number;
+export interface PaymentEntryDto {
+    paymentID: number;
+    invoiceID: number;
+    amount: number;
+    paidDate: string;
+}
+
+export interface AddPaymentRequest {
+    amount: number;
     paidDate?: string;
-    notes?: string;
+}
+
+export interface UpdatePaymentEntryRequest {
+    amount: number;
+    paidDate?: string;
+}
+
+export interface UpdateArrearsRequest {
+    previousArrears: number;
 }
 
 const BASE = `${config.AUTH_URL}/api/Invoice`;
@@ -64,7 +79,21 @@ export const InvoiceService = {
 
     getLastBalance: (empId: number) => axios.get<number>(`${BASE}/lastbalance/${empId}`).then(r => r.data),
 
-    updatePayment: (invoiceId: number, req: UpdatePaymentRequest) =>
-        axios.post<InvoiceDto>(`${BASE}/${invoiceId}/update-payment`, req).then(r => r.data),
+    // payment history
+    getPayments: (invoiceId: number) =>
+        axios.get<PaymentEntryDto[]>(`${BASE}/${invoiceId}/payments`).then(r => r.data),
+
+    addPayment: (invoiceId: number, req: AddPaymentRequest) =>
+        axios.post<InvoiceDto>(`${BASE}/${invoiceId}/payments`, req).then(r => r.data),
+
+    updatePaymentEntry: (paymentId: number, req: UpdatePaymentEntryRequest) =>
+        axios.put<InvoiceDto>(`${BASE}/payments/${paymentId}`, req).then(r => r.data),
+
+    deletePaymentEntry: (paymentId: number) =>
+        axios.delete<InvoiceDto>(`${BASE}/payments/${paymentId}`).then(r => r.data),
+
+    // arrears
+    updateArrears: (invoiceId: number, req: UpdateArrearsRequest) =>
+        axios.put<InvoiceDto>(`${BASE}/${invoiceId}/arrears`, req).then(r => r.data),
 
 };

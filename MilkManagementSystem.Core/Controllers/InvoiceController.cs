@@ -1,6 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Models.Dto;
 using Services.Contracts;
 
@@ -56,22 +54,44 @@ namespace API.Controllers
             }
         }
 
-        [HttpPost("{id}/update-payment")]
-        public async Task<IActionResult> UpdatePayment(long id, UpdatePaymentRequest req)
-        {
-            try
-            {
-                return Ok(await _svc.UpdatePaymentAsync(id, req));
-            }
-            catch (Exception ex) 
-            {
-                return BadRequest(ex.Message); 
-            }
-        }
-
-
         [HttpGet("lastbalance/{empId}")]
         public async Task<IActionResult> GetLastBalance(long empId) =>
             Ok(await _svc.GetLastBalanceAsync(empId));
+
+        // ---------- Payment history ----------
+
+        [HttpGet("{id}/payments")]
+        public async Task<IActionResult> GetPayments(long id) =>
+            Ok(await _svc.GetPaymentsAsync(id));
+
+        [HttpPost("{id}/payments")]
+        public async Task<IActionResult> AddPayment(long id, AddPaymentRequest req)
+        {
+            try { return Ok(await _svc.AddPaymentAsync(id, req)); }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpPut("payments/{paymentId}")]
+        public async Task<IActionResult> UpdatePaymentEntry(long paymentId, UpdatePaymentEntryRequest req)
+        {
+            try { return Ok(await _svc.UpdatePaymentEntryAsync(paymentId, req)); }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpDelete("payments/{paymentId}")]
+        public async Task<IActionResult> DeletePaymentEntry(long paymentId)
+        {
+            try { return Ok(await _svc.DeletePaymentEntryAsync(paymentId)); }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        // ---------- Arrears ----------
+
+        [HttpPut("{id}/arrears")]
+        public async Task<IActionResult> UpdateArrears(long id, UpdateArrearsRequest req)
+        {
+            try { return Ok(await _svc.UpdateArrearsAsync(id, req.PreviousArrears)); }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
     }
 }

@@ -1,24 +1,41 @@
 ﻿using Models.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Data.Entities
 {
+    [Table("Payments")]
     public class Payment
     {
+        [Key]
         public int PaymentID { get; set; }
-        public int EmployeeID { get; set; }
-        public int MilkEntryID { get; set; }
-        public decimal Quantity { get; set; }
-        public decimal RatePerLiter { get; set; }
-        public decimal TotalAmount { get; set; }
-        public DateTime PaidDate { get; set; }
-        public DateTime CreatedAt { get; set; }
 
-        public Employee? Employee { get; set; }
-        public MilkEntry? MilkEntry { get; set; }
+        [Required]
+        public long EmployeeID { get; set; }
+
+        [ForeignKey(nameof(EmployeeID))]
+        public virtual Employee? Employee { get; set; }
+
+        public long? MilkEntryID { get; set; }
+
+        [ForeignKey(nameof(MilkEntryID))]
+        public virtual MilkEntry? MilkEntry { get; set; }
+
+        public long? InvoiceID { get; set; }
+
+        [Column(TypeName = "decimal(65,30)")]
+        public decimal? Quantity { get; set; }
+
+        [Column(TypeName = "decimal(65,30)")]
+        public decimal? RatePerLiter { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(65,30)")]
+        public decimal TotalAmount { get; set; }
+
+        [Required]
+        public DateTime PaidDate { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
     }
 }

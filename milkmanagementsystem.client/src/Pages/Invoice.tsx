@@ -5,13 +5,17 @@
 import React, { useState, useEffect, useRef } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { InvoiceService, type InvoiceDto, type CreateInvoiceRequest, } from "../Services/InvoiceService";
+import {
+    InvoiceService,
+    type InvoiceDto,
+    type CreateInvoiceRequest,
+    type PaymentEntryDto,
+} from "../Services/InvoiceService";
 import { getEmployees } from "../Services/EmployeeService";
 import { LeaveRequestService } from "../Services/LeaveRequestService";
 import { MilkEntryService } from "../Services/MilkEntryService";
 import Loader from "../Components/Common/Loader";
 import ErrorModal from "../Components/Common/ErrorModal";
-import SuccessModal from "../Components/Common/SuccessModal";
 import ConfirmModal from "../Components/Common/ConfirmModal";
 
 const Invoice: React.FC = () => {
@@ -46,11 +50,24 @@ const Invoice: React.FC = () => {
     const [downloadTarget, setDownloadTarget] = useState<InvoiceDto | null>(null);
     const hiddenDownloadRef = useRef<HTMLDivElement>(null);
 
+    // ---- Payment modal state ----
     const [paymentTarget, setPaymentTarget] = useState<InvoiceDto | null>(null);
-    const [paymentAmount, setPaymentAmount] = useState("");
-    const [paymentDate, setPaymentDate] = useState("");
-    const [paymentNotes, setPaymentNotes] = useState("");
-    const [paymentLoading, setPaymentLoading] = useState(false);
+    const [paymentHistory, setPaymentHistory] = useState<PaymentEntryDto[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+
+    const [newPaymentAmount, setNewPaymentAmount] = useState("");
+    const [newPaymentDate, setNewPaymentDate] = useState("");
+    const [addPaymentLoading, setAddPaymentLoading] = useState(false);
+
+    const [editingEntryId, setEditingEntryId] = useState<number | null>(null);
+    const [editEntryAmount, setEditEntryAmount] = useState("");
+    const [editEntryDate, setEditEntryDate] = useState("");
+    const [editEntryLoading, setEditEntryLoading] = useState(false);
+
+    // ---- Arrears edit state (lives inside the Edit Payment modal) ----
+    const [arrearsEditing, setArrearsEditing] = useState(false);
+    const [arrearsValue, setArrearsValue] = useState("");
+    const [arrearsLoading, setArrearsLoading] = useState(false);
 
     const currentMonthYear = new Date().toISOString().slice(0, 7);
     const todayStr = new Date().toISOString().slice(0, 10);
@@ -70,6 +87,13 @@ const Invoice: React.FC = () => {
         fetchAll();
         setBulkMonthYear(currentMonthYear);
     }, []);
+
+    // Auto-dismiss the success toast
+    useEffect(() => {
+        if (!success) return;
+        const t = setTimeout(() => setSuccess(""), 3000);
+        return () => clearTimeout(t);
+    }, [success]);
 
     const fetchAll = async () => {
         setLoading(true);
@@ -125,6 +149,25 @@ const Invoice: React.FC = () => {
         );
         if (idx === -1 || !/^\d{4}$/.test(year)) return "";
         return `${year}-${String(idx + 1).padStart(2, "0")}`;
+    };
+
+    // Handles "dd-MM-yyyy" style dates (fromDate / generatedDate come in this format)
+    const ddmmyyyyToMonthKey = (value: string | null | undefined): string => {
+        if (!value) return "";
+        const parts = value.trim().split("-");
+        if (parts.length !== 3) return "";
+        const [dd, mm, yyyy] = parts;
+        if (!/^\d{2}$/.test(dd) || !/^\d{2}$/.test(mm) || !/^\d{4}$/.test(yyyy)) return "";
+        return `${yyyy}-${mm}`;
+    };
+
+    // Bug fix: invoices generated "by date range" have no monthYear value,
+    // so they always fell out of the month filter. Fall back to fromDate /
+    // generatedDate so those invoices are still matched correctly.
+    const getInvoiceMonthKey = (inv: InvoiceDto): string => {
+        const direct = toMonthKey(inv.monthYear);
+        if (direct) return direct;
+        return ddmmyyyyToMonthKey(inv.fromDate) || ddmmyyyyToMonthKey(inv.generatedDate);
     };
 
     const parseDdMmYyyy = (value: string): Date | null => {
@@ -211,10 +254,10 @@ const Invoice: React.FC = () => {
         setGenLoading(true);
         try {
             const inv = await InvoiceService.create(payload);
+            setInvoices(prev => [inv, ...prev]);
             setSuccess(`Invoice ${inv.invoiceNumber} generated successfully!`);
             setSelectedInvoice(inv);
             setShowForm(false);
-            fetchAll();
         } catch {
             setError("Failed to generate invoice. Check if data exists for selected period.");
         } finally {
@@ -237,7 +280,7 @@ const Invoice: React.FC = () => {
             setBulkLoading(false);
             setShowBulkForm(false);
             setBulkNotes("");
-            fetchAll();
+            fetchAll(); // bulk mutation with no per-invoice data returned — full reload needed here
         }
     };
 
@@ -248,10 +291,10 @@ const Invoice: React.FC = () => {
         setDeleteLoading(true);
         try {
             await InvoiceService.delete(deleteTargetId);
+            setInvoices(prev => prev.filter(i => i.invoiceID !== deleteTargetId));
             setSuccess("Invoice deleted.");
             if (selectedInvoice?.invoiceID === deleteTargetId) setSelectedInvoice(null);
             setSelectedIds(prev => prev.filter(id => id !== deleteTargetId));
-            fetchAll();
         } catch {
             setError("Failed to delete. This invoice may be linked to other records.");
         } finally {
@@ -261,7 +304,7 @@ const Invoice: React.FC = () => {
     };
 
     const filteredInvoices = invoices.filter((inv) => {
-        const matchesMonth = !filterMonthYear || toMonthKey(inv.monthYear) === filterMonthYear;
+        const matchesMonth = !filterMonthYear || getInvoiceMonthKey(inv) === filterMonthYear;
         const matchesName = !searchName.trim() ||
             (inv.employeeName ?? "").toLowerCase().includes(searchName.trim().toLowerCase());
         return matchesMonth && matchesName;
@@ -292,20 +335,25 @@ const Invoice: React.FC = () => {
             const results = await Promise.allSettled(
                 selectedIds.map(id => InvoiceService.delete(id))
             );
-            const failedCount = results.filter(r => r.status === "rejected").length;
-            const successCount = results.length - failedCount;
+            const succeededIds: number[] = [];
+            const failedIds: number[] = [];
+            results.forEach((r, idx) => {
+                if (r.status === "rejected") failedIds.push(selectedIds[idx]);
+                else succeededIds.push(selectedIds[idx]);
+            });
 
-            if (failedCount > 0) {
-                setError(`${successCount} invoices deleted, ${failedCount} failed.`);
+            if (failedIds.length > 0) {
+                setError(`${succeededIds.length} invoices deleted, ${failedIds.length} failed.`);
             } else {
-                setSuccess(`${successCount} invoice(s) deleted successfully!`);
+                setSuccess(`${succeededIds.length} invoice(s) deleted successfully!`);
             }
 
-            if (selectedInvoice && selectedIds.includes(selectedInvoice.invoiceID)) {
+            setInvoices(prev => prev.filter(i => !succeededIds.includes(i.invoiceID)));
+
+            if (selectedInvoice && succeededIds.includes(selectedInvoice.invoiceID)) {
                 setSelectedInvoice(null);
             }
-            setSelectedIds([]);
-            fetchAll();
+            setSelectedIds(prev => prev.filter(id => failedIds.includes(id)));
         } catch {
             setError("Bulk delete failed.");
         } finally {
@@ -403,42 +451,147 @@ const Invoice: React.FC = () => {
         return () => clearTimeout(timer);
     }, [downloadTarget]);
 
+    // ---------- Payment modal logic ----------
+
+    const loadPaymentHistory = async (invoiceId: number) => {
+        setHistoryLoading(true);
+        try {
+            const data = await InvoiceService.getPayments(invoiceId);
+            setPaymentHistory(Array.isArray(data) ? data : []);
+        } catch {
+            setPaymentHistory([]);
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
     const openPaymentModal = (inv: InvoiceDto) => {
         setPaymentTarget(inv);
-        setPaymentAmount(inv.amountPaid.toFixed(2));
-        setPaymentDate(todayStr);
-        setPaymentNotes("");
+        setNewPaymentAmount("");
+        setNewPaymentDate(todayStr);
+        setEditingEntryId(null);
+        setArrearsEditing(false);
+        setArrearsValue("");
+        loadPaymentHistory(inv.invoiceID);
     };
 
     const closePaymentModal = () => {
         setPaymentTarget(null);
-        setPaymentAmount("");
-        setPaymentDate("");
-        setPaymentNotes("");
+        setPaymentHistory([]);
+        setNewPaymentAmount("");
+        setNewPaymentDate("");
+        setEditingEntryId(null);
+        setArrearsEditing(false);
+        setArrearsValue("");
     };
 
-    const handleSubmitPayment = async () => {
+    const refreshInvoiceEverywhere = (updated: InvoiceDto) => {
+        setInvoices(prev => prev.map(i => i.invoiceID === updated.invoiceID ? updated : i));
+        setPaymentTarget(updated);
+        if (selectedInvoice?.invoiceID === updated.invoiceID) setSelectedInvoice(updated);
+    };
+
+    const handleAddPayment = async () => {
         if (!paymentTarget) return;
-        const amt = Number(paymentAmount);
-        if (paymentAmount === "" || isNaN(amt) || amt < 0) {
-            return setError("Enter a valid paid amount.");
+        const amt = Number(newPaymentAmount);
+        if (newPaymentAmount === "" || isNaN(amt) || amt <= 0) {
+            return setError("Enter a valid amount greater than zero.");
         }
 
-        setPaymentLoading(true);
+        setAddPaymentLoading(true);
         try {
-            const updated = await InvoiceService.updatePayment(paymentTarget.invoiceID, {
-                totalPaidAmount: amt,
-                paidDate: paymentDate || undefined,
-                notes: paymentNotes || undefined,
+            const updated = await InvoiceService.addPayment(paymentTarget.invoiceID, {
+                amount: amt,
+                paidDate: newPaymentDate || undefined,
             });
-            setSuccess(`${updated.invoiceNumber} payment updated — Paid: Rs. ${updated.amountPaid.toFixed(2)}.`);
-            if (selectedInvoice?.invoiceID === updated.invoiceID) setSelectedInvoice(updated);
-            closePaymentModal();
-            fetchAll();
+            setSuccess(`Payment of Rs. ${amt.toFixed(2)} added — Total Paid: Rs. ${updated.amountPaid.toFixed(2)}.`);
+            refreshInvoiceEverywhere(updated);
+            setNewPaymentAmount("");
+            setNewPaymentDate(todayStr);
+            await loadPaymentHistory(paymentTarget.invoiceID);
         } catch {
-            setError("Failed to update payment. Please try again.");
+            setError("Failed to add payment. Please try again.");
         } finally {
-            setPaymentLoading(false);
+            setAddPaymentLoading(false);
+        }
+    };
+
+    const startEditEntry = (entry: PaymentEntryDto) => {
+        setEditingEntryId(entry.paymentID);
+        setEditEntryAmount(entry.amount.toFixed(2));
+        setEditEntryDate(parseDisplayDateToInput(entry.paidDate));
+    };
+
+    const cancelEditEntry = () => {
+        setEditingEntryId(null);
+        setEditEntryAmount("");
+        setEditEntryDate("");
+    };
+
+    // convert "dd-MM-yyyy" (from backend) -> "yyyy-MM-dd" (for <input type=date>)
+    const parseDisplayDateToInput = (value: string): string => {
+        const parts = value.split("-");
+        if (parts.length !== 3) return todayStr;
+        const [dd, mm, yyyy] = parts;
+        return `${yyyy}-${mm}-${dd}`;
+    };
+
+    const handleSaveEditEntry = async () => {
+        if (!paymentTarget || editingEntryId === null) return;
+        const amt = Number(editEntryAmount);
+        // 0 is allowed here — lets you zero-out a mistaken entry without deleting it
+        if (editEntryAmount === "" || isNaN(amt) || amt < 0) {
+            return setError("Enter a valid amount (0 or more).");
+        }
+
+        setEditEntryLoading(true);
+        try {
+            const updated = await InvoiceService.updatePaymentEntry(editingEntryId, {
+                amount: amt,
+                paidDate: editEntryDate || undefined,
+            });
+            setSuccess("Payment entry updated.");
+            refreshInvoiceEverywhere(updated);
+            cancelEditEntry();
+            await loadPaymentHistory(paymentTarget.invoiceID);
+        } catch {
+            setError("Failed to update payment entry.");
+        } finally {
+            setEditEntryLoading(false);
+        }
+    };
+
+    // ---------- Arrears edit logic (operates on paymentTarget, inside Edit Payment modal) ----------
+
+    const startEditArrears = (inv: InvoiceDto) => {
+        setArrearsEditing(true);
+        setArrearsValue(inv.previousArrears.toFixed(2));
+    };
+
+    const cancelEditArrears = () => {
+        setArrearsEditing(false);
+        setArrearsValue("");
+    };
+
+    const handleSaveArrears = async () => {
+        if (!paymentTarget) return;
+        const val = Number(arrearsValue);
+        if (arrearsValue === "" || isNaN(val) || val < 0) {
+            return setError("Enter a valid arrears amount (0 or more).");
+        }
+
+        setArrearsLoading(true);
+        try {
+            const updated = await InvoiceService.updateArrears(paymentTarget.invoiceID, {
+                previousArrears: val,
+            });
+            setSuccess("Previous arrears updated.");
+            refreshInvoiceEverywhere(updated);
+            setArrearsEditing(false);
+        } catch {
+            setError("Failed to update arrears.");
+        } finally {
+            setArrearsLoading(false);
         }
     };
 
@@ -459,10 +612,33 @@ const Invoice: React.FC = () => {
             </span>
         );
     };
+
     return (
         <div className="container-fluid mt-4 px-4 pb-5">
             <ErrorModal message={error} onClose={() => setError("")} />
-            <SuccessModal message={success} onClose={() => setSuccess("")} />
+
+            {/* Small success toast — no modal popup */}
+            {success && (
+                <div
+                    className="position-fixed d-flex align-items-center gap-2 px-3 py-2 shadow-sm"
+                    style={{
+                        top: 16, right: 16, zIndex: 2000,
+                        background: "#dcfce7", color: "#15803d",
+                        borderRadius: 10, fontSize: "0.85rem", fontWeight: 700,
+                        border: "1px solid #bbf7d0", maxWidth: 360
+                    }}
+                >
+                    <i className="bi bi-check-circle-fill" />
+                    <span>{success}</span>
+                    <button
+                        type="button"
+                        className="btn-close"
+                        style={{ fontSize: "0.6rem" }}
+                        onClick={() => setSuccess("")}
+                    />
+                </div>
+            )}
+
             <ConfirmModal
                 title="Delete Invoice"
                 message={deleteTargetId !== null ? "Are you sure you want to delete this invoice? This action cannot be undone." : ""}
@@ -932,7 +1108,7 @@ const Invoice: React.FC = () => {
                                                         }}
                                                         onClick={() => openPaymentModal(inv)}
                                                     >
-                                                        <i className="bi bi-pencil-square me-1" />Update Payment
+                                                        <i className="bi bi-cash-coin me-1" />Edit Payment
                                                     </button>
                                                     <button
                                                         className="btn btn-sm btn-outline-primary"
@@ -998,7 +1174,7 @@ const Invoice: React.FC = () => {
                                             }}
                                             onClick={() => openPaymentModal(selectedInvoice)}
                                         >
-                                            <i className="bi bi-pencil-square me-1" />Update Payment
+                                            <i className="bi bi-cash-coin me-1" />Edit Payment
                                         </button>
                                         <button
                                             className="btn btn-sm fw-semibold"
@@ -1036,9 +1212,10 @@ const Invoice: React.FC = () => {
                                         </button>
                                     </div>
                                 </div>
+
                                 <div
                                     className="p-0"
-                                    style={{ maxHeight: "80vh", overflowY: "auto" }}
+                                    style={{ maxHeight: "70vh", overflowY: "auto" }}
                                     ref={printRef}
                                 >
                                     <InvoiceDetailView
@@ -1052,7 +1229,7 @@ const Invoice: React.FC = () => {
                 </>
             )}
 
-            {/* Update Payment Modal */}
+            {/* Edit Payment Modal — payment history + add payment + arrears, all in one place */}
             {paymentTarget && (
                 <>
                     <div
@@ -1062,86 +1239,239 @@ const Invoice: React.FC = () => {
                             backgroundColor: "rgba(0,0,0,0.6)",
                             zIndex: 1055
                         }}
-                        onClick={() => !paymentLoading && closePaymentModal()}
+                        onClick={() => !addPaymentLoading && !editEntryLoading && !arrearsLoading && closePaymentModal()}
                     />
                     <div className="modal fade show d-block" tabIndex={-1} style={{ zIndex: 1060 }}>
-                        <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-dialog modal-dialog-centered modal-lg">
                             <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
                                 <div className="d-flex justify-content-between align-items-center px-4 py-3"
                                     style={{ background: "#1B4332" }}>
                                     <h6 className="mb-0 fw-bold text-white">
-                                        <i className="bi bi-pencil-square me-2" />Update Payment
+                                        <i className="bi bi-cash-coin me-2" />Edit Payment — {paymentTarget.invoiceNumber}
                                     </h6>
                                     <button
                                         className="btn btn-sm btn-outline-light"
                                         style={{ borderRadius: 8 }}
                                         onClick={closePaymentModal}
-                                        disabled={paymentLoading}
                                     >
                                         <i className="bi bi-x-lg" />
                                     </button>
                                 </div>
-                                <div className="p-4">
+
+                                <div className="p-4" style={{ maxHeight: "75vh", overflowY: "auto" }}>
                                     <div className="mb-3 p-3 rounded-3" style={{ background: "#f0fdf4" }}>
                                         <div className="fw-semibold" style={{ color: "#1B4332" }}>
-                                            {paymentTarget.employeeName} — {paymentTarget.invoiceNumber}
+                                            {paymentTarget.employeeName}
                                         </div>
                                         <div className="text-muted small mt-1">
-                                            Total Amount: Rs. {(paymentTarget.totalAmount + paymentTarget.previousArrears).toFixed(2)}
-                                            {" · "}Currently Paid: Rs. {paymentTarget.amountPaid.toFixed(2)}
+                                            Total To Pay: Rs. {(paymentTarget.totalAmount + paymentTarget.previousArrears).toFixed(2)}
+                                            {" · "}Paid So Far: Rs. {paymentTarget.amountPaid.toFixed(2)}
+                                            {" · "}
+                                            <span style={{
+                                                color: paymentTarget.balanceDue > 0 ? "#dc2626"
+                                                    : paymentTarget.balanceDue < 0 ? "#6d28d9" : "#15803d",
+                                                fontWeight: 700
+                                            }}>
+                                                {paymentTarget.balanceDue > 0
+                                                    ? `Balance Due: Rs. ${paymentTarget.balanceDue.toFixed(2)}`
+                                                    : paymentTarget.balanceDue < 0
+                                                        ? `Advance: Rs. ${Math.abs(paymentTarget.balanceDue).toFixed(2)}`
+                                                        : "Fully Paid"}
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <label className="form-label fw-semibold small text-muted">
-                                        TOTAL AMOUNT PAID SO FAR *
-                                    </label>
-                                    <div className="text-muted mb-2" style={{ fontSize: "0.75rem" }}>
-                                        Enter the correct running total — not "amount paid today".
-                                        Wrong entry earlier? Just come back here and fix the number.
+                                    {/* Previous Arrears */}
+                                    <div className="mb-4 p-3 rounded-3" style={{ background: "#fff7ed", border: "1px solid #fde68a" }}>
+                                        <div className="fw-semibold small mb-2" style={{ color: "#92400e", textTransform: "uppercase" }}>
+                                            Previous Arrears
+                                        </div>
+                                        {!arrearsEditing ? (
+                                            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                                <div style={{ fontSize: "0.9rem" }}>
+                                                    <span className="fw-bold" style={{ color: "#374151" }}>
+                                                        Rs. {paymentTarget.previousArrears.toFixed(2)}
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    className="btn btn-sm fw-semibold"
+                                                    style={{ background: "#92400e", color: "#ffffff", borderRadius: 8 }}
+                                                    onClick={() => startEditArrears(paymentTarget)}
+                                                >
+                                                    <i className="bi bi-pencil-square me-1" />Edit Arrears
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="d-flex align-items-center gap-2 flex-wrap">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    className="form-control form-control-sm"
+                                                    style={{ maxWidth: 160 }}
+                                                    value={arrearsValue}
+                                                    onChange={e => setArrearsValue(e.target.value)}
+                                                />
+                                                <button
+                                                    className="btn btn-sm fw-semibold text-white"
+                                                    style={{ background: "#1B4332", borderRadius: 8 }}
+                                                    onClick={handleSaveArrears}
+                                                    disabled={arrearsLoading}
+                                                >
+                                                    {arrearsLoading
+                                                        ? <span className="spinner-border spinner-border-sm" />
+                                                        : <><i className="bi bi-check-circle me-1" />Save</>
+                                                    }
+                                                </button>
+                                                <button
+                                                    className="btn btn-sm btn-outline-secondary"
+                                                    style={{ borderRadius: 8 }}
+                                                    onClick={cancelEditArrears}
+                                                    disabled={arrearsLoading}
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        )}
+                                        <div className="text-muted mt-2" style={{ fontSize: "0.75rem" }}>
+                                            This is the pending balance carried over from before — not this month's bill.
+                                        </div>
                                     </div>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        step="0.01"
-                                        className="form-control mb-3"
-                                        value={paymentAmount}
-                                        onChange={e => setPaymentAmount(e.target.value)}
-                                        placeholder="Enter total paid amount"
-                                    />
 
-                                    <label className="form-label fw-semibold small text-muted">
-                                        PAYMENT DATE
-                                    </label>
-                                    <input
-                                        type="date"
-                                        className="form-control mb-3"
-                                        value={paymentDate}
-                                        max={todayStr}
-                                        onChange={e => setPaymentDate(e.target.value)}
-                                    />
+                                    {/* Add new payment */}
+                                    <div className="mb-4 p-3 rounded-3" style={{ background: "#f8fafc", border: "1px solid #e5e7eb" }}>
+                                        <div className="fw-semibold small text-muted mb-1" style={{ textTransform: "uppercase" }}>
+                                            Add This Month's Payment
+                                        </div>
+                                        <div className="text-muted mb-2" style={{ fontSize: "0.78rem" }}>
+                                            Enter the amount the customer paid you now. This adds on top of what's already paid — it won't overwrite anything.
+                                        </div>
+                                        <div className="row g-2 align-items-end">
+                                            <div className="col-md-4">
+                                                <label className="form-label small text-muted mb-1">Amount Received (Rs.)</label>
+                                                <input
+                                                    type="number"
+                                                    min="0.01"
+                                                    step="0.01"
+                                                    className="form-control form-control-sm"
+                                                    placeholder="e.g. 50"
+                                                    value={newPaymentAmount}
+                                                    onChange={e => setNewPaymentAmount(e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="col-md-4">
+                                                <label className="form-label small text-muted mb-1">Date Received</label>
+                                                <input
+                                                    type="date"
+                                                    max={todayStr}
+                                                    className="form-control form-control-sm"
+                                                    value={newPaymentDate}
+                                                    onChange={e => setNewPaymentDate(e.target.value)}
+                                                />
+                                            </div>
+                                            <div className="col-md-4">
+                                                <button
+                                                    className="btn btn-sm w-100 fw-semibold text-white"
+                                                    style={{ background: "#1B4332", borderRadius: 8 }}
+                                                    onClick={handleAddPayment}
+                                                    disabled={addPaymentLoading}
+                                                >
+                                                    {addPaymentLoading
+                                                        ? <><span className="spinner-border spinner-border-sm me-1" />Adding...</>
+                                                        : <><i className="bi bi-plus-circle me-1" />Add Payment</>
+                                                    }
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                    <label className="form-label fw-semibold small text-muted">
-                                        NOTES (Optional)
-                                    </label>
-                                    <input
-                                        type="text"
-                                        className="form-control mb-4"
-                                        value={paymentNotes}
-                                        onChange={e => setPaymentNotes(e.target.value)}
-                                        placeholder="e.g. Paid via GPay / Correction"
-                                    />
-
-                                    <button
-                                        className="btn w-100 fw-semibold text-white"
-                                        style={{ background: "#1B4332", borderRadius: 8 }}
-                                        onClick={handleSubmitPayment}
-                                        disabled={paymentLoading}
-                                    >
-                                        {paymentLoading
-                                            ? <><span className="spinner-border spinner-border-sm me-2" />Saving...</>
-                                            : <><i className="bi bi-check-circle me-2" />Save</>
-                                        }
-                                    </button>
+                                    {/* Payment history */}
+                                    <div className="fw-semibold small text-muted mb-2" style={{ textTransform: "uppercase" }}>
+                                        Payment History
+                                    </div>
+                                    {historyLoading ? (
+                                        <div className="py-3"><Loader /></div>
+                                    ) : paymentHistory.length === 0 ? (
+                                        <div className="text-center text-muted py-4" style={{ fontSize: "0.85rem" }}>
+                                            <i className="bi bi-inbox" style={{ fontSize: "1.8rem", display: "block", marginBottom: 6, opacity: 0.4 }} />
+                                            No payments recorded yet for this invoice.
+                                        </div>
+                                    ) : (
+                                        <div className="table-responsive">
+                                            <table className="table table-sm align-middle mb-0">
+                                                <thead>
+                                                    <tr style={{ fontSize: "0.75rem", color: "#6b7280", textTransform: "uppercase" }}>
+                                                        <th>Date</th>
+                                                        <th>Amount</th>
+                                                        <th className="text-end">Action</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {paymentHistory.map(entry => (
+                                                        <tr key={entry.paymentID}>
+                                                            {editingEntryId === entry.paymentID ? (
+                                                                <>
+                                                                    <td style={{ width: 160 }}>
+                                                                        <input
+                                                                            type="date"
+                                                                            max={todayStr}
+                                                                            className="form-control form-control-sm"
+                                                                            value={editEntryDate}
+                                                                            onChange={e => setEditEntryDate(e.target.value)}
+                                                                        />
+                                                                    </td>
+                                                                    <td style={{ width: 140 }}>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            step="0.01"
+                                                                            className="form-control form-control-sm"
+                                                                            value={editEntryAmount}
+                                                                            onChange={e => setEditEntryAmount(e.target.value)}
+                                                                        />
+                                                                    </td>
+                                                                    <td className="text-end">
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-success me-1"
+                                                                            onClick={handleSaveEditEntry}
+                                                                            disabled={editEntryLoading}
+                                                                        >
+                                                                            {editEntryLoading
+                                                                                ? <span className="spinner-border spinner-border-sm" />
+                                                                                : <i className="bi bi-check-lg" />
+                                                                            }
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-secondary"
+                                                                            onClick={cancelEditEntry}
+                                                                            disabled={editEntryLoading}
+                                                                        >
+                                                                            <i className="bi bi-x-lg" />
+                                                                        </button>
+                                                                    </td>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <td style={{ fontSize: "0.85rem" }}>{entry.paidDate}</td>
+                                                                    <td style={{ fontSize: "0.85rem", fontWeight: 700, color: "#15803d" }}>
+                                                                        Rs. {entry.amount.toFixed(2)}
+                                                                    </td>
+                                                                    <td className="text-end">
+                                                                        <button
+                                                                            className="btn btn-sm btn-outline-warning"
+                                                                            onClick={() => startEditEntry(entry)}
+                                                                        >
+                                                                            <i className="bi bi-pencil-square" />
+                                                                        </button>
+                                                                    </td>
+                                                                </>
+                                                            )}
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -51,7 +51,6 @@ public class InvoiceService : IInvoiceService
         var emp = await _db.Employees.FindAsync(req.EmployeeID)
             ?? throw new Exception("Employee not found");
 
-        // Duplicate check: month-mode checks by label; range-mode checks exact date match
         bool alreadyExists = isRangeMode
             ? await _db.Invoices.AnyAsync(i =>
                 i.EmployeeID == req.EmployeeID &&
@@ -321,17 +320,47 @@ public class InvoiceService : IInvoiceService
         return result;
     }
 
+    // Deleting an invoice also removes its linked payments (bug fix — previously
+    // these were left behind and silently inflated later arrears calculations).
     public async Task<bool> DeleteAsync(long id)
     {
         var inv = await _db.Invoices.FindAsync(id);
         if (inv == null) return false;
+
+        var linkedPayments = await _db.Payments
+            .Where(p => p.InvoiceID == id)
+            .ToListAsync();
+
+        if (linkedPayments.Count > 0)
+            _db.Payments.RemoveRange(linkedPayments);
 
         _db.Invoices.Remove(inv);
         await _db.SaveChangesAsync();
         return true;
     }
 
-    public async Task<InvoiceDto> RecordPaymentAsync(long invoiceId, RecordPaymentRequest req)
+    // ---------- Payment history (per invoice) ----------
+
+    public async Task<List<PaymentEntryDto>> GetPaymentsAsync(long invoiceId)
+    {
+        var payments = await _db.Payments
+            .Where(p => p.InvoiceID == invoiceId)
+            .OrderByDescending(p => p.PaidDate)
+            .ThenByDescending(p => p.PaymentID)
+            .ToListAsync();
+
+        return payments.Select(p => new PaymentEntryDto
+        {
+            PaymentID = p.PaymentID,
+            InvoiceID = invoiceId,
+            Amount = p.TotalAmount,
+            PaidDate = p.PaidDate.ToString("dd-MM-yyyy")
+        }).ToList();
+    }
+
+    // Adds a NEW payment entry and ADDS it on top of AmountPaid
+    // — "kudutha 50 add aagum" behaviour.
+    public async Task<InvoiceDto> AddPaymentAsync(long invoiceId, AddPaymentRequest req)
     {
         if (req.Amount <= 0)
             throw new Exception("Payment amount must be greater than zero.");
@@ -339,53 +368,94 @@ public class InvoiceService : IInvoiceService
         var invoice = await _db.Invoices.FindAsync(invoiceId)
             ?? throw new Exception("Invoice not found.");
 
-        var paidDate = req.PaidDate ?? DateTime.Today;
-
         var payment = new Payment
         {
             EmployeeID = (int)invoice.EmployeeID,
+            InvoiceID = invoice.InvoiceID,
+            MilkEntryID = null,
+            Quantity = null,
+            RatePerLiter = null,
             TotalAmount = req.Amount,
-            PaidDate = paidDate,
+            PaidDate = req.PaidDate ?? DateTime.Today,
+            CreatedAt = DateTime.Now
         };
         _db.Payments.Add(payment);
 
         invoice.AmountPaid += req.Amount;
-        var grandTotal = invoice.TotalAmount + invoice.PreviousArrears;
-        invoice.BalanceDue = grandTotal - invoice.AmountPaid;
-        invoice.Status = invoice.BalanceDue <= 0
-            ? "Paid"
-            : invoice.AmountPaid > 0
-                ? "Partial"
-                : "Unpaid";
+        RecalculateInvoice(invoice);
 
         await _db.SaveChangesAsync();
-
         return await MapDtoAsync(invoice);
     }
 
-    public async Task<InvoiceDto> UpdatePaymentAsync(long invoiceId, UpdatePaymentRequest req)
+    // Edits one existing payment entry's amount/date.
+    public async Task<InvoiceDto> UpdatePaymentEntryAsync(long paymentId, UpdatePaymentEntryRequest req)
     {
-        if (req.TotalPaidAmount < 0)
-            throw new Exception("Paid amount cannot be negative.");
+        if (req.Amount <= 0)
+            throw new Exception("Payment amount must be greater than zero.");
+
+        var payment = await _db.Payments.FindAsync((int)paymentId)
+            ?? throw new Exception("Payment entry not found.");
+
+        if (payment.InvoiceID == null)
+            throw new Exception("This payment isn't linked to an invoice and can't be edited here.");
+
+        var invoice = await _db.Invoices.FindAsync(payment.InvoiceID.Value)
+            ?? throw new Exception("Invoice not found.");
+
+        invoice.AmountPaid -= payment.TotalAmount;
+
+        payment.TotalAmount = req.Amount;
+        if (req.PaidDate.HasValue) payment.PaidDate = req.PaidDate.Value;
+
+        invoice.AmountPaid += payment.TotalAmount;
+        RecalculateInvoice(invoice);
+
+        await _db.SaveChangesAsync();
+        return await MapDtoAsync(invoice);
+    }
+
+    // Deletes one payment entry and subtracts it back out of AmountPaid.
+    public async Task<InvoiceDto> DeletePaymentEntryAsync(long paymentId)
+    {
+        var payment = await _db.Payments.FindAsync((int)paymentId)
+            ?? throw new Exception("Payment entry not found.");
+
+        if (payment.InvoiceID == null)
+            throw new Exception("This payment isn't linked to an invoice and can't be deleted here.");
+
+        var invoice = await _db.Invoices.FindAsync(payment.InvoiceID.Value)
+            ?? throw new Exception("Invoice not found.");
+
+        invoice.AmountPaid -= payment.TotalAmount;
+        if (invoice.AmountPaid < 0) invoice.AmountPaid = 0;
+
+        _db.Payments.Remove(payment);
+        RecalculateInvoice(invoice);
+
+        await _db.SaveChangesAsync();
+        return await MapDtoAsync(invoice);
+    }
+
+    // ---------- Arrears (manual override) ----------
+
+    public async Task<InvoiceDto> UpdateArrearsAsync(long invoiceId, decimal previousArrears)
+    {
+        if (previousArrears < 0)
+            throw new Exception("Previous arrears cannot be negative.");
 
         var invoice = await _db.Invoices.FindAsync(invoiceId)
             ?? throw new Exception("Invoice not found.");
 
-        var paidDate = req.PaidDate ?? DateTime.Today;
-        var delta = req.TotalPaidAmount - invoice.AmountPaid;
+        invoice.PreviousArrears = previousArrears;
+        RecalculateInvoice(invoice);
 
-        if (delta != 0)
-        {
-            var payment = new Payment
-            {
-                EmployeeID = (int)invoice.EmployeeID,
-                TotalAmount = delta,
-                PaidDate = paidDate,
-            };
-            _db.Payments.Add(payment);
-        }
+        await _db.SaveChangesAsync();
+        return await MapDtoAsync(invoice);
+    }
 
-        invoice.AmountPaid = req.TotalPaidAmount;
+    private void RecalculateInvoice(Invoice invoice)
+    {
         var grandTotal = invoice.TotalAmount + invoice.PreviousArrears;
         invoice.BalanceDue = grandTotal - invoice.AmountPaid;
         invoice.Status = invoice.BalanceDue <= 0
@@ -393,10 +463,6 @@ public class InvoiceService : IInvoiceService
             : invoice.AmountPaid > 0
                 ? "Partial"
                 : "Unpaid";
-
-        await _db.SaveChangesAsync();
-
-        return await MapDtoAsync(invoice);
     }
 
     private async Task<InvoiceDto> MapDtoAsync(Invoice i)
@@ -435,9 +501,9 @@ public class InvoiceService : IInvoiceService
     }
 
     private (decimal Qty, decimal Amount) ComputeLastPeriod(
-    Invoice invoice,
-    List<MilkEntry> allMilkEntries,
-    List<Invoice> allInvoicesForEmp)
+        Invoice invoice,
+        List<MilkEntry> allMilkEntries,
+        List<Invoice> allInvoicesForEmp)
     {
         try
         {
