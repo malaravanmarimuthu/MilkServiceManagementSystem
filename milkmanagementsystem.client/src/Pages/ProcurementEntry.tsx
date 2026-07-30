@@ -92,7 +92,6 @@ const ProcurementEntry: React.FC = () => {
         return emp ? `${emp.firstName ?? ""} ${emp.lastName ?? ""}`.trim() : `Emp #${empId}`;
     };
 
-    // Date-wise filter + search filter combined
     const dateFilteredEntries = entries.filter((e) => {
         const entryDateOnly = (e.entryDate ?? "").split("T")[0];
         return entryDateOnly === selectedDate;
@@ -215,7 +214,6 @@ const ProcurementEntry: React.FC = () => {
 
             <div className="container-fluid mt-3 px-4">
 
-                {/* Top row: Title + Date + Refresh All */}
                 <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                     <h4 className="fw-bold mb-0">Milk Procurement</h4>
 

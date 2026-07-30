@@ -91,7 +91,6 @@ const MyConsumption: React.FC = () => {
     const [selectedMonth, setSelectedMonth] = useState(currentMonth);
     const [selectedYear, setSelectedYear] = useState(currentYear);
 
-    // ---- Date range filter mode ----
     const [filterMode, setFilterMode] = useState<FilterMode>("month");
     const [fromDate, setFromDate] = useState<string>(toInputDateStr(new Date(currentYear, currentMonth - 1, 1)));
     const [toDate, setToDate] = useState<string>(todayStr);
@@ -125,7 +124,6 @@ const MyConsumption: React.FC = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    // Validate range whenever dates change
     useEffect(() => {
         if (filterMode !== "range") { setRangeError(""); return; }
         if (!fromDate || !toDate) { setRangeError(""); return; }
@@ -201,7 +199,6 @@ const MyConsumption: React.FC = () => {
     ];
     const monthShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-    // ---- Effective date range (works for both "month" and "range" modes) ----
     const getEffectiveRange = (): { start: Date; end: Date } => {
         if (filterMode === "range" && fromDate && toDate && !rangeError) {
             const start = toDateOnly(new Date(fromDate));
@@ -251,7 +248,6 @@ const MyConsumption: React.FC = () => {
         sum + Number(p.totalAmount ?? p.TotalAmount ?? 0), 0
     );
 
-    // ---- Paid amount per date, for the table's "Paid Amount" column ----
     const paidByDate = new Map<string, number>();
     monthlyPayments.forEach((p: any) => {
         const d = new Date(p.paidDate ?? p.PaidDate ?? "");
@@ -265,7 +261,6 @@ const MyConsumption: React.FC = () => {
         return paidByDate.get(dateKeyOf(d)) ?? 0;
     };
 
-    // ---- Pending amount = what's still owed for this period ----
     const pendingAmount = Math.max(totalPrice - totalPaid, 0);
     const isFullyPaid = pendingAmount <= 0;
 
@@ -673,9 +668,7 @@ const MyConsumption: React.FC = () => {
                     </div>
                 ) : (
                     <>
-                                {/* Summary Cards */}
                                 <div className="row g-3 mb-4">
-                                    {/* Amount Paid */}
                                     <div className="col-6 col-md-3">
                                         <div className="card text-center border-0 shadow-sm h-100"
                                             style={{ background: "#1B4332" }}>

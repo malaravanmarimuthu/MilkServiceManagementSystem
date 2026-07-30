@@ -106,7 +106,6 @@ const MonthlySalesHistory: React.FC = () => {
         );
     };
 
-    // Get all days in selected month
     const getAllDaysInMonth = () => {
         const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
         const today = new Date();
@@ -114,7 +113,6 @@ const MonthlySalesHistory: React.FC = () => {
 
         for (let day = 1; day <= daysInMonth; day++) {
             const date = new Date(selectedYear, selectedMonth - 1, day);
-            // Future dates skip — today வரை மட்டும்
             if (date > today) break;
             const dateStr = `${day.toString().padStart(2, "0")}-${selectedMonth.toString().padStart(2, "0")}-${selectedYear}`;
             days.push(dateStr);
@@ -122,23 +120,19 @@ const MonthlySalesHistory: React.FC = () => {
         return days;
     };
 
-    // Filter entries for selected month
     const monthEntries = entries.filter((e: any) => {
         const d = new Date(e.entryDate);
         return d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
     });
 
-    // Filter payments for selected month
     const monthPayments = payments.filter((p: any) => {
         const d = new Date(p.paidDate ?? p.PaidDate ?? "");
         return d.getMonth() + 1 === selectedMonth && d.getFullYear() === selectedYear;
     });
 
-    // Daily summary — ALL days in month (0 for no entry days), now includes payment + pending
     const dailySummary = () => {
         const allDays = getAllDaysInMonth();
 
-        // Build sales map (qty + amount) per day
         const salesMap: Record<string, { totalQty: number; totalAmount: number }> = {};
 
         monthEntries.forEach((e: any) => {
@@ -154,7 +148,6 @@ const MonthlySalesHistory: React.FC = () => {
             salesMap[dateStr].totalAmount += (e.quantity ?? 0) * price;
         });
 
-        // Build payment map per day
         const paymentMap: Record<string, number> = {};
         monthPayments.forEach((p: any) => {
             const d = new Date(p.paidDate ?? p.PaidDate ?? "");
@@ -162,7 +155,6 @@ const MonthlySalesHistory: React.FC = () => {
             paymentMap[dateStr] = (paymentMap[dateStr] ?? 0) + Number(p.totalAmount ?? p.TotalAmount ?? 0);
         });
 
-        // Return ALL days — 0 for missing dates
         return allDays.map(dateStr => {
             const totalQty = salesMap[dateStr]?.totalQty ?? 0;
             const totalAmount = salesMap[dateStr]?.totalAmount ?? 0;
@@ -179,7 +171,6 @@ const MonthlySalesHistory: React.FC = () => {
         });
     };
 
-    // Employee wise summary
     const employeeSummary = () => {
         const map: Record<number, {
             empId: number;

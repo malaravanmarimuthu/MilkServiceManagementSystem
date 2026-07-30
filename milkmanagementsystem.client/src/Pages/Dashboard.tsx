@@ -63,7 +63,6 @@ function Dashboard() {
         try {
             setLoading(true);
 
-            // ---- Employees (Customers & Farmers by role) ----
             const empRes: any = await getEmployees();
             const empData = empRes?.data;
             const empArr = Array.isArray(empData)
@@ -83,7 +82,6 @@ function Dashboard() {
             setActiveCustomers(customerCount);
             setActiveFarmers(farmerCount);
 
-            // ---- Leave Requests (Approved only, covering today) ----
             const leaveData: any = await LeaveRequestService.getAll();
             const leaveArr = Array.isArray(leaveData)
                 ? leaveData
@@ -107,7 +105,6 @@ function Dashboard() {
                 }
             });
 
-            // ---- Milk Entries marked as "Leave" for today ----
             try {
                 const milkArr = await MilkEntryService.getAll();
 
