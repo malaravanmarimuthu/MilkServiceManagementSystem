@@ -51,7 +51,6 @@ public class InvoiceService : IInvoiceService
         var emp = await _db.Employees.FindAsync(req.EmployeeID)
             ?? throw new Exception("Employee not found");
 
-        // Duplicate check: month-mode checks by label; range-mode checks exact date match
         bool alreadyExists = isRangeMode
             ? await _db.Invoices.AnyAsync(i =>
                 i.EmployeeID == req.EmployeeID &&

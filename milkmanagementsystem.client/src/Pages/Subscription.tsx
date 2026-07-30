@@ -304,7 +304,7 @@ function Subscription() {
                 </>
             )}
 
-            {/* Form Modal - Admin only */}
+            {/* Form Modal  */}
             {isAdmin && showFormModal && (
                 <div
                     className="modal d-block"
@@ -406,7 +406,7 @@ function Subscription() {
                 </div>
             )}
 
-            {/* Delete Modal - Admin only */}
+            {/* Delete Modal  */}
             {isAdmin && showDeleteModal && (
                 <div
                     className="modal d-block"

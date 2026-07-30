@@ -109,7 +109,6 @@ const ProcurementMonthlyHistory: React.FC = () => {
         }));
     };
 
-    // Supplier (Farmer) wise summary
     const supplierSummary = () => {
         const map: Record<number, {
             employeeId: number;
@@ -303,7 +302,6 @@ const ProcurementMonthlyHistory: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Supplier (Farmer) wise Summary */}
                         <div className="mb-4">
                             <div className="d-flex align-items-center flex-nowrap gap-3 mb-3">
                                 <h5 className="fw-bold mb-0 text-truncate" style={{ flexShrink: 0 }}>

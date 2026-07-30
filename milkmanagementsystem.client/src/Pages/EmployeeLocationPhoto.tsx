@@ -84,7 +84,6 @@ const EmployeeLocationPhoto: React.FC = () => {
         getEmpName(e).toLowerCase().includes(searchTerm.trim().toLowerCase())
     );
 
-    // ---- Set / Update location: fetch + save directly, no expand panel ----
     const handleSetLocation = (emp: any) => {
         const id = getEmpId(emp);
         if (!navigator.geolocation) {
@@ -111,7 +110,6 @@ const EmployeeLocationPhoto: React.FC = () => {
         );
     };
 
-    // ---- Set / Update photo: open gallery directly, upload on pick ----
     const handleChoosePhotoFor = (emp: any) => {
         photoTargetIdRef.current = getEmpId(emp);
         fileInputRef.current?.click();
@@ -217,7 +215,7 @@ const EmployeeLocationPhoto: React.FC = () => {
         }
     };
 
-    // ---- View photo (enlarge) ----
+    // ---- View photo  ----
     const openViewPhoto = (emp: any) => {
         const url = getEmpPhoto(emp);
         if (!url) return;

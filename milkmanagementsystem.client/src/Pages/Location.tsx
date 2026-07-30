@@ -44,7 +44,6 @@ function Location() {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [searchTerm, setSearchTerm] = useState("");
 
-    // NEW — sort order + dynamic page size (10/20/30/50/100/200)
     const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
     const [recordsPerPage, setRecordsPerPage] = useState<number>(10);
 
@@ -300,7 +299,6 @@ function Location() {
                         </tbody>
                     </table>
 
-                    {/* Page-number navigation only, at the bottom */}
                     <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}
