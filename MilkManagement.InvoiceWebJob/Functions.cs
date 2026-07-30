@@ -20,7 +20,7 @@ namespace MilkManagement.InvoiceWebJob
             return config["ConnectionStrings"]["DefaultConnection"].ToString();
         }
 
-        public static void GenerateInvoices([TimerTrigger("0 0 11 * * *")] TimerInfo timer)
+        public static void GenerateInvoices([TimerTrigger("0 0 5 1 * *")] TimerInfo timer)
         {
             Console.WriteLine($"Invoice generation started at {DateTime.Now}");
 
